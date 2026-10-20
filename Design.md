@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.5 (v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.6 (v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -157,6 +157,12 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V4 | Convergence | Internal | k changes < 0.001 when the point count doubles |
 | V5 | Symmetry | Internal | M_ij = M_ji to machine precision; k invariant under rotating both elements by 2π/q |
 | V6 | Topology preserved under bloom | Internal | Crossing count and over/under pattern unchanged across β ∈ [β_min, β_max]; minimum self-clearance ≥ d_w + 2·t_i |
+| V9 *(v1.6, pre-registered)* | Exact left–right symmetry of ring layouts | Internal | Ring-mode arrays T(2,3) β=0.8 N=16 and T(2,5) β=0.8 m=2 N=24:<br>• every mirror pair's wires coincide with the mirror image to < 1e-9 mm;<br>• k is unchanged under the mirror swap to < 1e-9, for pairs without a midline element;<br>• < 1e-3 for pairs that include a midline element (its crossing lift is not mirror-symmetric) |
+| V10 *(v1.6, pre-registered)* | Capacitor break placement | Internal | All catalogue knots × β ∈ {0.4, 1.5} × m ∈ {1, 4} × breaks ∈ {4, 8} (core R = 30 mm, clearance 5 mm). Whenever the placer reports success:<br>• every break is ≥ 5 mm along the wire from every crossing pass;<br>• longest ÷ shortest segment ≤ 1.5.<br>Cases reported as infeasible are counted, not failed |
+| V11 *(v1.6, pre-registered)* | Capacitor value | Closed form C = n / (ω²L), using the verified ring self-inductance (Rosa & Grover eq. [62]) | Circular loop R = 50 mm, wire radius 0.5 mm, n = 4 and 8, at 3T and 7T: our per-capacitor value within 1% of the closed form |
+| V12 *(v1.6, pre-registered)* | Face exclusion zones respected | Internal | Arrays from every V9 and C2 configuration: zero final-report wire points inside any exclusion zone (zone boundary itself, margin excluded) |
+| V13 *(v1.6, pre-registered)* | Reproducibility | Internal | The same configuration and seed solved twice (free fast; ring) gives identical centres, rotations and k matrix (difference = 0) |
+| V14 *(v1.6, pre-registered)* | B1 implementation, Tier 1 | Independent library: Magpylib 6.x `current.Polyline` (Ortner & Coliado Bandeira 2020, SoftwareX 11:100466; licence and API verified 2026-10-20) | Three cases, the identical thinned wire paths the app uses, about 1,000 points each:<br>(a) one flat trefoil;<br>(b) one T(2,5) element at β = 1.5, m = 4;<br>(c) a solved 16-element array.<br>\|B_ours − B_magpylib\| / \|B_magpylib\| < 0.5% at every point ≥ 10 mm from any wire (the head gap). Points 5–10 mm away are reported for information only |
 | V8 *(added v1.5, pre-registered before running)* | B1 (Biot–Savart) field of a circular loop on its axis | Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in `core/field.js`) | Relative error < 0.5% at z = 0, 10, 20, 40, 80 mm for R = 50 mm, 400 points |
 | V7 *(added v1.3, pre-registered before running)* | Topology preserved under petal sharpness | Internal | Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i |
 
@@ -211,6 +217,27 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20, v1.6 (Reza: "Okay, let's do the major update!" — approving `docs/PROPOSAL_v2.md` with its proposed defaults).**
+  - **Field strength:** Reza did not choose one, so capacitor values are selectable (1.5 / 3 / 7 T), default 3T.
+  - **WP6 solver link:** deferred; the solver survey is in `docs/SOLVER_OPTIONS.md`.
+  - **Scope:**
+    - **WP3 multi-start:** K starts; seed 1 keeps v1.5 behaviour; seeds ≥ 2 jitter the start positions; the best is chosen by worst adjacent |k| in the exact final report, and the spread is reported. Selection cannot be worse than seed 1 on that metric, so there is no comparison test.
+    - **WP11 head and zones:** a parametric head (helmet − 10 mm) with elliptical exclusion zones for the eyes and mouth (angular, centred on the helmet), with a 5 mm wire margin.
+      - Default coverage changes: the face wedge is off and zCut is −20 mm. All zone values are placeholders (JUDG).
+      - Zones are respected both in coverage and in the solver: footprint samples are tested in the fast stage, exact wire points in the exact stage and the final report.
+    - **WP1/WP2 ring mode:**
+      - Elements sit in rings (plus an optional top cap), mirror-symmetric about x = 0 by construction.
+      - Per-ring parameters: elevation, spacing, rotation, and size / bloom / sharpness, each either fixed or optimised per ring.
+      - Mirrored elements use the mirror-image knot. Midline elements are restricted to mirror-compatible rotations.
+      - Ring mode evaluates exact Neumann coupling on wrapped wires directly, with no lookup table, because element shapes differ.
+    - **New neighbour definition, "adjacent":** pairs whose regions touch, judged from which two elements are nearest to each helmet sample point (Voronoi adjacency, i.e. pairs whose zones of closest helmet points share a border).
+      - It is reported for every mode and is the optimisation target in ring mode, because the v1.1 rule (1.35 × pair-null spacing) assumes one shared shape.
+      - Free mode keeps the v1.1 rule as its target and reports both.
+    - **Regularity score:** coefficient of variation of nearest-neighbour centre distances.
+    - **WP4:** load a saved design.
+    - **WP5:** capacitor breaks, placed by wire length with a crossing clearance; first-pass values C = n/(ω²L); Larmor frequency from γ/2π = 42.577 MHz/T (to verify against CODATA before citing); segment-length warning against λ/10, a rule of thumb (JUDG, not a cited value).
+    - **WP12 Tier 1:** check V14.
+  - **New checks:** V9–V14, plus comparison C2 (`validation/COMPARE_ring_vs_free_PROTOCOL.md`), all committed before the code that they test.
 - **2026-10-20, v1.5 (requested by Reza): quick B1 visualisation.**
   - **Request (Reza):** "I just want a quick visualization that's reasonable. We will do simulations later."
   - **What it shows:** the quasi-static magnetic field per unit current (Biot–Savart) of the solved wires, either per element or combined as root-sum-of-squares √Σ|B1ᵢ|².

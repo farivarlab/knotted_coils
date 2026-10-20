@@ -1,0 +1,294 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Proposal: Next Updates (v1.6 → v2)</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Proposal: Knotted Coil Designer, next updates (v1.6 → v2)</h1>
+<p><strong>Status:</strong> DRAFT for Reza’s decision pass, 2026-10-20. Nothing here is built yet. Approved items become Design.md changes, each with pre-registered checks, following the usual rules.</p>
+<p><strong>Why these updates:</strong></p>
+<ul>
+<li>Reza’s feedback: arrays should be <strong>symmetric about the head</strong>; placement “still doesn’t look great”; <strong>bloom and loop size</strong> should be controllable in the array.</li>
+<li>Next phase: <strong>simulation</strong>, through a solver we can drive programmatically.</li>
+<li>Fabrication: wire coils need <strong>capacitor breaks</strong>.</li>
+</ul>
+<hr>
+<h2>Work packages</h2>
+<p>Effort: S = under half a day of work in session; M = about a day; L = several days.</p>
+<h3>WP1. Symmetric ring layouts (the main fix for “doesn’t look great”)</h3>
+<ul>
+<li><strong>What:</strong>
+<ul>
+<li>A new solver mode. Elements sit in <strong>rings</strong> at chosen heights, plus a <strong>top cap</strong>, mirrored <strong>left–right</strong> about the mid-sagittal plane (x = 0).</li>
+<li>Each ring has: element count, elevation, rotation offset, size, bloom, sharpness.</li>
+<li>Only one half is optimised; the other half is its mirror image, so symmetry is exact by construction.</li>
+</ul>
+</li>
+<li><strong>Handedness:</strong> knots have a handedness. The mirror image of a right-handed trefoil is left-handed, with every crossing’s over/under swapped.
+<ul>
+<li>Mirrored elements get the mirrored knot.</li>
+<li>Elements on the midline are symmetric in layout but keep one handedness. The effect on coupling and B1 is negligible in this model (the lift is about 1 mm).</li>
+</ul>
+</li>
+<li><strong>Why:</strong> far fewer unknowns (5–8 per ring rather than 3 per element), so results are less seed-sensitive, more regular, and look like a coil someone would build.</li>
+<li><strong>Pre-registered checks (proposed):</strong>
+<ul>
+<li><strong>V9:</strong> mirror elements coincide to 1e-9 mm, and the coupling matrix is unchanged under the mirror swap, to 1e-9.</li>
+<li><strong>C2 comparison, ring vs current free layout, same N and element:</strong>
+<ul>
+<li>worst nearest-ring |k|;</li>
+<li><strong>regularity score</strong> = coefficient of variation of nearest-neighbour spacings (lower = more even);</li>
+<li>coverage.</li>
+<li>Decision rule written before running.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>Effort:</strong> L. <strong>Depends on:</strong> WP2 (per-ring shapes).</li>
+</ul>
+<h3>WP2. Bloom, size and sharpness controllable in the array</h3>
+<ul>
+<li><strong>What:</strong> in the array solver, each of size, bloom and sharpness can be <strong>fixed by you</strong>, <strong>shared and optimised</strong>, or <strong>optimised per ring</strong> (in ring mode) within bounds you set.</li>
+<li><strong>Why:</strong> bloom moves the pair-null spacing (seen in the Pair explorer), so it’s a real decoupling lever between rings of different spacing. Fixing size lets you match a former or a channel budget.</li>
+<li><strong>Technical note:</strong> the fast stage-1 table currently assumes one element shape. It needs one table per <em>pair</em> of distinct shapes; ring mode keeps that number small.</li>
+<li><strong>Effort:</strong> M.</li>
+</ul>
+<h3>WP3. Multi-start solving (quick win)</h3>
+<ul>
+<li><strong>What:</strong> run K seeds (default 8), keep the best, and <strong>report the spread across seeds</strong> so you can see how much a single run should be trusted.</li>
+<li><strong>Why:</strong> the solver is strongly seed-sensitive (same design: worst |k| 0.010–0.042 across seeds).</li>
+<li><strong>Check:</strong> pre-registered paired comparison, best-of-8 vs single seed, same protocol style as the worst-pair test.</li>
+<li><strong>Effort:</strong> S.</li>
+</ul>
+<h3>WP4. Save and load designs</h3>
+<ul>
+<li><strong>What:</strong> load an exported JSON back into the app.
+<ul>
+<li>The loaded file regenerates exactly, from its configuration and seed.</li>
+<li>Version-checked: it warns if the file came from a different design version.</li>
+</ul>
+</li>
+<li><strong>Why:</strong> needed for comparing layouts and handing designs to collaborators.</li>
+<li><strong>Effort:</strong> S.</li>
+</ul>
+<h3>WP5. Capacitor breaks</h3>
+<ul>
+<li><strong>What:</strong>
+<ul>
+<li>Place N breaks per element evenly by wire length, <strong>keeping a clearance from every crossing</strong> (default 5 mm, JUDG).</li>
+<li>Show them on the element drawing and in 3D.</li>
+<li><strong>First-pass capacitor values</strong> from the element’s self-inductance and the field strength.</li>
+<li><strong>Segment-length warning</strong> against the wavelength.</li>
+<li>Export break positions as <strong>port locations</strong> for simulators.</li>
+</ul>
+</li>
+<li><strong>Physics used:</strong>
+<ul>
+<li>Larmor frequency f = (γ/2π)·B₀, with γ/2π = 42.577 MHz/T for ¹H. A standard constant; I’ll verify it against a primary source (CODATA) before citing.</li>
+<li>C = 1/(ω²L), lumped, ignoring parasitics: a first-pass estimate only.</li>
+<li>“Segment &lt; λ/10” is a rule of thumb. It stays <strong>UNVERIFIED</strong> unless we find a source; otherwise it’s labelled JUDG.</li>
+</ul>
+</li>
+<li><strong>Why:</strong> knots carry more wire than a loop of the same footprint, so they need more breaks, and crossings limit where breaks can go. That’s worth seeing early.</li>
+<li><strong>Proposed checks:</strong>
+<ul>
+<li><strong>V10:</strong> no break within the set clearance of a crossing, and segment lengths equal to within a tolerance.</li>
+<li><strong>V11:</strong> capacitor value for a circular loop matches the closed form.</li>
+</ul>
+</li>
+<li><strong>Effort:</strong> M.</li>
+</ul>
+<h3>WP6. Programmatic link to a field solver</h3>
+<ul>
+<li><strong>What:</strong> a <strong>neutral simulation package</strong> exported from the app, plus one adapter script per solver. The package (JSON + CSV) holds wire paths, breaks and ports, frequency, phantom choice and units. The adapter is a MATLAB or Python script that builds and runs the model and writes S-parameters and fields back to files.</li>
+<li><strong>Which solver:</strong> decided from the verified comparison (<code>docs/SOLVER_OPTIONS.md</code>, in progress).</li>
+<li><strong>First job is a two-element validation case</strong>, pre-registered three ways:
+<ul>
+<li>our tool’s predicted null spacing;</li>
+<li>the simulator’s S21 null;</li>
+<li>a bench S21 measurement.</li>
+</ul>
+</li>
+<li><strong>Effort:</strong> M–L, depending on the solver.</li>
+</ul>
+<h3>WP7. (Optional) In-app thin-wire solver for coils in air</h3>
+<ul>
+<li><strong>What:</strong> a method-of-moments solver for wires, which solves for the current on the wires directly. It would include capacitors, true frequency dependence, self-resonance and S21 between elements, all in the app. No tissue.</li>
+<li><strong>Validate against:</strong> published NEC-2 results, or the linked solver from WP6.</li>
+<li><strong>Decision:</strong> worth it only if WP6’s solver is slow or awkward for coils in air.</li>
+<li><strong>Effort:</strong> L.</li>
+</ul>
+<h3>WP8. Real former and wire spec</h3>
+<ul>
+<li><strong>What:</strong> import an STL scan of the helmet former, and enter the real wire spec.</li>
+<li><strong>Status:</strong> blocked until you send them. Every physical number is still a placeholder.</li>
+<li><strong>Effort:</strong> M.</li>
+</ul>
+<h3>WP9. Fabrication sheet per element</h3>
+<ul>
+<li><strong>What:</strong>
+<ul>
+<li>wire length;</li>
+<li>crossings, with lift heights;</li>
+<li>capacitor positions and values;</li>
+<li>bend radii;</li>
+<li><strong>handedness</strong>, for mirrored elements.</li>
+</ul>
+</li>
+<li><strong>Format:</strong> printable HTML or PDF.</li>
+<li><strong>Later:</strong> an STL former with routing grooves.</li>
+<li><strong>Effort:</strong> S–M.</li>
+</ul>
+<h3>WP11. Head model with face exclusion zones (Reza, 2026-10-20)</h3>
+<ul>
+<li><strong>What:</strong>
+<ul>
+<li>A head inside the helmet, with <strong>exclusion zones</strong> for the eyes and mouth (optional: nose, ears).</li>
+<li>Zones are editable: drag them, resize them.</li>
+<li>The coverage region and the solver both treat zones as no-go. <strong>No wire point may lie inside a zone</strong>, not just no element centre. This replaces the current face wedge.</li>
+</ul>
+</li>
+<li><strong>Why:</strong> comfort, and for vision studies, an unobstructed view for stimuli and eye tracking.</li>
+<li><strong>Head geometry:</strong>
+<ul>
+<li>v1: a parametric head (ellipsoid, plus landmarks placed by facial proportions), all placeholders.</li>
+<li>Later: import a real head mesh (STL), together with WP8.</li>
+<li>The head model must be openly licensed; options are being checked (<code>docs/SOLVER_OPTIONS.md</code>).</li>
+</ul>
+</li>
+<li><strong>Check (proposed) — V12:</strong> across all exported test arrays, zero wire points inside any exclusion zone. Exact, by construction plus a check.</li>
+<li><strong>Effort:</strong> M.</li>
+</ul>
+<h3>WP12. B1 validation in three tiers (Reza: “ensure the B1 estimates aren’t BS”)</h3>
+<ul>
+<li><strong>Tier 1, implementation.</strong> Is the code computing Biot–Savart correctly?
+<ul>
+<li>Compare our JavaScript field values with an <strong>independent third-party library</strong> (candidate: Magpylib, Python; verification in progress) on the <em>identical</em> wire paths, at about 1,000 points per test array: inside the head, near the wires, and far away.</li>
+<li>Add an exact <em>off-axis</em> closed form for a circular loop, taken from a verified textbook source.</li>
+<li>Tolerances pre-registered: e.g. relative error &lt; 0.5% at points ≥ 5 mm from any wire.</li>
+<li>Why third-party: a second implementation by the same author (Claude) could repeat the same misunderstanding.</li>
+</ul>
+</li>
+<li><strong>Tier 2, physics.</strong> Is quasi-static good enough?
+<ul>
+<li>Compare our maps with the full-wave solver from WP6: in air, then with a phantom, at 3T and 7T.</li>
+<li>Report where they diverge and by how much, e.g. normalised difference maps and the depth at which the error exceeds 20%. Thresholds pre-registered.</li>
+<li>Expected: good agreement near the coils and at 3T; substantial divergence deep in a head at 7T. The point is to measure it.</li>
+</ul>
+</li>
+<li><strong>Tier 3, reality.</strong> Bench or scanner B1 mapping of a prototype pair, when one exists.</li>
+<li><strong>App change:</strong> each B1 map is labelled with the highest tier it has actually passed for that configuration (field strength, with or without phantom), instead of a blanket “exploratory”.</li>
+<li><strong>Effort:</strong> Tier 1, S–M (Python 3.12 is already installed). Tier 2 depends on WP6.</li>
+</ul>
+<h3>WP10. Housekeeping</h3>
+<ul>
+<li><strong>Automated app smoke test:</strong> load the app, solve, export, checked by a script.</li>
+<li><strong>Resolve V3:</strong> read Roemer et al. 1990 through McGill library access.</li>
+<li><strong>Choose a licence:</strong> after the OIP conversation.</li>
+</ul>
+<hr>
+<h2>Suggested order</h2>
+<ol>
+<li><strong>WP3</strong> multi-start, small and immediately useful.</li>
+<li><strong>WP12 tier 1</strong> independent B1 cross-check: cheap, and it removes the main credibility question about the B1 view.</li>
+<li><strong>WP11 + WP1 + WP2</strong> head with face exclusion zones, then symmetric rings with per-ring bloom and size, built on that head. The core of your feedback.</li>
+<li><strong>WP4</strong> save and load.</li>
+<li><strong>WP5</strong> capacitor breaks.</li>
+<li><strong>WP6</strong> solver link, once the solver is chosen.</li>
+<li><strong>WP9</strong> fabrication sheet.</li>
+<li><strong>WP7</strong> only if needed. <strong>WP8</strong> when the data arrive.</li>
+</ol>
+<h2>Decisions for Reza</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Decision</th>
+<th>Proposed default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Approve WP1–WP5 as Design v1.6 scope?</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Symmetry: left–right only, or also front–back?</td>
+<td>Left–right only (the face opening breaks front–back symmetry)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Mirrored elements use the mirror-image knot?</td>
+<td>Yes, and the fabrication sheet labels the handedness</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Ring mode: how many rings by default?</td>
+<td>Solver chooses 2–4 rings plus a top cap; you can override</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Should “looks good” be judged by the regularity score in C2?</td>
+<td>Yes: coefficient of variation of nearest-neighbour spacing</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Capacitor clearance from crossings</td>
+<td>5 mm (placeholder until the real capacitor package size is known)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Field strength for capacitor values</td>
+<td><strong>Needed from you:</strong> 3T, 7T, or both</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Solver for WP6</td>
+<td>Pending the verified comparison</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Face exclusion zones</td>
+<td>Eyes and mouth by default; nose and ears optional. Zone sizes are placeholders until measured on your head model or volunteers</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Independent B1 library for Tier 1</td>
+<td>Magpylib, if verification checks out</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Python for Tier 1</td>
+<td>Already installed (3.12). Only the library needs installing, into an isolated environment outside OneDrive</td>
+</tr>
+</tbody>
+</table>
+</body></html>
