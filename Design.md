@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.3 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2 and v1.3 (§3, §7 V7) requested and approved by Reza 2026-10-20, see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.4 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -210,6 +210,15 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20, v1.4: sharpness redefined after V7 FAILED (run 4, git 2188ab0).**
+  - **Why v1.3 failed:** its power-law profile ((1+cos qφ)/2)^m added paired crossings to the flat drawing.
+  - **New definition:** sharpness warps the lobe angle, ψ = qφ + a·sin(qφ) with a = 1 − 1/m. The same ψ drives both radius and lift, r = R(1 + β(1 + cos ψ)/2) and z = h·sin ψ.
+  - **Why this keeps the diagram:** ψ is monotone in φ, so every crossing condition has the same number of solutions as at m = 1. The drawing therefore keeps exactly q(p−1) crossings with the same over/under pattern. This is Claude's argument; V7 tests it.
+  - **Numerical fix, same commit:**
+    - crossing and clearance searches use a spatial grid (checked identical to brute force: 0 of 108 crossing-count mismatches, 0 clearance difference);
+    - the point-count rule requires a stable count across two doublings, max 25,600 points;
+    - reason: one doubling stopped on a spurious count.
+  - **V7 criterion and grid unchanged;** re-run on v1.4.
 - **2026-10-20, v1.3 (requested by Reza): petal sharpness.**
   - **Request (Reza):** "Add a petal-sharpness control that narrows each lobe, with the same topology checks."
   - **§3.1 outward shape becomes** r = R(1 + β·((1 + cos qφ)/2)^m), with sharpness m ≥ 1.

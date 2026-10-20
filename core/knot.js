@@ -70,16 +70,21 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   // Points of the closed curve (first point not repeated). prm: {p,q,beta,size,bloomMode,theta,h}
   knot.points = function (prm, n) {
     var R = knot.coreRadius(prm), p = prm.p, q = prm.q, b = prm.beta, th = prm.theta || 0, h = prm.h || 0;
-    var shape = prm.bloomShape || 'outward', m = prm.sharpness || 1;
+    var shape = prm.bloomShape || 'outward', a = 1 - 1 / Math.max(1, prm.sharpness || 1);
     var P = new Array(n);
     for (var i = 0; i < n; i++) {
-      var phi = 2 * Math.PI * i / n, c = Math.cos(q * phi);
+      var phi = 2 * Math.PI * i / n, x = q * phi;
+      // Petal sharpness (Design v1.4, outward shape only): the lobe angle is warped, psi = x + a sin x with
+      // a = 1 - 1/m, so the wire passes quickly through each lobe tip (x near 0) and slowly along the base
+      // (x near pi): narrower petals. The SAME warped angle drives radius and lift, so the curve stays on the same
+      // torus and the flat drawing keeps exactly q(p-1) crossings with the same over/under pattern
+      // (psi is monotone in x because a < 1). m = 1 (a = 0) is the v1.2 shape.
+      // (v1.3 instead raised the radius profile to the power m; V7 failed: extra paired crossings, see DECISIONS.md.)
+      var psi = shape === 'symmetric' ? x : x + a * Math.sin(x), c = Math.cos(psi);
       // 'outward' (Design v1.2 default): base circle R stays put, lobes grow outward to R(1+beta), so each lobe
       // gets longer at fixed base width (aspect ratio rises with beta). 'symmetric' (v1.0): lobes out AND waist in.
-      // Petal sharpness m (Design v1.3, outward shape only): raising the lobe profile (1+c)/2 to the power m keeps
-      // the tip (profile 1) and the base (profile 0) where they are but narrows the bump. m = 1 is the v1.2 shape.
-      var r = shape === 'symmetric' ? R * (1 + b * c) : R * (1 + b * Math.pow((1 + c) / 2, m));
-      P[i] = [r * Math.cos(p * phi + th), r * Math.sin(p * phi + th), h * Math.sin(q * phi)];
+      var r = shape === 'symmetric' ? R * (1 + b * c) : R * (1 + b * (1 + c) / 2);
+      P[i] = [r * Math.cos(p * phi + th), r * Math.sin(p * phi + th), h * Math.sin(psi)];
     }
     return P;
   };
@@ -96,19 +101,35 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   // Smallest centreline-to-centreline distance between two parts of the wire that are not
   // neighbours along the wire. Pairs closer than `excludeArc` (mm, measured along the wire)
   // are skipped, because adjacent points on the same strand are trivially close.
-  knot.minSelfClearance = function (P, excludeArc) {
+  // With `cap` (mm), only distances below cap are searched for (spatial grid, fast for large n); the result is
+  // min(true clearance, cap). Without cap: exact all-pairs search.
+  knot.minSelfClearance = function (P, excludeArc, cap) {
     var n = P.length, s = new Float64Array(n + 1);
     for (var i = 0; i < n; i++) {
       var a = P[i], b = P[(i + 1) % n];
       s[i + 1] = s[i] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
     }
-    var total = s[n], best = Infinity, where = null;
-    for (var i2 = 0; i2 < n; i2++) {
-      for (var j = i2 + 1; j < n; j++) {
-        var arc = s[j] - s[i2]; arc = Math.min(arc, total - arc);
-        if (arc < excludeArc) continue;
-        var d = Math.hypot(P[i2][0] - P[j][0], P[i2][1] - P[j][1], P[i2][2] - P[j][2]);
-        if (d < best) { best = d; where = [i2, j]; }
+    var total = s[n], best = cap || Infinity, where = null;
+    function test(i2, j) {
+      var arc = Math.abs(s[j] - s[i2]); arc = Math.min(arc, total - arc);
+      if (arc < excludeArc) return;
+      var d = Math.hypot(P[i2][0] - P[j][0], P[i2][1] - P[j][1], P[i2][2] - P[j][2]);
+      if (d < best) { best = d; where = [i2, j]; }
+    }
+    if (!cap) {
+      for (var i2 = 0; i2 < n; i2++) for (var j = i2 + 1; j < n; j++) test(i2, j);
+      return { clearance: best, at: where };
+    }
+    var grid = new Map(), key = function (x, y, z) { return x + ',' + y + ',' + z; };
+    for (var k = 0; k < n; k++) {
+      var g = key(Math.floor(P[k][0] / cap), Math.floor(P[k][1] / cap), Math.floor(P[k][2] / cap));
+      if (!grid.has(g)) grid.set(g, []); grid.get(g).push(k);
+    }
+    for (var k2 = 0; k2 < n; k2++) {
+      var gx = Math.floor(P[k2][0] / cap), gy = Math.floor(P[k2][1] / cap), gz = Math.floor(P[k2][2] / cap);
+      for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) for (var dz = -1; dz <= 1; dz++) {
+        var cell = grid.get(key(gx + dx, gy + dy, gz + dz)); if (!cell) continue;
+        for (var t = 0; t < cell.length; t++) if (cell[t] > k2) test(k2, cell[t]);
       }
     }
     return { clearance: best, at: where };
@@ -133,12 +154,33 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   // Crossings of the flat (x,y) drawing, with which strand is on top.
   // Returns {list:[{i,j,s,t,overIsI}], pattern:'OUOU...'} where pattern is the sequence of
   // over (O) / under (U) passes met while travelling once along the wire.
+  // Segments are binned on a 2D grid (cell = longest segment) so only nearby segment pairs are tested: ~O(n).
   knot.crossings = function (P) {
-    var n = P.length, list = [], ev = [];
-    for (var i = 0; i < n; i++) {
+    var n = P.length, list = [], ev = [], cs = 0;
+    for (var k = 0; k < n; k++) { var u = P[k], w = P[(k + 1) % n]; cs = Math.max(cs, Math.hypot(w[0] - u[0], w[1] - u[1])); }
+    cs = cs || 1;
+    var grid = new Map(), cand = [];
+    for (var k2 = 0; k2 < n; k2++) {
+      var A = P[k2], B = P[(k2 + 1) % n];
+      var x0 = Math.floor(Math.min(A[0], B[0]) / cs), x1 = Math.floor(Math.max(A[0], B[0]) / cs);
+      var y0 = Math.floor(Math.min(A[1], B[1]) / cs), y1 = Math.floor(Math.max(A[1], B[1]) / cs);
+      for (var gx = x0; gx <= x1; gx++) for (var gy = y0; gy <= y1; gy++) {
+        var g = gx + ',' + gy; if (!grid.has(g)) grid.set(g, []); grid.get(g).push(k2);
+      }
+    }
+    var seen = new Set();
+    grid.forEach(function (cell) {
+      for (var u2 = 0; u2 < cell.length; u2++) for (var v2 = u2 + 1; v2 < cell.length; v2++) {
+        var ii = Math.min(cell[u2], cell[v2]), jj = Math.max(cell[u2], cell[v2]), id = ii * n + jj;
+        if (seen.has(id)) continue; seen.add(id); cand.push([ii, jj]);
+      }
+    });
+    cand.sort(function (x, y) { return x[0] - y[0] || x[1] - y[1]; });
+    for (var ci = 0; ci < cand.length; ci++) {
+      var i = cand[ci][0], j = cand[ci][1];
+      if (j < i + 2 || (i === 0 && j === n - 1)) continue;
       var a = P[i], b = P[(i + 1) % n];
-      for (var j = i + 2; j < n; j++) {
-        if (i === 0 && j === n - 1) continue;
+      {
         var c = P[j], d = P[(j + 1) % n];
         var rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1];
         var den = rx * sy - ry * sx;
@@ -171,7 +213,7 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
     var excl = Math.max(4 * clear, 3 * 2 * Math.PI * R * prm.p * (1 + prm.beta) / n);
     function clr(h) {
       var P = knot.points(Object.assign({}, prm, { h: h }), n);
-      return knot.minSelfClearance(P, excl).clearance;
+      return knot.minSelfClearance(P, excl, 2 * clear).clearance;
     }
     var hmax = 10 * clear, cmax = clr(hmax);
     if (cmax < clear) return { h: hmax, clearance: cmax, feasible: false };
@@ -185,12 +227,14 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   };
 
   // Lobe aspect ratio = lobe length / lobe width at half its length (both in the flat drawing).
-  // Half length is where the profile ((1+cos psi)/2)^m = 1/2, i.e. cos psi = 2 * 0.5^(1/m) - 1, with psi = q*phi.
-  // The matching angle around the centre is psi * p / q; width = 2 * that angle * radius at half length.
-  // DERIVED (Claude), from the curve formula; the symmetric shape uses m = 1 and length 2*beta*R.
+  // Half length is where cos(psi) = 0, i.e. psi = pi/2; with the v1.4 warp psi = x + a sin x, solve for x
+  // (bisection). The matching angle around the centre is x * p / q; width = 2 * that angle * radius at half length.
+  // DERIVED (Claude), from the curve formula; the symmetric shape has no warp and length 2*beta*R.
   knot.lobeAspect = function (prm) {
-    var R = knot.coreRadius(prm), sym = prm.bloomShape === 'symmetric', m = sym ? 1 : (prm.sharpness || 1);
-    var psiHalf = Math.acos(2 * Math.pow(0.5, 1 / m) - 1), ang = psiHalf * prm.p / prm.q;
+    var R = knot.coreRadius(prm), sym = prm.bloomShape === 'symmetric', a = sym ? 0 : 1 - 1 / Math.max(1, prm.sharpness || 1);
+    var lo = 0, hi = Math.PI / 2;
+    for (var it = 0; it < 50; it++) { var mid = 0.5 * (lo + hi); if (mid + a * Math.sin(mid) < Math.PI / 2) lo = mid; else hi = mid; }
+    var ang = 0.5 * (lo + hi) * prm.p / prm.q;
     var len = sym ? 2 * prm.beta * R : prm.beta * R, rHalf = sym ? R : R * (1 + prm.beta / 2);
     var width = 2 * ang * rHalf;
     return { length: len, width: width, aspect: len / width };
@@ -207,17 +251,19 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
     return p < 2 ? 0 : clear / (f * R * Math.sin(Math.PI / p));
   };
 
-  // Enough points to resolve every crossing: start at 100*p*q (at least 400) and double until
-  // the crossing count stops changing (max 6400). Validation run 1 showed 300 points missing a
-  // crossing of T(2,5) at beta = 0.9.
+  // Enough points to resolve every crossing: start at 100*p*q*ceil(m) (at least 400) and double until the
+  // crossing count is the same across TWO doublings (n, 2n, 4n); max 25600. History: validation run 1 showed
+  // 300 points missing a T(2,5) crossing; run 5 showed a one-doubling rule stopping on a spurious count
+  // (T(5,6), sharpness 16, needed 16000 points).
   knot.adaptiveN = function (prm, h) {
-    var n = Math.max(400, 100 * prm.p * prm.q), last = -1;
-    while (n <= 6400) {
-      var c = knot.crossings(knot.points(Object.assign({}, prm, { h: h || 1 }), n)).list.length;
-      if (c === last) return n / 2;
-      last = c; n *= 2;
+    var n = Math.max(400, 100 * prm.p * prm.q * Math.ceil(prm.sharpness || 1)), hist = [];
+    while (n <= 25600) {
+      hist.push(knot.crossings(knot.points(Object.assign({}, prm, { h: h || 1 }), n)).list.length);
+      var L = hist.length;
+      if (L >= 3 && hist[L - 1] === hist[L - 2] && hist[L - 2] === hist[L - 3]) return n / 4;
+      n *= 2;
     }
-    return 6400;
+    return 25600;
   };
 
   // Everything a user needs to judge one element: geometry + fabrication checks.
@@ -234,7 +280,7 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       wireLength: knot.wireLength(P), crossings: cr.list.length, expectedCrossings: knot.expectedCrossings(prm.p, prm.q),
       pattern: cr.pattern, minBendRadius: bend, bendOK: bend >= wire.minBend, points: P, n: n,
       betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear, prm.bloomShape),
-      // the floor formula assumes the m = 1 profile; for sharper petals rely on the clearance check instead
+      // the floor formula assumes no warp (m = 1); for sharper petals rely on the clearance check instead
       floorApplies: prm.bloomShape === 'symmetric' || (prm.sharpness || 1) === 1,
       lobe: knot.lobeAspect(prm)
     };
