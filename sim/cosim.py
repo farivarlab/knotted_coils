@@ -90,11 +90,21 @@ class Net:
         self.Ct = list(case['firstPassCap_pF'])
         self.Ct = [c * 1e-12 for c in self.Ct]
         self.Cm, self.Lm = [None] * self.E, [None] * self.E
+        # thin-wire correction (V15b): openEMS's thin curves behave as wires of radius a_eff (set by the grid, calibrated
+        # on the circular loop). The real wire (radius a) has less inductance: dL = (mu0/2pi) * length * ln(a/a_eff).
+        self.a_eff = None
+        self.dL = [0.0] * self.E
+
+    def set_thin_wire(self, a_eff_m):
+        self.a_eff = a_eff_m
+        self.dL = [MU0 / (2 * np.pi) * self.wire_len[e] * np.log(self.a / a_eff_m) for e in range(self.E)]
 
     def r_port(self, e, w):
-        """Copper loss of element e, split equally over its ports (series with each gap)."""
+        """Series impedance per port of element e (all its ports share it equally): copper skin-effect loss, plus the
+        thin-wire inductance correction -j w dL (0 until set_thin_wire is called)."""
         Rs = np.sqrt(w * MU0 / (2 * SIGMA_CU))
-        return self.wire_len[e] * Rs / (2 * np.pi * self.a) / (1 + len(self.tune[e]))
+        n = 1 + len(self.tune[e])
+        return self.wire_len[e] * Rs / (2 * np.pi * self.a) / n - 1j * w * self.dL[e] / n
 
     def feed_load(self, e, w, Zx):
         """Load presented to element e's feed gap by Cm || (Lm + Zx), plus its share of copper loss."""
@@ -212,6 +222,24 @@ def main(name):
     res['V16'] = dict(max_singular_value=smax, max_reciprocity_error=recip)
     Z = s2z(interp_S(freq, S, f0))
     net = Net(case, meta)
+    # ---- thin-wire calibration (loop case) or correction (all other cases), per grid resolution and wire primitive
+    calib_file = os.path.join(ROOT, 'sim', 'out', 'thinwire_calibration.json')
+    calib = json.load(open(calib_file)) if os.path.exists(calib_file) else {}
+    ckey = 'res%s_%s' % (meta['options'].get('res'), meta['options'].get('wire', 'wire'))
+    if case.get('purpose') == 'V15':
+        ZF0 = net.feed_matrix(Z, w0)
+        L_raw = (ZF0[0, 0].imag + len(net.tune[0]) / (w0 * net.Ct[0])) / w0
+        W = np.asarray(case['elements'][0]['wire']) * 1e-3
+        Rl = float(np.mean(np.linalg.norm(W - W.mean(0), axis=1)))
+        a_eff = 8 * Rl * np.exp(-(L_raw / (MU0 * Rl) + 2))          # invert Rosa & Grover eq. [62] (leading term)
+        calib[ckey] = dict(a_eff_mm=a_eff * 1e3, L_raw_nH=L_raw * 1e9, loop_R_mm=Rl * 1e3, from_case=name)
+        json.dump(calib, open(calib_file, 'w'), indent=1)
+        res['thin_wire_calibration'] = calib[ckey]
+    elif ckey in calib:
+        net.set_thin_wire(calib[ckey]['a_eff_mm'] * 1e-3)
+        res['thin_wire_correction'] = dict(key=ckey, a_eff_mm=calib[ckey]['a_eff_mm'], dL_nH=[d * 1e9 for d in net.dL])
+    else:
+        res['thin_wire_correction'] = 'NONE: no calibration for %s (run the loop case at this grid first)' % ckey
     # ---- V15 input (loop case): resonance with the first-pass capacitors in every break
     if case.get('purpose') == 'V15':
         Cfp = case['firstPassCap_pF'][0] * 1e-12
@@ -238,12 +266,25 @@ def main(name):
         return res
     Zext, ZF = net.external(Z, w0)
     Sext = (Zext - Z0 * np.eye(net.E)) @ np.linalg.inv(Zext + Z0 * np.eye(net.E))
-    res['elements'] = [dict(Ct_pF=net.Ct[e] * 1e12, Cm_pF=net.Cm[e] * 1e12, Lm_nH=net.Lm[e] * 1e9, first_pass_Ct_pF=case['firstPassCap_pF'][e],
+    def s11_preamp(e):
+        o = [k for k in range(net.E) if k != e]
+        zin = Zext[e, e] if not o else Zext[e, e] - Zext[np.ix_([e], o)] @ np.linalg.solve(Zext[np.ix_(o, o)] + Z_PRE * np.eye(len(o)), Zext[np.ix_(o, [e])])
+        zin = complex(np.asarray(zin).ravel()[0])
+        return float(20 * np.log10(abs((zin - Z0) / (zin + Z0)) + 1e-300))
+    res['elements'] = [dict(S11_neighbours_preamp_dB=s11_preamp(e), Ct_pF=net.Ct[e] * 1e12, Cm_pF=net.Cm[e] * 1e12, Lm_nH=net.Lm[e] * 1e9, first_pass_Ct_pF=case['firstPassCap_pF'][e],
                             S11_dB=float(20 * np.log10(abs(Sext[e, e]) + 1e-300)), R_loop_ohm=float(ZF[e, e].real),
                             # loop inductance seen by the full-wave model: add back the tuning capacitors' series reactance
-                            L_fullwave_nH=float((ZF[e, e].imag + len(net.tune[e]) / (w0 * net.Ct[e])) / w0 * 1e9),
+                            L_fullwave_corrected_nH=float((ZF[e, e].imag + len(net.tune[e]) / (w0 * net.Ct[e])) / w0 * 1e9),
+                            L_fullwave_raw_nH=float((ZF[e, e].imag + len(net.tune[e]) / (w0 * net.Ct[e])) / w0 * 1e9 + net.dL[e] * 1e9),
                             L_quasistatic_nH=float(case['quasistatic']['L_nH'][e])) for e in range(net.E)]
-    res['V17'] = dict(max_S11_dB=float(max(r['S11_dB'] for r in res['elements'])),
+    if net.a_eff is not None:                                     # V15b input: corrected full-wave L vs quasi-static L
+        res['V15b'] = [dict(element=e, L_corrected_nH=r['L_fullwave_corrected_nH'], L_quasistatic_nH=r['L_quasistatic_nH'],
+                            rel_err=(r['L_fullwave_corrected_nH'] - r['L_quasistatic_nH']) / r['L_quasistatic_nH'])
+                       for e, r in enumerate(res['elements'])]
+    # V17 verdict: S11 in the operating state (neighbours preamp-terminated, as during tuning). Chosen and documented
+    # before any pair result existed (audit M6); S11 with neighbours on 50 ohm is also reported.
+    res['V17'] = dict(max_S11_dB=float(max(r['S11_neighbours_preamp_dB'] for r in res['elements'])),
+                      max_S11_neighbours_50ohm_dB=float(max(r['S11_dB'] for r in res['elements'])),
                       all_positive=bool(all(v > 0 and np.isfinite(v) for e in range(net.E) for v in (net.Ct[e], net.Cm[e], net.Lm[e]))))
     # S11 over the band
     s11_band = []
@@ -267,7 +308,9 @@ def main(name):
                                M_eff_nH=float(ZF[0, 1].imag / w0 * 1e9), R_mutual_ohm=float(ZF[0, 1].real),
                                M_quasistatic_nH=float(qs['M_nH'][0][1]),
                                k_quasistatic=float(qs['M_nH'][0][1] / np.sqrt(qs['L_nH'][0] * qs['L_nH'][1])),
-                               spacing_mm=case.get('spacing_mm'), d0_flat_mm=case.get('d0_flat_mm'))
+                               spacing_mm=case.get('spacing_mm'), d0_flat_mm=case.get('d0_flat_mm'),
+                               k_quasistatic_on_helmet=case.get('k_quasistatic_on_helmet'),
+                               sign_agrees_M_eff_vs_quasistatic=bool(np.sign(ZF[0, 1].imag) == np.sign(qs['M_nH'][0][1])))
     # ---- B1 with the real (capacitor-shaped) currents vs quasi-static uniform current
     b1 = {}
     ph = case.get('phantom')
@@ -285,6 +328,7 @@ def main(name):
             rho = np.sqrt((X / a) ** 2 + (Y / b) ** 2 + (Zc_ / c) ** 2)
             inside = (rho <= 1) & (Zc_ >= ph['zMin'])
             depth = np.sqrt(X ** 2 + Y ** 2 + Zc_ ** 2) * (1 - rho) / np.maximum(rho, 1e-9)   # along the ray from the centre
+            depth = np.minimum(depth, Zc_ - ph['zMin'])                  # audit M14: the neck cut is also a surface
         else:
             inside = np.ones(X.shape, bool)
             depth = None
@@ -311,6 +355,14 @@ def main(name):
                         break
                 rec['breakdown_depth_mm'] = bd
                 rec['n_points_within_20mm'] = int(near.sum())
+                # audit M7 (information only; the registered V18 verdict above is unchanged): normalise both maps by
+                # their median over 20-40 mm depth instead of the single in-plane maximum
+                mid = inside & (depth >= 20) & (depth <= 40)
+                if mid.sum() >= 5:
+                    fr = b1m / np.median(b1m[mid]); qr = qsm / np.median(qsm[mid])
+                    rr = np.abs(qr - fr) / np.maximum(fr, 1e-12)
+                    rec['info_robust_max_rel_diff_within_20mm'] = float(rr[near].max()) if near.any() else None
+                    rec['info_robust_median_rel_diff_within_20mm'] = float(np.median(rr[near])) if near.any() else None
                 np.savez_compressed(os.path.join(out, 'b1_%s_e%d.npz' % (pl['name'], e)), X=X, Y=Y, Z=Zc_, fullwave=b1m, quasistatic=qsm, inside=inside)
             per_el.append(rec)
         b1[pl['name']] = per_el
@@ -319,6 +371,25 @@ def main(name):
         vals = [r['V18_max_rel_diff_within_20mm'] for pl in b1.values() for r in pl if r.get('V18_max_rel_diff_within_20mm') is not None]
         res['V18'] = dict(max_rel_diff_within_20mm=max(vals) if vals else None,
                           breakdown_depths_mm={k: [r['breakdown_depth_mm'] for r in v] for k, v in b1.items()})
+    if not res['loaded']:
+        res['warning_air'] = ('In air the loop resistance is copper only (%.3g ohm); FDTD noise in Re(Z) can dominate, so the '
+                              'air Cm/Lm values have low precision (audit M15).' % min(r['R_loop_ohm'] for r in res['elements']))
+    # audit M3: superposition check (field of ports 0+1 driven together vs superposed single-port fields)
+    if 'check_Uinc0' in D.files:
+        chk = {}
+        for pl in meta['planes']:
+            Hd = D['check_H_' + pl['name']]
+            Hsup = np.tensordot(D['check_Uinc0'], D['H_' + pl['name']], axes=(0, 0))
+            num = np.linalg.norm((Hd - Hsup).ravel()); den = np.linalg.norm(Hd.ravel())
+            chk[pl['name']] = float(num / den)
+        res['check_superposition_rel_err'] = chk
+    import subprocess
+    try:
+        res['git'] = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=ROOT).decode().strip()
+        res['git_dirty_code'] = bool(subprocess.check_output(['git', 'status', '--porcelain', '--', 'sim', 'core', 'tests'], cwd=ROOT).decode().strip())
+    except Exception:
+        res['git'] = 'unknown'
+    res['openems_meta'] = dict(git=meta.get('git'), options=meta.get('options'), openems_version=meta.get('openems_version'))
     json.dump(res, open(os.path.join(out, 'cosim.json'), 'w'), indent=1)
     try:
         plots(out, name, freq, s11_band, f0, net.E, res)

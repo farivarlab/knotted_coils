@@ -100,4 +100,8 @@ var v = 20 * Math.PI / 180, rho = H.a * Math.cos(v);   // horizontal radius at t
   write('pair_head_3T_d' + (dd >= 0 ? '+' : '') + dd, 3, [e1, e2], phantom(3), { purpose: 'V19', d0_flat_mm: d0, spacing_mm: d,
     k_quasistatic_on_helmet: kqs });
   console.log('   spacing', d.toFixed(1), 'mm (d0 flat', d0.toFixed(1), ') k_qs on helmet', kqs.toFixed(4));
+  // audit M5 (added after the independent review): the same pair in air at d0, to separate tissue effects from
+  // geometry/capacitor effects and to check the sign of M_eff against the quasi-static M.
+  if (dd === 0) write('pair_air_3T_d+0', 3, [e1, e2], null, { purpose: 'audit M5 (information)', d0_flat_mm: d0, spacing_mm: d,
+    k_quasistatic_on_helmet: kqs });
 });

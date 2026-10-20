@@ -63,6 +63,20 @@ It designs MRI receive phased arrays made of **flat knotted wire loops** (torus 
 - **Capacitor breaks:** `KC.knot.breaks` places them; `KC.knot.capacitor` gives values (γ/2π from CODATA 2022). The app exports them as ports.
 - **B1:** `KC.field.vector` uses the exact finite-segment formula, not the midpoint rule; V14 checks it against Magpylib.
 
+### v1.7 full-wave capacitor co-simulation (`sim/`)
+
+- **Setup (Windows, outside OneDrive):**
+  - openEMS 0.37.0 unpacked to `C:\Users\reza\.solvers\openEMS`; override with `KC_OPENEMS_DIR`.
+  - Python 3.14 environment `C:\Users\reza\.venvs\kc_em` with numpy, scipy, h5py, matplotlib, magpylib 6.0.0, and the openEMS/CSXCAD wheels from `openEMS\python`.
+  - The scripts set `CSXCAD_INSTALL_PATH` for their own process; no permanent `setx` is used.
+  - Large working files go to `C:\Users\reza\.solvers\work` (`KC_SIM_WORK`).
+- **Workflow:**
+  1. `node tests/export_case.js`, or the app's "Export simulation case", writes `sim/cases/*.json`.
+  2. `python sim/run_openems.py sim/cases/<case>.json` runs one FDTD simulation per capacitor break and writes `sim/out/<case>/openems.npz` and `openems_meta.json`.
+  3. `python sim/cosim.py <case>` chooses the capacitors and evaluates coupling and B1. It writes `cosim.json` and PNGs.
+  4. **Run `loop_air_3T` first at each grid resolution:** it calibrates the thin-wire correction (`sim/out/thinwire_calibration.json`), which every other case uses.
+- **Matching topology:** shunt C_m across the feed gap, series L_m to the preamp. The tuning condition is X = √(Z₀R) (derivation in the `sim/cosim.py` header). L_m·C_m resonance gives preamp decoupling.
+
 ## 4. Common extensions — where to start
 
 | You want to… | Do this |

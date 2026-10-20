@@ -30,6 +30,31 @@ Last updated 2026-10-20.
 | Bloom mode | constant core | JUDG | Design D2 | app |
 | Rotation mode | free per element | JUDG | Reza 2026-10-20: rotation as a decoupling lever | `core/optimise.js` |
 
+## Design v1.7: full-wave co-simulation (`sim/`)
+
+| Parameter | Value | Tag | Rationale / source | Where |
+|---|---|---|---|---|
+| Solver | openEMS 0.37.0 (FDTD), Python 3.14 wheels | CONV | Verified install 2026-10-20; docs.openems.de | `sim/run_openems.py` |
+| Wire primitive | `AddCurve` (thin PEC curve) | JUDG | `AddWire` with radius 0.5 mm **disconnected** on a 2 mm grid (see DECISIONS) | `sim/run_openems.py` |
+| Grid near wires | 1.0 mm | JUDG | Sensitivity runs at 0.5 / 1.0 / 2.0 mm | `sim/run_openems.py` |
+| Grid in phantom | 3.0 mm | JUDG | openEMS MRI tutorial uses 2 mm | `sim/run_openems.py` |
+| Port / capacitor gap | 2.0 mm | JUDG | | `sim/run_openems.py` |
+| Air spacer | 200 mm | CONV | openEMS MRI_Loop_Coil tutorial | `sim/run_openems.py` |
+| End criterion | 1e-4 | CONV | openEMS MRI_Loop_Coil tutorial | `sim/run_openems.py` |
+| Excitation half-band | 0.5 × f0 | JUDG | | `sim/run_openems.py` |
+| Boundary | MUR (all sides) | CONV | openEMS MRI_Loop_Coil tutorial | `sim/run_openems.py` |
+| Thin-wire effective radius a_eff | calibrated per grid on the R = 40 mm loop | DERIVED | Inverts Rosa & Grover eq. [62]; validated by V15b on the trefoil | `sim/cosim.py` |
+| Copper conductivity | 5.8e7 S/m | CONV | Standard handbook value, **not cited** | `sim/cosim.py` |
+| Capacitor Q | 1000 | JUDG PLACEHOLDER | Until components are chosen | `sim/cosim.py` |
+| Matching-inductor Q | 100 | JUDG PLACEHOLDER | | `sim/cosim.py` |
+| Preamp input impedance | 2 Ω | JUDG PLACEHOLDER | | `sim/cosim.py` |
+| Tuning passes (arrays) | 3 | JUDG | | `sim/cosim.py` |
+| Tissue 7T (brain / skull / skin εr, σ) | 52.7, 0.95 / 11.4, 0.29 / 38.9, 0.84 | CONV (secondary) | openEMS bundled phantom, attributed to IT'IS/Gabriel; **not independently verified** | `tests/export_case.js`, app |
+| Tissue 3T | 62.8, 0.66 / 12.5, 0.13 / 46.8, 0.58 | **APPROXIMATION** | openEMS 128 MHz *body* phantom values mapped to head layers | same |
+| Phantom layers | skin 4 mm, skull 7 mm | JUDG PLACEHOLDER | | `tests/export_case.js` |
+| Test element | T(2,3), β 0.8, Rf 45 mm, 4 breaks, posterior midline at 20° elevation | JUDG | | `tests/export_case.js` |
+| V18 depth | along the ray from the head centre | JUDG | Not the true normal distance | `sim/cosim.py` |
+
 ## Design v1.6 additions
 
 | Parameter | Value | Tag | Rationale / source | Where |

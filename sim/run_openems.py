@@ -139,7 +139,15 @@ def planes_for(case):
     cen = W.mean(axis=0)
     ph = case.get('phantom')
     ext = (np.array(ph['axes']) + 20) if ph else np.array([120, 140, 150])
-    y_cor = cen[1] + np.sign(-cen[1]) * 15.0 if ph else cen[1] + 20.0
+    if ph:
+        # audit M13: measure the 15 mm from the HEAD surface (along the ray from the head centre through the element),
+        # not from the helmet/wire
+        a_, b_, c_ = ph['axes']
+        rho = np.sqrt((cen[0] / a_) ** 2 + (cen[1] / b_) ** 2 + (cen[2] / c_) ** 2)
+        y_surf = cen[1] / rho
+        y_cor = y_surf + np.sign(-y_surf) * 15.0
+    else:
+        y_cor = cen[1] + np.sign(-cen[1]) * 25.0
     return [dict(name='axial', axis=2, pos=float(cen[2]), start=[-ext[0], -ext[1], float(cen[2])], stop=[ext[0], ext[1], float(cen[2])]),
             dict(name='coronal', axis=1, pos=float(y_cor), start=[-ext[0], float(y_cor), -ext[2]], stop=[ext[0], float(y_cor), ext[2]])]
 
@@ -170,7 +178,8 @@ def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box)
             allpts.append(arr)
         for k, q in enumerate(prt):
             port = FDTD.AddLumpedPort(port_nr=pidx + 1, R=Z0, start=q['A'], stop=q['B'], p_dir='xyz'[q['axis']],
-                                      excite=1.0 if pidx == drive else 0, priority=20, edges2grid='all')
+                                      excite=1.0 if (pidx == drive or (isinstance(drive, list) and pidx in drive)) else 0,
+                                      priority=20, edges2grid='all')
             ports.append(dict(obj=port, element=ei, k=k, feed=(k == 0), axis=q['axis'], sign=q['sign'],
                               A=q['A'].tolist(), B=q['B'].tolist(), p=q['p'].tolist()))
             for v in (q['A'], q['B']):
@@ -214,6 +223,7 @@ def main():
     ap.add_argument('--fc_frac', type=float, default=0.5)
     ap.add_argument('--nf', type=int, default=201)
     ap.add_argument('--wire', default='curve', choices=['curve', 'wire'], help='curve (default since v1.7 dev) or radius-aware wire')
+    ap.add_argument('--superpose_check', action='store_true', help='audit M3: one extra run with ports 0 and 1 driven together')
     ap.add_argument('--tag', default='', help='suffix for the output folder (e.g. mesh-sensitivity runs)')
     opt = ap.parse_args()
     opt.case = os.path.abspath(opt.case)          # openEMS changes the working directory during Run()
@@ -262,12 +272,38 @@ def main():
         print('run %d/%d: %d cells, %.0f s' % (j + 1, nports, ncells, secs), flush=True)
         shutil.rmtree(sp, ignore_errors=True)
     save = dict(freq=freq, S=S, Uinc0=Uinc0)
+    if opt.superpose_check and nports >= 2:
+        # audit M3 (post-hoc check, added after the independent review, before any result was seen): drive ports 0 and 1
+        # together in one run; cosim.py compares this field with the superposition of the single-port runs.
+        sp = os.path.join(work, 'run_check')
+        if os.path.isdir(sp):
+            shutil.rmtree(sp)
+        ports, ncells, secs = build_and_run(case, [0, 1], sp, opt, planes, phantom_file, phantom_box)
+        uinc = []
+        for P in ports:
+            P['obj'].CalcPort(sp, freq, ref_impedance=Z0)
+            u = P['obj'].uf_inc
+            uinc.append(np.interp(f0, freq, u.real) + 1j * np.interp(f0, freq, u.imag))
+        save['check_Uinc0'] = np.array(uinc)
+        for pl in planes:
+            with HDF5Dump(os.path.join(sp, 'Hf_' + pl['name'] + '.h5')) as dump:
+                dump.SetPlane('xyz'[pl['axis']], pos=pl['pos'] * UNIT)
+                save['check_H_' + pl['name']] = np.asarray(dump.GetFieldAtIndex(f_idx=0))
+        runs.append(dict(port='check(0+1)', cells=ncells, seconds=secs))
+        shutil.rmtree(sp, ignore_errors=True)
+        print('superposition check run done', flush=True)
     for k, v in Hplanes.items():
         save['H_' + k] = v
         for ax, lines in enumerate(plane_mesh[k]):
             save['mesh_%s_%d' % (k, ax)] = lines
     np.savez_compressed(os.path.join(out, 'openems.npz'), **save)
-    json.dump(dict(case=name, case_file=opt.case, openems_version=__import__('openEMS').__version__, options=vars(opt), ports=meta_ports, runs=runs,
+    import subprocess
+    try:
+        git = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=ROOT).decode().strip()
+        dirty = bool(subprocess.check_output(['git', 'status', '--porcelain', '--', 'sim', 'core', 'tests'], cwd=ROOT).decode().strip())
+    except Exception:
+        git, dirty = 'unknown', None
+    json.dump(dict(case=name, case_file=opt.case, git=git, git_dirty_code=dirty, openems_version=__import__('openEMS').__version__, options=vars(opt), ports=meta_ports, runs=runs,
                    planes=[{k: v for k, v in pl.items()} for pl in planes], f0_Hz=f0,
                    note='S over band; H planes per run normalised to unit incident wave at the driven port (openEMS uf_inc).'),
               open(os.path.join(out, 'openems_meta.json'), 'w'), indent=1, default=lambda o: o.tolist() if hasattr(o, 'tolist') else float(o))

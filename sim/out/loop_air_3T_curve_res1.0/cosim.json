@@ -1,0 +1,60 @@
+{
+ "case": "loop_air_3T_curve_res1.0",
+ "B0_T": 3,
+ "f0_MHz": 127.73243538299998,
+ "loaded": false,
+ "tissue_source": null,
+ "parameters": {
+  "SIGMA_CU": 58000000.0,
+  "Q_CAP": 1000.0,
+  "Q_IND": 100.0,
+  "Z_PRE": 2.0,
+  "PASSES": 3
+ },
+ "V16": {
+  "max_singular_value": 1.000520578423799,
+  "max_reciprocity_error": 0.0007898131712597202
+ },
+ "thin_wire_calibration": {
+  "a_eff_mm": 0.1696968447378829,
+  "L_raw_nH": 278.5744552180452,
+  "loop_R_mm": 40.0,
+  "from_case": "loop_air_3T_curve_res1.0"
+ },
+ "V15": {
+  "first_pass_C_pF": 27.750921433089307,
+  "predicted_MHz": 127.73243538299998,
+  "resonance_MHz": 114.61939850464982,
+  "rel_err": -0.10266019620647891
+ },
+ "tuned": true,
+ "elements": [
+  {
+   "Ct_pF": 17.117189701315027,
+   "Cm_pF": 218.6915681307064,
+   "Lm_nH": 7.099141609346785,
+   "first_pass_Ct_pF": 27.750921433089307,
+   "S11_dB": -48.25126738516939,
+   "R_loop_ohm": 0.6492377982559724,
+   "L_fullwave_corrected_nH": 279.1979682311122,
+   "L_fullwave_raw_nH": 279.1979682311122,
+   "L_quasistatic_nH": 223.7795836326815
+  }
+ ],
+ "V17": {
+  "max_S11_dB": -48.25126738516939,
+  "all_positive": true
+ },
+ "B1": {
+  "axial": [
+   {
+    "element": 0
+   }
+  ],
+  "coronal": [
+   {
+    "element": 0
+   }
+  ]
+ }
+}

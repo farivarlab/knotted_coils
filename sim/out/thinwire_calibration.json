@@ -1,0 +1,8 @@
+{
+ "res1.0_curve": {
+  "a_eff_mm": 0.1696968447378829,
+  "L_raw_nH": 278.5744552180452,
+  "loop_R_mm": 40.0,
+  "from_case": "loop_air_3T_curve_res1.0"
+ }
+}

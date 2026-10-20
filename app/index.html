@@ -153,6 +153,10 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
     <button id="exK">k matrix CSV</button><button id="exOBJ">Wires OBJ</button><button id="exSTL">Wires STL</button>
     <button id="exSVG">Element SVG</button><button id="exPorts">Capacitor ports CSV</button>
   </div>
+  <h2>Full-wave co-simulation (v1.7)</h2>
+  <div class="btns"><button id="exCase">Export simulation case</button><button id="loadCosimBtn">Load co-simulation results…</button>
+    <input type="file" id="loadCosim" accept=".json,application/json" style="display:none"></div>
+  <p class="note">Case → <code>python sim/run_openems.py case.json</code> then <code>python sim/cosim.py &lt;name&gt;</code> (openEMS; one FDTD run per capacitor break, so keep arrays small). Results are exploratory.</p>
   <h2>Load</h2>
   <div class="btns"><button id="loadBtn">Load design JSON…</button><input type="file" id="loadFile" accept=".json,application/json" style="display:none"></div>
   <p class="note">Units: mm, nH. Coordinates: x left–right, y back–front, z up.</p>
@@ -207,7 +211,9 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
         <h3 style="margin-top:14px">Coupling matrix k<sub>ij</sub></h3>
         <canvas id="heat" width="360" height="360"></canvas>
         <div class="legend"><span><i style="background:#3b6fd9"></i>negative</span><span><i style="background:#d9473f"></i>positive</span><span>saturates at |k| = 0.05</span></div>
-        <h3 style="margin-top:14px" id="selTitle">Worst target pairs</h3><table class="kv" id="pairList"></table></div>
+        <h3 style="margin-top:14px" id="selTitle">Worst target pairs</h3><table class="kv" id="pairList"></table>
+        <div id="cosimCard" style="display:none"><h3 style="margin-top:14px">Full-wave co-simulation results</h3><table class="kv" id="cosimTable"></table>
+          <p class="note">From sim/cosim.py (openEMS + circuit co-simulation). Exploratory: one solver, placeholder phantom and component Q.</p></div></div>
     </div>
   </section>
 </main>
@@ -852,6 +858,61 @@ $('exPorts').onclick = function () {
   });
   download('knotted_array_ports_' + stamp() + '.csv', lines.join('\n'), 'text/csv');
 };
+// ---- Full-wave co-simulation link (Design v1.7 §6b) ----
+// Case file: same schema as tests/export_case.js (wires in world mm, breaks with tangent, first break = feed).
+// Tissue values must match sim/: 7T from openEMS's bundled head phantom (secondary source), 3T an approximation.
+var KC_TISSUE = {
+  7: { brain: { epsR: 52.7, kappa: 0.95 }, skull: { epsR: 11.4, kappa: 0.29 }, skin: { epsR: 38.9, kappa: 0.84 }, source: 'openEMS 0.37.0 phantom_head_298MHz.h5 (attributed to IT\'IS/Gabriel); not independently verified' },
+  3: { brain: { epsR: 62.8, kappa: 0.66 }, skull: { epsR: 12.5, kappa: 0.13 }, skin: { epsR: 46.8, kappa: 0.58 }, source: 'APPROXIMATION: openEMS 0.37.0 phantom_body_128MHz.h5 values mapped to head layers' }
+};
+$('exCase').onclick = function () {
+  if (!need()) return;
+  var B0 = +$('B0').value, nb = Math.max(1, Math.round(+$('nBreaks').value)), clr = +$('capClear').value, N = arrRes.N;
+  if (!KC_TISSUE[B0]) { alert('Co-simulation phantoms are defined for 3 T and 7 T only.'); return; }
+  var H = arrRes.config.helmet, hd = KC.field.head(H);
+  var els = arrRes.wires.map(function (Wp, e) {
+    var bk = K.breaks(arrRes.flats[e], nb, clr), n = Wp.length;
+    return { wire: Wp, normals: arrRes.normals[e], breaksOK: bk.ok, minDistToCrossing: bk.minDistToCrossing, L_nH: arrRes.L[e],
+      breaks: bk.at.map(function (b) {
+        var A = Wp[b.index], Bq = Wp[(b.index + 1) % n], t = [Bq[0] - A[0], Bq[1] - A[1], Bq[2] - A[2]], tl = Math.hypot(t[0], t[1], t[2]) || 1;
+        return { p: [A[0] + b.f * t[0], A[1] + b.f * t[1], A[2] + b.f * t[2]], t: [t[0] / tl, t[1] / tl, t[2] / tl], index: b.index, f: b.f };
+      }) };
+  });
+  var M = els.map(function (a, i) { return els.map(function (b, j) { return i === j ? a.L_nH : arrRes.kMatrix[i * N + j] * Math.sqrt(a.L_nH * b.L_nH); }); });
+  var name = 'app_array_N' + N + '_' + B0 + 'T_' + stamp();
+  var c = { name: name, created: new Date().toISOString(), B0_T: B0, f0_Hz: K.GAMMA_BAR_MHZ_PER_T * 1e6 * B0, wire_radius_mm: arrRes.config.wire.d / 2, nBreaks: nb,
+    firstPassCap_pF: els.map(function (e) { return K.capacitor(e.L_nH, nb, B0).perCapPF; }), elements: els,
+    phantom: { type: 'head3', axes: [hd.a, hd.b, hd.c], skin_mm: 4, skull_mm: 7, zMin: H.zCut - 60, tissue: KC_TISSUE[B0] },
+    quasistatic: { L_nH: els.map(function (e) { return e.L_nH; }), M_nH: M }, helmet: H, purpose: 'app export',
+    warning: 'One FDTD run per break: ' + (N * nb) + ' runs. Exploratory.' };
+  download(name + '.json', JSON.stringify(c), 'application/json');
+};
+$('loadCosimBtn').onclick = function () { $('loadCosim').click(); };
+$('loadCosim').addEventListener('change', function () {
+  var f = $('loadCosim').files[0]; if (!f) return;
+  f.text().then(function (txt) {
+    var r = JSON.parse(txt), rows = [['Case', r.case + ' (' + r.B0_T + ' T, ' + (r.loaded ? 'head-loaded' : 'in air') + ')']];
+    if (r.tissue_source) rows.push(['Tissue values', r.tissue_source]);
+    if (r.thin_wire_correction) rows.push(['Thin-wire correction', typeof r.thin_wire_correction === 'string' ? r.thin_wire_correction : 'a_eff ' + fmt(r.thin_wire_correction.a_eff_mm, 3) + ' mm']);
+    if (!r.tuned) rows.push(['Tuning', '<span class="flag bad">failed</span>']);
+    (r.elements || []).forEach(function (e, i) {
+      rows.push(['Element ' + i + ': Ct / Cm / Lm', fmt(e.Ct_pF, 2) + ' pF / ' + fmt(e.Cm_pF, 1) + ' pF / ' + fmt(e.Lm_nH, 1) + ' nH (first pass Ct ' + fmt(e.first_pass_Ct_pF, 2) + ' pF)']);
+      rows.push(['  S11 at f0 / loop L corrected vs quasi-static', fmt(e.S11_dB, 1) + ' dB / ' + fmt(e.L_fullwave_corrected_nH, 0) + ' vs ' + fmt(e.L_quasistatic_nH, 0) + ' nH']);
+    });
+    if (r.coupling) {
+      var c = r.coupling;
+      rows.push(['S21 between receivers (50 Ω)', fmt(c.S21_dB, 1) + ' dB']);
+      rows.push(['Preamp decoupling gain', fmt(c.preamp_decoupling_gain_dB, 1) + ' dB']);
+      rows.push(['Mutual inductance: with capacitors (full-wave) vs quasi-static', fmt(c.M_eff_nH, 2) + ' vs ' + fmt(c.M_quasistatic_nH, 2) + ' nH (k_qs ' + fmt(c.k_quasistatic, 4) + ')']);
+    }
+    if (r.V18) rows.push(['B1: quasi-static vs full-wave within 20 mm of surface', 'max ' + fmt(100 * r.V18.max_rel_diff_within_20mm, 1) + '% difference; breakdown depth ' + JSON.stringify(r.V18.breakdown_depths_mm)]);
+    $('cosimTable').innerHTML = rows.map(function (x) { return '<tr><td>' + x[0] + '</td><td>' + x[1] + '</td></tr>'; }).join('');
+    $('cosimCard').style.display = 'block';
+    document.querySelector('.tabs button[data-tab=arr]').click();
+  }).catch(function (err) { $('status').textContent = 'Could not load co-simulation results: ' + err.message; });
+  $('loadCosim').value = '';
+});
+
 // Load a saved design JSON (WP4): restores the controls and the solved array; re-solving with the same settings and
 // seed reproduces it (V13).
 $('loadBtn').onclick = function () { $('loadFile').click(); };
