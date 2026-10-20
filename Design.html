@@ -1,0 +1,418 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Knotted-Loop Array Designer — Design v1.0</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Knotted-Loop Receive Array Designer — Design Document</h1>
+<p><strong>Status:</strong> FROZEN v1.0 (approved by Reza Farivar, 2026-10-20) · <strong>Date:</strong> 2026-10-20 · <strong>Owner:</strong> Reza Farivar · <strong>Drafted with:</strong> Claude (Anthropic), AI-assisted</p>
+<blockquote>
+<p><strong>Freezing rule.</strong> Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.</p>
+</blockquote>
+<hr>
+<h2>1. Purpose</h2>
+<p>This is a browser-based tool, backed by a JavaScript geometry package, for designing <strong>MRI receive phased arrays built from knotted wire loops</strong> on a <strong>helmet former</strong>. A former is the rigid shell the coil wires are mounted on.</p>
+<p>It must:</p>
+<ol>
+<li>Generate a single knotted loop with <strong>1 to 8 lobes</strong>, controlled by a small set of shape parameters.</li>
+<li><strong>Bloom</strong> each knot. Bloom continuously opens the lobes outward or collapses them toward a loop-like footprint whose strands overlap, without changing the knot’s topology.</li>
+<li>Place <strong>any number N of elements</strong> on a helmet and <strong>automatically decouple them geometrically</strong>. For a chosen knot and bloom, it finds element size, positions and rotations that drive the mutual inductance between neighbouring elements toward zero.</li>
+<li>Report honestly where decoupling cannot be achieved, and export everything needed to build the array and to simulate it.</li>
+</ol>
+<p><strong>Scope boundary.</strong> All EM outputs are <em>quasi-static geometric estimates</em>: low-frequency results computed from wire geometry alone. They are not predictions of SNR (signal-to-noise ratio), B1 sensitivity, or coupling as measured on the bench. See §8.</p>
+<h2>2. Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Knot</strong></td>
+<td>A closed curve in 3D that cannot be untangled into a plain circle without cutting it</td>
+</tr>
+<tr>
+<td><strong>Projection / flat knot</strong></td>
+<td>The knot drawn in a plane, with each crossing marked over/under. Our elements are flat knots: the wire lies on the former, and it only lifts by about one wire diameter where it crosses itself</td>
+</tr>
+<tr>
+<td><strong>Torus knot T(p,q)</strong></td>
+<td>A knot that winds <em>p</em> times around a central axis and <em>q</em> times through it. Viewed from above it is a rosette with <em>q</em> lobes</td>
+</tr>
+<tr>
+<td><strong>Lobe</strong></td>
+<td>One outward petal of the rosette</td>
+</tr>
+<tr>
+<td><strong>Crossing</strong></td>
+<td>A point where the wire passes over itself</td>
+</tr>
+<tr>
+<td><strong>Bloom (β)</strong></td>
+<td>Lobe-amplitude parameter. β→0 collapses the strands toward one circle (overlapping but still knotted); larger β opens the lobes</td>
+</tr>
+<tr>
+<td><strong>Mutual inductance (M)</strong></td>
+<td>How much magnetic flux from a current in one coil threads another coil. M≈0 means the two coils are geometrically decoupled</td>
+</tr>
+<tr>
+<td><strong>Self-inductance (L)</strong></td>
+<td>Flux from a coil threading itself</td>
+</tr>
+<tr>
+<td><strong>Coupling coefficient (k)</strong></td>
+<td>k = M / √(L₁L₂). A dimensionless measure of coupling in the range −1 to 1, comparable across coils of different sizes</td>
+</tr>
+<tr>
+<td><strong>Neumann formula</strong></td>
+<td>M = (μ₀/4π) ∮∮ dl₁·dl₂ / |r₁−r₂|, a double line integral over both wire paths (μ₀ = permeability of free space)</td>
+</tr>
+<tr>
+<td><strong>Quasi-static</strong></td>
+<td>Assumes uniform current along the wire and ignores wave effects, capacitance and the body (patient load)</td>
+</tr>
+<tr>
+<td><strong>Full-wave simulation / bench S21</strong></td>
+<td>The methods that give the real answer. Full-wave simulation is a complete EM solver; bench S21 is coupling measured between two coils on a network analyser</td>
+</tr>
+<tr>
+<td><strong>Former</strong></td>
+<td>The physical helmet shell that the wires are mounted on</td>
+</tr>
+</tbody>
+</table>
+<h2>3. Element geometry</h2>
+<h3>3.1 Knot family (v1): planar torus knots</h3>
+<p>Each element is a torus knot laid flat in a local plane, with coordinates in that plane (x, y) and a small out-of-plane offset (z) for crossings, for φ ∈ [0, 2π):</p>
+<pre><code>r(φ) = R · (1 + β · cos(q·φ))
+x(φ) = r(φ) · cos(p·φ + θ)
+y(φ) = r(φ) · sin(p·φ + θ)
+z(φ) = h · sin(q·φ)          ← over/under at crossings only
+</code></pre>
+<ul>
+<li><strong>q</strong> = number of lobes; <strong>p</strong> = number of windings; <strong>gcd(p, q) = 1</strong> is required, otherwise the curve is a link of several separate loops rather than one knot.</li>
+<li><strong>R</strong> = core radius, which sets element size; <strong>θ</strong> = in-plane rotation.</li>
+<li><strong>h</strong> = crossing lift. It must be at least one wire diameter plus insulation. Its job is to keep the over/under topology; it is not 3D shape.</li>
+<li>Number of crossings in this projection = <strong>q·(p−1)</strong>.</li>
+<li>Footprint radius = R·(1+β).</li>
+</ul>
+<h3>3.2 Catalogue: 1 to 8 lobes</h3>
+<p>For each lobe count, the simplest valid choice (smallest p ≥ 2 coprime to q):</p>
+<table>
+<thead>
+<tr>
+<th>Lobes q</th>
+<th>Windings p</th>
+<th>Knot</th>
+<th>Crossings in this drawing</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>2</td>
+<td>T(2,1) = unknot</td>
+<td>1</td>
+<td>Topologically trivial: an off-centre 2-turn coil. Useful as a control</td>
+</tr>
+<tr>
+<td>2</td>
+<td>3</td>
+<td>T(3,2) = trefoil</td>
+<td>4</td>
+<td>Same knot as row 3, drawn with 2 lobes</td>
+</tr>
+<tr>
+<td>3</td>
+<td>2</td>
+<td>T(2,3) = trefoil</td>
+<td>3</td>
+<td>Simplest true knot</td>
+</tr>
+<tr>
+<td>4</td>
+<td>3</td>
+<td>T(3,4)</td>
+<td>8</td>
+<td></td>
+</tr>
+<tr>
+<td>5</td>
+<td>2</td>
+<td>T(2,5) = cinquefoil</td>
+<td>5</td>
+<td></td>
+</tr>
+<tr>
+<td>6</td>
+<td>5</td>
+<td>T(5,6)</td>
+<td>24</td>
+<td>5 windings means a lot of wire. Even lobe counts are expensive for torus knots</td>
+</tr>
+<tr>
+<td>7</td>
+<td>2</td>
+<td>T(2,7)</td>
+<td>7</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td>3</td>
+<td>T(3,8)</td>
+<td>16</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Higher p for the same q is also allowed, e.g. T(3,5) or T(3,7), giving more windings and more crossings.</p>
+<p><strong>Control element:</strong> p = 1 gives a simple q-petal rosette loop with no crossings. It is not a knot. It’s included so knots can be compared against a non-knotted loop with the same footprint.</p>
+<p><strong>How many knot families exist?</strong> There are infinitely many knots. Tables list about 35 distinct prime knots with up to 8 crossings (UNVERIFIED count, from memory; to be checked against the KnotInfo database before it is cited anywhere). For coils, the useful question is which <em>families have a clean parametric form</em>:</p>
+<ul>
+<li><strong>Torus knots</strong>: rosettes with exact q-fold symmetry. These are v1.</li>
+<li><strong>Lissajous knots</strong>: more irregular, with no rotational symmetry. They give even lobe counts more cheaply. Deferred to v2.</li>
+<li><strong>Fourier knots</strong>: a general form that can represent any knot from the tables. Deferred to v2.</li>
+</ul>
+<h3>3.3 Bloom</h3>
+<ul>
+<li>β ∈ [β_min, β_max], with <strong>β_min &gt; 0</strong> (default 0.02) and β_max &lt; 1 (default 0.9). At β = 0 the strands meet and the topology is lost; at β = 1 the lobes touch the centre.</li>
+<li><strong>Bloom mode</strong> (open decision D2): either <em>constant core</em> (R fixed, footprint grows with β) or <em>constant extent</em> (footprint radius fixed, R shrinks as β grows).</li>
+<li>β can be set globally or per element.</li>
+</ul>
+<h3>3.4 Wire</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wire diameter d_w</td>
+<td>Conductor diameter</td>
+</tr>
+<tr>
+<td>Insulation thickness t_i</td>
+<td>Sets the minimum crossing lift h ≥ d_w + 2·t_i</td>
+</tr>
+<tr>
+<td>Minimum bend radius</td>
+<td>Fabrication limit. Violations are flagged, never silently smoothed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Geometry checks, always reported:</strong> total wire length, minimum 3D self-clearance (must be ≥ d_w + 2·t_i), minimum bend radius, and crossing count.</p>
+<h2>4. Helmet surface</h2>
+<ul>
+<li><strong>v1:</strong> a parametric hemi-ellipsoid (semi-axes a, b, c) with a coverage boundary, i.e. the lowest elevation the array reaches and a face opening. The default dimensions are <strong>placeholders</strong>, tagged as such in the parameter registry until Reza supplies real former dimensions.</li>
+<li><strong>v2:</strong> import the real former as an STL file (a 3D mesh format).</li>
+<li><strong>Placing an element on the surface:</strong> the flat knot is defined in the tangent plane at the element’s centre, then projected onto the surface along the surface normal. Crossing lift is applied along the normal. This deforms the knot slightly; the deformation is measured and reported.</li>
+<li><strong>Crossings between elements:</strong> where wires from neighbouring overlapping elements cross, they need a lift too. The tool assigns over/under at these crossings and checks clearance.</li>
+</ul>
+<h2>5. Array layout and automatic decoupling</h2>
+<h3>5.1 The problem</h3>
+<p>Given <strong>N, the knot T(p,q), β, the wire, and the helmet coverage region</strong>, find:</p>
+<ul>
+<li>element size R (shared by all elements by default; per-element sizes allowed within bounds, decision D3),</li>
+<li>each element’s centre on the surface (2 degrees of freedom each),</li>
+<li>each element’s in-plane rotation θᵢ,</li>
+</ul>
+<p>that <strong>minimise neighbour coupling</strong> while <strong>covering</strong> the region:</p>
+<pre><code>minimise   Σ_(i,j neighbours) k_ij²   +   λ_cov · (uncovered area)   +   λ_max · max |k_ij|
+subject to wire-clearance constraints
+</code></pre>
+<p>Neighbours are pairs whose footprints overlap or touch. The max term is there so one bad pair can’t hide behind a good average.</p>
+<h3>5.2 Solver strategy (two stages, so it stays interactive)</h3>
+<ol>
+<li><strong>Flat lookup stage.</strong> For the chosen (p, q, β, wire), precompute k between two coplanar elements as a function of centre distance d and both rotations, k(d, θ₁, θ₂). Elements of the same type share the table. The initial layout is a near-uniform spread of N centres over the region (a spherical spiral). The optimiser then adjusts positions, rotations and R using the table, which takes milliseconds per evaluation.</li>
+<li><strong>Full 3D refinement.</strong> Starting from stage 1, recompute k with the exact Neumann integral on the curved, projected wire paths and refine locally. This runs in a background worker so the page stays responsive.</li>
+</ol>
+<h3>5.3 What “decoupled” can and cannot mean</h3>
+<ul>
+<li>A single pair of knots can usually be nulled (k = 0) at one or more spacings. Knots can have <strong>several zero-coupling spacings</strong>. The tool reports all of them, with their sensitivity (dk/dd). A shallow zero tolerates fabrication error; a steep one does not.</li>
+<li>On a curved helmet, elements have <strong>irregular neighbour counts</strong> (5, 6 or 7 neighbours, like the panels of a geodesic dome). A knot with q-fold symmetry generally <strong>cannot null every neighbour at once</strong>. The tool will:
+<ul>
+<li>show a per-pair residual |k_ij|, colour-coded, plus the worst pair and the median;</li>
+<li>report <strong>next-nearest-neighbour coupling</strong>, which geometry cannot null even for circular loops and which is normally handled by preamplifier decoupling;</li>
+<li>never present the array as “fully decoupled” unless every neighbour pair meets the threshold. The default threshold is |k| &lt; 0.01; that value is a placeholder, decision D6.</li>
+</ul>
+</li>
+<li><strong>N is unlimited in principle.</strong> The performance target is interactive optimisation up to N = 64 and batch (slower) optimisation up to N = 128.</li>
+</ul>
+<h2>6. EM model</h2>
+<ul>
+<li><strong>Mutual inductance:</strong> the Neumann double integral, computed numerically over polyline wire paths. The default is 400 points per element, adaptive by convergence (§7, V4).</li>
+<li><strong>Self-inductance:</strong> Neumann with a finite-wire-radius correction, so the formula does not blow up where the wire meets itself. The method will be the standard thin-wire approach, with the reference verified before implementation.</li>
+<li><strong>Singular points:</strong> where wires of different elements cross, the true 3D separation (lift plus wire radius) is used, never zero. The sensitivity of k to the lift value is reported.</li>
+</ul>
+<h2>7. Validation plan (pre-registered)</h2>
+<p>Each check runs automatically in the test suite and appears in a validation report. <strong>Pass criteria are fixed now.</strong></p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Check</th>
+<th>Reference</th>
+<th>Pass criterion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1</td>
+<td>Mutual inductance of two coaxial circular loops</td>
+<td>Maxwell’s closed-form result (elliptic integrals). Source to be verified against a primary or textbook text</td>
+<td>Relative error &lt; 0.5% across 5 separations</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>Self-inductance of a circular wire loop</td>
+<td>Standard thin-wire formula, L ≈ μ₀R(ln(8R/a) − 2) for high-frequency (skin-effect) current. UNVERIFIED, to be checked against Grover or an equivalent primary source</td>
+<td>Relative error &lt; 2% for R/a ≥ 50</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>Zero-coupling spacing for two coplanar equal circles</td>
+<td>Numerically known overlap; recalled as centre spacing ≈ 0.75 × diameter, Roemer et al. 1990, <em>Magn Reson Med</em> “The NMR phased array”. UNVERIFIED, to be verified against the paper</td>
+<td>Our zero within 1% of the verified value</td>
+</tr>
+<tr>
+<td>V4</td>
+<td>Convergence</td>
+<td>Internal</td>
+<td>k changes &lt; 0.001 when the point count doubles</td>
+</tr>
+<tr>
+<td>V5</td>
+<td>Symmetry</td>
+<td>Internal</td>
+<td>M_ij = M_ji to machine precision; k invariant under rotating both elements by 2π/q</td>
+</tr>
+<tr>
+<td>V6</td>
+<td>Topology preserved under bloom</td>
+<td>Internal</td>
+<td>Crossing count and over/under pattern unchanged across β ∈ [β_min, β_max]; minimum self-clearance ≥ d_w + 2·t_i</td>
+</tr>
+</tbody>
+</table>
+<p>If a check fails, the app shows a banner and every EM output is labelled “UNVALIDATED”.</p>
+<h2>8. Known limitations (shown in the app, not hidden)</h2>
+<ul>
+<li>The quasi-static filament model ignores capacitive coupling, the sample/body load, non-uniform current near self-resonance, and coupling through the preamplifiers.</li>
+<li><strong>Results are “geometric decoupling estimates, exploratory”.</strong> Confirm with full-wave simulation or bench S21 before building anything that depends on them.</li>
+<li>The knot geometry is not optimised for SNR, only for coupling and coverage.</li>
+</ul>
+<h2>9. Outputs</h2>
+<ul>
+<li><strong>Views:</strong> 3D helmet with the array; flat view of a single element; coupling-matrix heatmap (k_ij); per-pair table; plot of k against spacing for one pair.</li>
+<li><strong>Exports:</strong>
+<ul>
+<li>JSON: every parameter plus the software version, so any design can be regenerated exactly;</li>
+<li>CSV: 3D wire path per element (for EM simulators) and the k matrix;</li>
+<li>OBJ/STL: wire tubes and, in v2, a former with routing grooves;</li>
+<li>validation report (HTML).</li>
+</ul>
+</li>
+</ul>
+<h2>10. Architecture</h2>
+<pre><code>knotted_coils/
+  core/          geometry + EM package (plain JavaScript, no build step)
+    knot.js        torus-knot generation, bloom, wire checks
+    surface.js     helmet surface, tangent-plane projection
+    inductance.js  Neumann M and self-L
+    layout.js      initial placement, neighbour detection
+    optimise.js    two-stage decoupling solver
+  app/index.html   browser UI (3D view via Three.js, a pinned copy stored locally so it works offline)
+  tests/           Node.js unit tests + validation checks V1–V6
+  validation/      generated validation reports
+  PARAMETERS.md    parameter registry with origin tags
+  Design.md / .html / .pdf
+</code></pre>
+<ul>
+<li>The app opens straight from OneDrive by double-clicking <code>index.html</code>, with no server and no install. The optimiser runs in a background worker created from inline code.</li>
+<li>Every source file carries an AI-authorship header, as required by the research-integrity framework.</li>
+</ul>
+<h2>11. Open decisions (to settle before freezing)</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Decision</th>
+<th>Proposed default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>Knot families in v1</td>
+<td>Torus knots T(p,q), q = 1–8, plus the p = 1 rosette control. Lissajous in v2</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>Bloom mode</td>
+<td>Offer both; default <em>constant core</em></td>
+</tr>
+<tr>
+<td>D3</td>
+<td>Element size</td>
+<td>Shared R for all elements; per-element R as an option</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>Helmet geometry source</td>
+<td>Parametric hemi-ellipsoid now; STL import in v2. <strong>Reza to supply former dimensions</strong></td>
+</tr>
+<tr>
+<td>D5</td>
+<td>Wire spec</td>
+<td><strong>Reza to supply</strong> diameter, insulation and minimum bend radius</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>Decoupling threshold</td>
+<td>|k| &lt; 0.01 (placeholder until justified)</td>
+</tr>
+<tr>
+<td>D7</td>
+<td>Mixed knots in one array</td>
+<td>No for v1 (all elements the same knot); yes for v2</td>
+</tr>
+</tbody>
+</table>
+<h2>12. Changelog</h2>
+<ul>
+<li><strong>2026-10-20, v1.0 — FROZEN.</strong> Reza approved all proposed defaults in §11 (D1–D7). Wire spec (D5) and helmet dimensions (D4) to follow from Reza; placeholders are used and labelled until then. Parameter tags follow the research-integrity code standard (LIT / CONV / JUDG / TUNED / DERIVED); “placeholder” values are tagged JUDG with the word PLACEHOLDER. The project also keeps <code>DECISIONS.md</code> and a README with a provenance and AI-use statement.</li>
+<li><strong>2026-10-20, v0.1:</strong> first draft from design conversation. Bloom = lobe amplitude with knot topology preserved; flat knots; wire loops (not PCB); helmet former; unlimited N with automatic decoupling.</li>
+</ul>
+</body></html>
