@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Validation Report</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a2238}h1{color:#0b1f5c}table{border-collapse:collapse;width:100%;margin:.5rem 0 1.5rem;font-size:.9rem}td,th{border:1px solid #d7deea;padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#0b1f5c;color:#fff}.PASS,.AGREES{color:#0a7a3b;font-weight:700}.FAIL,.DISAGREES{color:#b3261e;font-weight:700}.NOT{color:#a15c00;font-weight:700}pre{background:#f4f7fb;padding:.5rem;overflow:auto;font-size:.8rem}</style></head><body><h1>Knotted-coil validation report</h1><p>Generated 2026-10-20T19:26:06.945Z · code git 6ce049e · criteria pre-registered in Design.md v1.0 §7 (git 39a4e83). Wire: placeholder d = 1 mm, insulation 0.25 mm.</p><p><b>All pre-registered checks pass: NO</b></p><table><tr><th>ID</th><th>Check</th><th>Criterion</th><th>Verdict</th><th>Summary</th></tr><tr><td>V1</td><td>Mutual inductance, coaxial circles (r = 50, 40 mm; 400 points) vs Maxwell</td><td>relative error &lt; 0.5% at all 5 separations</td><td class="PASS">PASS</td><td>worst 0.0052%</td></tr><tr><td>V2</td><td>Self-inductance, circular loop R = 50 mm (400 points) vs mu0 R (ln(8R/a) - 2)</td><td>relative error &lt; 2% for R/a >= 50</td><td class="PASS">PASS</td><td>worst 0.656%</td></tr><tr><td>V3</td><td>Zero-coupling centre spacing, two coplanar circles</td><td>within 1% of the VERIFIED literature value</td><td class="NOT">NOT EVALUABLE</td><td>computed spacing = 0.7604 x diameter; no VERIFIED reference value available</td></tr><tr><td>V4</td><td>Convergence of k, trefoil pair (Rf = 40 mm), 300 -> 600 points (final-report resolution)</td><td>|k(2n) - k(n)| &lt; 0.001</td><td class="PASS">PASS</td><td>worst change 1.10e-4</td></tr><tr><td>V5</td><td>Symmetry: swap of the two elements, and rotation of both by 2pi/q</td><td>relative difference &lt; 1e-9 (machine-precision level)</td><td class="PASS">PASS</td><td>worst 3.13e-14</td></tr><tr><td>V6</td><td>Topology and clearance across bloom beta = 0.02–3.0, Design v1.2 outward bloom (catalogue knots, core R = 30 mm, placeholder wire)</td><td>crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i</td><td class="FAIL">FAIL</td><td>unknot (2-turn) T(2,1) fails at beta=0.02; trefoil T(3,2) fails at beta=0.02,0.05; trefoil T(2,3) fails at beta=0.02,0.05; T(3,4) = 8_19 T(3,4) fails at beta=0.02,0.05; cinquefoil T(2,5) fails at beta=0.02,0.05; T(5,6) T(5,6) fails at beta=0.02,0.05; T(2,7) = 7_1 T(2,7) fails at beta=0.02,0.05; T(3,8) T(3,8) fails at beta=0.02,0.05</td></tr><tr><td>PH2</td><td>POST-HOC: V6 test from the physical bloom floor (outward shape: c / (R sin(pi/p))) upward</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>T(2,1) from 0.055; T(3,2) from 0.06; T(2,3) from 0.055; T(3,4) from 0.06; T(2,5) from 0.055; T(5,6) from 0.09; T(2,7) from 0.055; T(3,8) from 0.06</td></tr><tr><td>PH1</td><td>POST-HOC: Maxwell implementation vs Rosa &amp; Grover Example 1 (A = a = 25 cm, d = 20 cm -> 167.08562 cm = nH)</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>167.08578 nH, rel diff 9.79e-7</td></tr></table><h3>V1</h3><p>Reference: Rosa &amp; Grover 1912, Bull. Bureau of Standards 8:1–237, p. 6 eq. [1] — VERIFIED</p><pre>[
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Validation Report</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a2238}h1{color:#0b1f5c}table{border-collapse:collapse;width:100%;margin:.5rem 0 1.5rem;font-size:.9rem}td,th{border:1px solid #d7deea;padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#0b1f5c;color:#fff}.PASS,.AGREES{color:#0a7a3b;font-weight:700}.FAIL,.DISAGREES{color:#b3261e;font-weight:700}.NOT{color:#a15c00;font-weight:700}pre{background:#f4f7fb;padding:.5rem;overflow:auto;font-size:.8rem}</style></head><body><h1>Knotted-coil validation report</h1><p>Generated 2026-10-20T19:35:59.196Z · code git 30d6fa1 · criteria pre-registered in Design.md v1.0 §7 (git 39a4e83). Wire: placeholder d = 1 mm, insulation 0.25 mm.</p><p><b>All pre-registered checks pass: NO</b></p><table><tr><th>ID</th><th>Check</th><th>Criterion</th><th>Verdict</th><th>Summary</th></tr><tr><td>V1</td><td>Mutual inductance, coaxial circles (r = 50, 40 mm; 400 points) vs Maxwell</td><td>relative error &lt; 0.5% at all 5 separations</td><td class="PASS">PASS</td><td>worst 0.0052%</td></tr><tr><td>V2</td><td>Self-inductance, circular loop R = 50 mm (400 points) vs mu0 R (ln(8R/a) - 2)</td><td>relative error &lt; 2% for R/a >= 50</td><td class="PASS">PASS</td><td>worst 0.656%</td></tr><tr><td>V3</td><td>Zero-coupling centre spacing, two coplanar circles</td><td>within 1% of the VERIFIED literature value</td><td class="NOT">NOT EVALUABLE</td><td>computed spacing = 0.7604 x diameter; no VERIFIED reference value available</td></tr><tr><td>V4</td><td>Convergence of k, trefoil pair (Rf = 40 mm), 300 -> 600 points (final-report resolution)</td><td>|k(2n) - k(n)| &lt; 0.001</td><td class="PASS">PASS</td><td>worst change 1.10e-4</td></tr><tr><td>V5</td><td>Symmetry: swap of the two elements, and rotation of both by 2pi/q</td><td>relative difference &lt; 1e-9 (machine-precision level)</td><td class="PASS">PASS</td><td>worst 3.13e-14</td></tr><tr><td>V6</td><td>Topology and clearance across bloom beta = 0.02–3.0, Design v1.2 outward bloom (catalogue knots, core R = 30 mm, placeholder wire)</td><td>crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i</td><td class="FAIL">FAIL</td><td>unknot (2-turn) T(2,1) fails at beta=0.02; trefoil T(3,2) fails at beta=0.02,0.05; trefoil T(2,3) fails at beta=0.02,0.05; T(3,4) = 8_19 T(3,4) fails at beta=0.02,0.05; cinquefoil T(2,5) fails at beta=0.02,0.05; T(5,6) T(5,6) fails at beta=0.02,0.05; T(2,7) = 7_1 T(2,7) fails at beta=0.02,0.05; T(3,8) T(3,8) fails at beta=0.02,0.05</td></tr><tr><td>V7</td><td>Topology and clearance across petal sharpness m = 1–16 x bloom 0.1–3.0 (catalogue knots, core R = 30 mm, placeholder wire)</td><td>crossing count = q(p-1); pattern equal to m=1, beta=0.4; lift solvable with clearance >= d_w + 2 t_i</td><td class="FAIL">FAIL</td><td>unknot (2-turn) T(2,1) fails at m=6/b=0.1,m=8/b=0.1,m=8/b=0.4,m=12/b=0.1,m=12/b=0.4,m=12/b=0.8,m=12/b=1.5,m=12/b=3,m=16/b=0.1,m=16/b=0.4,m=16/b=0.8,m=16/b=1.5,m=16/b=3; trefoil T(3,2) fails at m=3/b=0.1,m=4/b=0.1,m=4/b=0.4,m=6/b=0.1,m=6/b=0.4,m=6/b=0.8,m=6/b=1.5,m=6/b=3,m=8/b=0.1,m=8/b=0.4,m=8/b=0.8,m=8/b=1.5,m=8/b=3,m=12/b=0.1,m=12/b=0.4,m=12/b=0.8,m=12/b=1.5,m=12/b=3,m=16/b=0.1,m=16/b=0.4,m=16/b=0.8,m=16/b=1.5,m=16/b=3; T(3,4) = 8_19 T(3,4) fails at m=4/b=0.1,m=6/b=0.1,m=6/b=0.4,m=6/b=0.8,m=8/b=0.1,m=8/b=0.4,m=8/b=0.8,m=8/b=1.5,m=8/b=3,m=12/b=0.1,m=12/b=0.4,m=12/b=0.8,m=12/b=1.5,m=12/b=3,m=16/b=0.1,m=16/b=0.4,m=16/b=0.8,m=16/b=1.5,m=16/b=3; cinquefoil T(2,5) fails at m=12/b=0.1,m=16/b=0.1,m=16/b=0.4,m=16/b=0.8,m=16/b=1.5,m=16/b=3; T(5,6) T(5,6) fails at m=3/b=0.1,m=4/b=0.1,m=4/b=0.4,m=4/b=0.8,m=4/b=1.5,m=6/b=0.1,m=6/b=0.4,m=6/b=0.8,m=6/b=1.5,m=6/b=3,m=8/b=0.1,m=8/b=0.4,m=8/b=0.8,m=8/b=1.5,m=8/b=3,m=12/b=0.1,m=12/b=0.4,m=12/b=0.8,m=12/b=1.5,m=12/b=3,m=16/b=0.1,m=16/b=0.4,m=16/b=0.8,m=16/b=1.5,m=16/b=3; T(2,7) = 7_1 T(2,7) fails at m=12/b=0.1,m=16/b=0.1,m=16/b=0.4,m=16/b=0.8,m=16/b=1.5; T(3,8) T(3,8) fails at m=6/b=0.1,m=8/b=0.1,m=8/b=0.4,m=8/b=0.8,m=8/b=1.5,m=12/b=0.1,m=12/b=0.4,m=12/b=0.8,m=12/b=1.5,m=12/b=3,m=16/b=0.1,m=16/b=0.4,m=16/b=0.8,m=16/b=1.5,m=16/b=3</td></tr><tr><td>PH2</td><td>POST-HOC: V6 test from the physical bloom floor (outward shape: c / (R sin(pi/p))) upward</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>T(2,1) from 0.055; T(3,2) from 0.06; T(2,3) from 0.055; T(3,4) from 0.06; T(2,5) from 0.055; T(5,6) from 0.09; T(2,7) from 0.055; T(3,8) from 0.06</td></tr><tr><td>PH1</td><td>POST-HOC: Maxwell implementation vs Rosa &amp; Grover Example 1 (A = a = 25 cm, d = 20 cm -> 167.08562 cm = nH)</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>167.08578 nH, rel diff 9.79e-7</td></tr></table><h3>V1</h3><p>Reference: Rosa &amp; Grover 1912, Bull. Bureau of Standards 8:1–237, p. 6 eq. [1] — VERIFIED</p><pre>[
  {
   "d_mm": 5,
   "numeric_nH": 84.42789870378849,
@@ -288,6 +288,910 @@
     "clearance": 1.299038105676654
    }
   ]
+ }
+]</pre><h3>V7</h3><p>Tightest bend radius per knot is shown for information only (not part of the criterion).</p><pre>[
+ {
+  "knot": "unknot (2-turn) T(2,1)",
+  "pass": false,
+  "fails": [
+   {
+    "m": 6,
+    "beta": 0.1,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000129805555
+   },
+   {
+    "m": 8,
+    "beta": 0.1,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000015361503
+   },
+   {
+    "m": 8,
+    "beta": 0.4,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000114430527
+   },
+   {
+    "m": 12,
+    "beta": 0.1,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000022178368
+   },
+   {
+    "m": 12,
+    "beta": 0.4,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000217253358
+   },
+   {
+    "m": 12,
+    "beta": 0.8,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000229978705
+   },
+   {
+    "m": 12,
+    "beta": 1.5,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000001457546
+   },
+   {
+    "m": 12,
+    "beta": 3,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000184888767
+   },
+   {
+    "m": 16,
+    "beta": 0.1,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000075467412
+   },
+   {
+    "m": 16,
+    "beta": 0.4,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000013063178
+   },
+   {
+    "m": 16,
+    "beta": 0.8,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000058463165
+   },
+   {
+    "m": 16,
+    "beta": 1.5,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000011422463
+   },
+   {
+    "m": 16,
+    "beta": 3,
+    "crossings": 3,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000225838064
+   }
+  ],
+  "minBendRadius_info": 26.73379022888978
+ },
+ {
+  "knot": "trefoil T(3,2)",
+  "pass": false,
+  "fails": [
+   {
+    "m": 3,
+    "beta": 0.1,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000117214474
+   },
+   {
+    "m": 4,
+    "beta": 0.1,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000056713985
+   },
+   {
+    "m": 4,
+    "beta": 0.4,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000099352033
+   },
+   {
+    "m": 6,
+    "beta": 0.1,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000000222895
+   },
+   {
+    "m": 6,
+    "beta": 0.4,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000057075036
+   },
+   {
+    "m": 6,
+    "beta": 0.8,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000012358514
+   },
+   {
+    "m": 6,
+    "beta": 1.5,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000004271655
+   },
+   {
+    "m": 6,
+    "beta": 3,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000184689604
+   },
+   {
+    "m": 8,
+    "beta": 0.1,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000001515414
+   },
+   {
+    "m": 8,
+    "beta": 0.4,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000012094175
+   },
+   {
+    "m": 8,
+    "beta": 0.8,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000034191907
+   },
+   {
+    "m": 8,
+    "beta": 1.5,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000011423648
+   },
+   {
+    "m": 8,
+    "beta": 3,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000197195793
+   },
+   {
+    "m": 12,
+    "beta": 0.1,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 1.2908112379793777
+   },
+   {
+    "m": 12,
+    "beta": 0.4,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000001896449
+   },
+   {
+    "m": 12,
+    "beta": 0.8,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000086938408
+   },
+   {
+    "m": 12,
+    "beta": 1.5,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000061336853
+   },
+   {
+    "m": 12,
+    "beta": 3,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000004090073
+   },
+   {
+    "m": 16,
+    "beta": 0.1,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.989286662545054
+   },
+   {
+    "m": 16,
+    "beta": 0.4,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000020796957
+   },
+   {
+    "m": 16,
+    "beta": 0.8,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000000230946
+   },
+   {
+    "m": 16,
+    "beta": 1.5,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000071315078
+   },
+   {
+    "m": 16,
+    "beta": 3,
+    "crossings": 8,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000076216216
+   }
+  ],
+  "minBendRadius_info": 20.878212780505546
+ },
+ {
+  "knot": "trefoil T(2,3)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 6.0462492136265364
+ },
+ {
+  "knot": "T(3,4) = 8_19 T(3,4)",
+  "pass": false,
+  "fails": [
+   {
+    "m": 4,
+    "beta": 0.1,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000056713985
+   },
+   {
+    "m": 6,
+    "beta": 0.1,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000000222844
+   },
+   {
+    "m": 6,
+    "beta": 0.4,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000057075
+   },
+   {
+    "m": 6,
+    "beta": 0.8,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.50000000123585
+   },
+   {
+    "m": 8,
+    "beta": 0.1,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000001515414
+   },
+   {
+    "m": 8,
+    "beta": 0.4,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000120941752
+   },
+   {
+    "m": 8,
+    "beta": 0.8,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000034191905
+   },
+   {
+    "m": 8,
+    "beta": 1.5,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000114236467
+   },
+   {
+    "m": 8,
+    "beta": 3,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000197195786
+   },
+   {
+    "m": 12,
+    "beta": 0.1,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 1.3054851293563245
+   },
+   {
+    "m": 12,
+    "beta": 0.4,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000018964483
+   },
+   {
+    "m": 12,
+    "beta": 0.8,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000086938408
+   },
+   {
+    "m": 12,
+    "beta": 1.5,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000061336853
+   },
+   {
+    "m": 12,
+    "beta": 3,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000004090066
+   },
+   {
+    "m": 16,
+    "beta": 0.1,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.9892866625450485
+   },
+   {
+    "m": 16,
+    "beta": 0.4,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000020796946
+   },
+   {
+    "m": 16,
+    "beta": 0.8,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000000230906
+   },
+   {
+    "m": 16,
+    "beta": 1.5,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000071315038
+   },
+   {
+    "m": 16,
+    "beta": 3,
+    "crossings": 10,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000076216218
+   }
+  ],
+  "minBendRadius_info": 7.412070561411729
+ },
+ {
+  "knot": "cinquefoil T(2,5)",
+  "pass": false,
+  "fails": [
+   {
+    "m": 12,
+    "beta": 0.1,
+    "crossings": 7,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000022178346
+   },
+   {
+    "m": 16,
+    "beta": 0.1,
+    "crossings": 7,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000075467408
+   },
+   {
+    "m": 16,
+    "beta": 0.4,
+    "crossings": 7,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000013063177
+   },
+   {
+    "m": 16,
+    "beta": 0.8,
+    "crossings": 7,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000024054359
+   },
+   {
+    "m": 16,
+    "beta": 1.5,
+    "crossings": 7,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000011422456
+   },
+   {
+    "m": 16,
+    "beta": 3,
+    "crossings": 7,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000225838042
+   }
+  ],
+  "minBendRadius_info": 2.374698548103312
+ },
+ {
+  "knot": "T(5,6) T(5,6)",
+  "pass": false,
+  "fails": [
+   {
+    "m": 3,
+    "beta": 0.1,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 1.464084345395693
+   },
+   {
+    "m": 4,
+    "beta": 0.1,
+    "crossings": 30,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 1.177474508475946
+   },
+   {
+    "m": 4,
+    "beta": 0.4,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000060205039
+   },
+   {
+    "m": 4,
+    "beta": 0.8,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000064395305
+   },
+   {
+    "m": 4,
+    "beta": 1.5,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000083536713
+   },
+   {
+    "m": 6,
+    "beta": 0.1,
+    "crossings": 30,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.7508598229415204
+   },
+   {
+    "m": 6,
+    "beta": 0.4,
+    "crossings": 30,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000007962342
+   },
+   {
+    "m": 6,
+    "beta": 0.8,
+    "crossings": 30,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000018783664
+   },
+   {
+    "m": 6,
+    "beta": 1.5,
+    "crossings": 30,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000061494314
+   },
+   {
+    "m": 6,
+    "beta": 3,
+    "crossings": 28,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000080289826
+   },
+   {
+    "m": 8,
+    "beta": 0.1,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.473376219600098
+   },
+   {
+    "m": 8,
+    "beta": 0.4,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000003342717
+   },
+   {
+    "m": 8,
+    "beta": 0.8,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000006124068
+   },
+   {
+    "m": 8,
+    "beta": 1.5,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000008391887
+   },
+   {
+    "m": 8,
+    "beta": 3,
+    "crossings": 30,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000011130854
+   },
+   {
+    "m": 12,
+    "beta": 0.1,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.18804527770634832
+   },
+   {
+    "m": 12,
+    "beta": 0.4,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.7305506684795567
+   },
+   {
+    "m": 12,
+    "beta": 0.8,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 1.3475799571922127
+   },
+   {
+    "m": 12,
+    "beta": 1.5,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000004610865
+   },
+   {
+    "m": 12,
+    "beta": 3,
+    "crossings": 32,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000002723967
+   },
+   {
+    "m": 16,
+    "beta": 0.1,
+    "crossings": 31,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.07469809817342078
+   },
+   {
+    "m": 16,
+    "beta": 0.4,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.2960733534946336
+   },
+   {
+    "m": 16,
+    "beta": 0.8,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.5772077368053073
+   },
+   {
+    "m": 16,
+    "beta": 1.5,
+    "crossings": 25,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 1.0010851853162859
+   },
+   {
+    "m": 16,
+    "beta": 3,
+    "crossings": 23,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000005252085
+   }
+  ],
+  "minBendRadius_info": 9.805400861216249
+ },
+ {
+  "knot": "T(2,7) = 7_1 T(2,7)",
+  "pass": false,
+  "fails": [
+   {
+    "m": 12,
+    "beta": 0.1,
+    "crossings": 9,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000002217831
+   },
+   {
+    "m": 16,
+    "beta": 0.1,
+    "crossings": 9,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000006594798
+   },
+   {
+    "m": 16,
+    "beta": 0.4,
+    "crossings": 9,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000130631757
+   },
+   {
+    "m": 16,
+    "beta": 0.8,
+    "crossings": 9,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000024054352
+   },
+   {
+    "m": 16,
+    "beta": 1.5,
+    "crossings": 9,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000011422423
+   }
+  ],
+  "minBendRadius_info": 1.2621996134458047
+ },
+ {
+  "knot": "T(3,8) T(3,8)",
+  "pass": false,
+  "fails": [
+   {
+    "m": 6,
+    "beta": 0.1,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000025193683
+   },
+   {
+    "m": 8,
+    "beta": 0.1,
+    "crossings": 28,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000001925986
+   },
+   {
+    "m": 8,
+    "beta": 0.4,
+    "crossings": 24,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000086796643
+   },
+   {
+    "m": 8,
+    "beta": 0.8,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000081168856
+   },
+   {
+    "m": 8,
+    "beta": 1.5,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000132540796
+   },
+   {
+    "m": 12,
+    "beta": 0.1,
+    "crossings": 24,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 1.2713068005791062
+   },
+   {
+    "m": 12,
+    "beta": 0.4,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.500000000753915
+   },
+   {
+    "m": 12,
+    "beta": 0.8,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000054706728
+   },
+   {
+    "m": 12,
+    "beta": 1.5,
+    "crossings": 24,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000116749972
+   },
+   {
+    "m": 12,
+    "beta": 3,
+    "crossings": 352,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000002957457
+   },
+   {
+    "m": 16,
+    "beta": 0.1,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": false,
+    "clearance": 0.9721321852253818
+   },
+   {
+    "m": 16,
+    "beta": 0.4,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000041308195
+   },
+   {
+    "m": 16,
+    "beta": 0.8,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000010603767
+   },
+   {
+    "m": 16,
+    "beta": 1.5,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000037606167
+   },
+   {
+    "m": 16,
+    "beta": 3,
+    "crossings": 26,
+    "patternSame": false,
+    "liftFeasible": true,
+    "clearance": 1.5000000067792227
+   }
+  ],
+  "minBendRadius_info": 2.094931174008779
  }
 ]</pre><h3>PH2</h3><pre>[
  {

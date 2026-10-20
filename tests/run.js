@@ -125,6 +125,30 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
     rows: rows });
 })();
 
+// V7 — topology under petal sharpness (pre-registered in Design.md v1.3, git 30d6fa1, before this code ran).
+(function () {
+  var ms = [1, 1.5, 2, 3, 4, 6, 8, 12, 16], betas = [0.1, 0.4, 0.8, 1.5, 3.0], c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
+  K.catalogue().forEach(function (row) {
+    var ref = { p: row.p, q: row.q, beta: 0.4, size: 30, bloomMode: 'core', sharpness: 1 }, nRef = K.adaptiveN(ref);
+    var refPat = K.crossings(K.points(Object.assign({}, ref, { h: K.solveLift(ref, c, nRef).h }), nRef)).pattern, fails = [], minBend = Infinity;
+    ms.forEach(function (m) {
+      betas.forEach(function (b) {
+        var prm = { p: row.p, q: row.q, beta: b, size: 30, bloomMode: 'core', sharpness: m }, n = K.adaptiveN(prm);
+        var lift = K.solveLift(prm, c, n), P = K.points(Object.assign({}, prm, { h: lift.h }), n), cr = K.crossings(P);
+        minBend = Math.min(minBend, K.minBendRadius(P));
+        var ok = cr.list.length === row.crossings && K.samePattern(refPat, cr.pattern) && lift.feasible && lift.clearance >= c - 1e-9;
+        if (!ok) fails.push({ m: m, beta: b, crossings: cr.list.length, patternSame: K.samePattern(refPat, cr.pattern), liftFeasible: lift.feasible, clearance: lift.clearance });
+      });
+    });
+    if (fails.length) allOK = false;
+    rows.push({ knot: row.name + ' T(' + row.p + ',' + row.q + ')', pass: fails.length === 0, fails: fails, minBendRadius_info: minBend });
+  });
+  rec({ id: 'V7', title: 'Topology and clearance across petal sharpness m = 1–16 x bloom 0.1–3.0 (catalogue knots, core R = 30 mm, placeholder wire)',
+    criterion: 'crossing count = q(p-1); pattern equal to m=1, beta=0.4; lift solvable with clearance >= d_w + 2 t_i', verdict: allOK ? 'PASS' : 'FAIL',
+    summary: rows.filter(function (r) { return !r.pass; }).map(function (r) { return r.knot + ' fails at ' + r.fails.map(function (f) { return 'm=' + f.m + '/b=' + f.beta; }).join(','); }).join('; ') || 'all knots pass at all 45 (m, beta) points',
+    rows: rows, note: 'Tightest bend radius per knot is shown for information only (not part of the criterion).' });
+})();
+
 // POST-HOC (added after run 1): V6's test, restricted to blooms at or above the physical floor
 // betaMinPhysical for this wire. Informational only; it does not change V6's verdict.
 (function () {

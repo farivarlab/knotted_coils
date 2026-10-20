@@ -22,6 +22,8 @@ Last updated 2026-10-20.
 | Parameter | Value | Tag | Rationale / source | Where |
 |---|---|---|---|---|
 | Bloom shape | outward (lobes extend from a fixed base circle) | JUDG | Design v1.2 (Reza 2026-10-20); 'symmetric' (v1.0) selectable | knot, app |
+| Petal sharpness m | 1 (range 1–16) | JUDG | Design v1.3 (Reza 2026-10-20). Profile exponent; 1 = v1.2 shape. Range upper bound is judgement: bends tighten quickly beyond about 10 | knot, app |
+| Lobe aspect-ratio definition | length ÷ width at half length | DERIVED | Claude's definition; formula in `core/knot.js` `lobeAspect` | knot, app |
 | Bloom range β | 0.02–3.0 outward, 0.02–0.9 symmetric (UI allows 0.005–3) | JUDG | Design §3.3. **Validation run 1 showed 0.02 is below the buildable floor for the placeholder wire**. See DECISIONS.md | knot, app |
 | Decoupling threshold \|k\| | 0.01 | JUDG PLACEHOLDER | Design D6; not yet justified from literature | `core/optimise.js` |
 | Neighbour definition | nearest ring (d < 1.35 × pair-null spacing) | JUDG | Design v1.1 §5.1 (Reza, 2026-10-20). The v1.0 rule (footprints overlap, d < 2 Rf) is selectable and always reported | `core/optimise.js` |

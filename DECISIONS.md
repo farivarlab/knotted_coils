@@ -4,6 +4,22 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 — Design v1.3: petal sharpness
+- **Request (Reza):** "Add a petal-sharpness control that narrows each lobe, with the same topology checks."
+- **Implementation:** outward lobe profile raised to a power m, r = R(1 + β((1 + cos qφ)/2)^m). Tips and base are unchanged; the lobes narrow.
+- **Range:** 1–16. Not applied to the symmetric v1.0 shape.
+- **Lobe aspect ratio:** length ÷ width at half length is now reported.
+  - Example, cinquefoil at β = 1.5: 0.68 (m = 1), 1.31 (m = 4), 2.05 (m = 10).
+- **Topology check V7:** pre-registered in Design §7 (git 30d6fa1) before it was run.
+- **V7 RESULT (validation run 4): FAIL.**
+  - **Passed across the whole grid:** the trefoil T(2,3).
+  - **Failed at m ≥ 12:** T(2,5) and T(2,7).
+  - **Failed from m ≈ 3–6:** the 3- and 5-winding knots.
+  - **Mechanism:** extra crossings in the flat drawing, in pairs (e.g. 10 instead of 8). The power law flattens the base between petals, so neighbouring strands run almost on top of each other and cross back and forth.
+  - **Knot type:** Claude argues it is probably unchanged, because the 3D curve still lies on an embedded torus. **Not verified computationally.** The diagram is still not clean: it has extra wire crossings and long stacked runs.
+  - **Response:** v1.4 replaces the power law with an angle warp. See the next entry.
+- **Bend radius:** tightens with m, e.g. 3.9 mm at m = 10 for that cinquefoil. The app flags this against the wire's minimum bend radius.
+
 ### 2026-10-20 — Design v1.2: bloom extends lobes (outward shape)
 - **Request (Reza):** bloom should lengthen the lobes, with aspect ratio rising with bloom, rather than pinch part of the loop.
 - **Cause of the pinch:** the v1.0 formula R(1 + β cos qφ) moves the lobe tips out *and* the waist between lobes in by the same amount. At high β the waist collapses toward the centre.

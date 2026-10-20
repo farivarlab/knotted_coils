@@ -93,6 +93,9 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
     <input type="range" id="beta" min="0.005" max="3" step="0.005" value="0.8">
     <small id="betaFloor"></small></div>
   <label class="row"><span>Bloom shape<span class="hint">how lobes grow</span></span><select id="bloomShape"><option value="outward">lobes extend (v1.2)</option><option value="symmetric">symmetric (v1.0)</option></select></label>
+  <div class="slider"><div class="top"><span>Petal sharpness m</span><b id="sharpV">1.0</b></div>
+    <input type="range" id="sharp" min="1" max="16" step="0.1" value="1">
+    <small>1 = rounded lobes; higher = narrower petals (lobes-extend shape only)</small></div>
   <label class="row">Bloom mode <select id="bloomMode"><option value="core">constant core R</option><option value="extent">constant footprint</option></select></label>
   <label class="row"><span id="sizeLabel">Core radius R (mm)</span><input type="number" id="size" value="30" min="2" step="1"></label>
   <div class="slider"><div class="top"><span>In-plane rotation θ</span><b id="thetaV"></b></div>
@@ -163,6 +166,8 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
         <div class="slider"><div class="top"><span>Rotation, element 1</span><b id="a1V"></b></div><input type="range" id="a1" min="0" max="360" step="1" value="0"></div>
         <div class="slider"><div class="top"><span>Rotation, element 2</span><b id="a2V"></b></div><input type="range" id="a2" min="0" max="360" step="1" value="0"></div>
         <p class="note">Rotations are measured from the line joining the two centres. The pattern repeats every 360°/q.</p>
+        <label class="row"><span>Plot scale<span class="hint">dB = 20·log₁₀|k|, not bench S21</span></span>
+          <select id="pairScale"><option value="db">dB</option><option value="lin">linear k</option></select></label>
         <div class="btns"><button class="primary" id="pairRun">Compute</button></div>
         <table class="kv" id="pairTable"></table>
         <p class="note">Slope = how fast k changes per mm of spacing at the zero. Shallow zeros tolerate placement error.</p></div>
@@ -223,7 +228,7 @@ function fillP() {
 fillP();
 function wire() { return { d: +$('wd').value, tIns: +$('wt').value, minBend: +$('wb').value }; }
 function helmet() { return { a: +$('ha').value, b: +$('hb').value, c: +$('hc').value, zCut: +$('hz').value, face: $('hf').value === '1', faceHalfAngle: +$('hfa').value, faceTop: +$('hft').value }; }
-function elemPrm() { return { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, size: +$('size').value, bloomMode: $('bloomMode').value, bloomShape: $('bloomShape').value, theta: +$('theta').value * Math.PI / 180 }; }
+function elemPrm() { return { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, size: +$('size').value, bloomMode: $('bloomMode').value, bloomShape: $('bloomShape').value, sharpness: +$('sharp').value, theta: +$('theta').value * Math.PI / 180 }; }
 
 // ---------- tabs ----------
 document.querySelectorAll('.tabs button').forEach(function (b) {
@@ -252,44 +257,63 @@ function drawKnot(g, P, cx, cy, sc, colour, width) {
   }
   g.lineCap = 'round'; g.lineJoin = 'round';
   path(0, n); g.strokeStyle = colour; g.lineWidth = width; g.stroke();
-  var segPx = K.wireLength(P) / n * sc, m = Math.ceil((4 * width + 8) / Math.max(segPx, 1e-6)) + 1;
+  if (!(sc > 0)) return;   // hidden canvas (zero width): nothing to draw
+  // half-length of the over-strand redraw, in points; capped (an uncapped value froze hidden tabs for ~19 s)
+  var segPx = K.wireLength(P) / n * sc, m = Math.min(Math.floor(n / 8), Math.ceil((4 * width + 8) / Math.max(segPx, 1e-6)) + 1);
   K.crossings(P).list.forEach(function (c) {
     var k = c.overIsI ? c.i : c.j;
     path(k - m, k + m + 1); g.strokeStyle = css('--halo'); g.lineWidth = width + 6; g.stroke();
     path(k - m - 1, k + m + 2); g.strokeStyle = colour; g.lineWidth = width; g.stroke();
   });
 }
-// preview = true while a control is being dragged: draw only (fixed point count, estimated lift),
-// skipping the slow checks (adaptive point count, lift solving), which run when the control is released.
-function updateElement(preview) {
-  var prm = elemPrm(), w = wire(), clear = w.d + 2 * w.tIns;
+// The page thread only ever draws a quick preview (fixed point count, estimated lift: a few ms). The slow checks
+// (adaptive point count, lift solving, self-inductance: 0.1–0.9 s) run in a background worker; the drawing and
+// table are refreshed when the result comes back. preview = true while a slider is being dragged (no checks yet).
+function elementHeader(prm, clear) {
   $('betaV').textContent = prm.beta.toFixed(3);
   $('thetaV').textContent = Math.round(prm.theta * 180 / Math.PI) + '°';
   $('sizeLabel').textContent = prm.bloomMode === 'extent' ? 'Footprint radius (mm)' : 'Core radius R (mm)';
   $('knotName').textContent = K.name(prm.p, prm.q) + ' — ' + K.expectedCrossings(prm.p, prm.q) + ' crossings';
   var floor = K.betaMinPhysical(prm.p, K.coreRadius(prm), clear, prm.bloomShape);
-  if (prm.bloomShape === 'symmetric' && prm.beta >= 1) { $('betaFloor').innerHTML = '<b style="color:var(--bad)">Symmetric shape needs β &lt; 1 (lobes would cross the centre).</b>'; return; }
-  $('betaFloor').innerHTML = (prm.bloomShape === 'outward' ? 'Lobe length = ' + prm.beta.toFixed(2) + ' × base radius. ' : '') + (prm.p < 2 ? 'No crossings: no bloom floor.' :
+  if (prm.bloomShape === 'symmetric' && prm.beta >= 1) { $('betaFloor').innerHTML = '<b style="color:var(--bad)">Symmetric shape needs β &lt; 1 (lobes would cross the centre).</b>'; return false; }
+  if (prm.bloomShape === 'outward' && prm.sharpness > 1) { $('betaFloor').innerHTML = 'Lobe length = ' + prm.beta.toFixed(2) + ' × base radius. Bloom floor formula assumes m = 1; see the clearance check.'; }
+  else $('betaFloor').innerHTML = (prm.bloomShape === 'outward' ? 'Lobe length = ' + prm.beta.toFixed(2) + ' × base radius. ' : '') + (prm.p < 2 ? 'No crossings: no bloom floor.' :
     'Buildable bloom floor for this wire ≈ ' + floor.toFixed(3) + (prm.beta < floor ? ' — <b style="color:var(--bad)">below floor: strands would touch</b>' : ''));
-  if (preview) {
-    var nP = Math.min(1200, Math.max(400, 100 * prm.p * prm.q)), hEst = prm.p < 2 ? 0 : clear / (2 * Math.sin(Math.PI / prm.p));
-    var Pp = K.points(Object.assign({}, prm, { h: hEst }), nP);
-    var cvp = sizeCanvas($('elCanvas')), gp = cvp.g, Rfp = K.footprintRadius(prm), scp = Math.min(cvp.w, cvp.h) * 0.45 / Rfp;
-    gp.clearRect(0, 0, cvp.w, cvp.h);
-    drawKnot(gp, Pp, cvp.w / 2, cvp.h / 2, scp, css('--wire'), 3);
-    gp.fillStyle = css('--muted'); gp.font = '12px Segoe UI'; gp.fillText('preview — checks update when you release the control', 10, cvp.h - 10);
-    return;
-  }
-  var n = Math.min(K.adaptiveN(prm), 1600);
-  elRep = K.report(prm, w, n);
-  var cv = sizeCanvas($('elCanvas')), g = cv.g, Rf = elRep.footprintRadius, sc = Math.min(cv.w, cv.h) * 0.45 / Rf;
+  return true;
+}
+function drawElement(P, Rf, coreR, note) {
+  var cv = sizeCanvas($('elCanvas')), g = cv.g, sc = Math.min(cv.w, cv.h) * 0.45 / Rf;
   g.clearRect(0, 0, cv.w, cv.h);
   g.setLineDash([6, 5]); g.strokeStyle = css('--line'); g.lineWidth = 1.2;
   g.beginPath(); g.arc(cv.w / 2, cv.h / 2, Rf * sc, 0, 2 * Math.PI); g.stroke();
-  g.setLineDash([2, 4]); g.beginPath(); g.arc(cv.w / 2, cv.h / 2, elRep.coreRadius * sc, 0, 2 * Math.PI); g.stroke(); g.setLineDash([]);
-  drawKnot(g, elRep.points, cv.w / 2, cv.h / 2, sc, css('--wire'), 3);
+  g.setLineDash([2, 4]); g.beginPath(); g.arc(cv.w / 2, cv.h / 2, coreR * sc, 0, 2 * Math.PI); g.stroke(); g.setLineDash([]);
+  drawKnot(g, P, cv.w / 2, cv.h / 2, sc, css('--wire'), 3);
   g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
-  g.fillText('scale: ' + (10 * sc).toFixed(0) + ' px = 10 mm', 10, cv.h - 10);
+  g.fillText(note || ('scale: ' + (10 * sc).toFixed(0) + ' px = 10 mm'), 10, cv.h - 10);
+}
+var elWorker = null, elReq = 0, elBusy = false, elPending = null;
+function updateElement(preview) {
+  var prm = elemPrm(), w = wire(), clear = w.d + 2 * w.tIns;
+  if (!elementHeader(prm, clear)) return;
+  var nP = Math.min(1200, Math.max(400, 100 * prm.p * prm.q)), hEst = prm.p < 2 ? 0 : clear / (2 * Math.sin(Math.PI / prm.p));
+  drawElement(K.points(Object.assign({}, prm, { h: hEst }), nP), K.footprintRadius(prm), K.coreRadius(prm),
+    preview ? 'preview — checks update when you release the control' : 'checking…');
+  if (preview) return;
+  $('elTable').style.opacity = 0.45;
+  // a stale check still running is abandoned: restart the worker rather than queue behind it
+  if (elBusy && elWorker) { elWorker.terminate(); elWorker = null; }
+  if (!elWorker) { elWorker = new Worker(workerURL); elWorker.onmessage = onElement; }
+  elBusy = true; elPending = { id: ++elReq, prm: prm, w: w, clear: clear };
+  elWorker.postMessage({ cmd: 'element', id: elReq, prm: prm, wire: w });
+}
+function onElement(e) {
+  var d = e.data; elBusy = false;
+  if (!elPending || d.id !== elPending.id) return;
+  if (d.type === 'error') { $('elTable').innerHTML = '<tr><td>Error</td><td>' + d.msg + '</td></tr>'; return; }
+  var prm = elPending.prm, w = elPending.w, clear = elPending.clear, n = d.n;
+  elRep = d.rep;
+  drawElement(elRep.points, elRep.footprintRadius, elRep.coreRadius);
+  $('elTable').style.opacity = 1;
   function f(ok, txt) { return '<span class="flag ' + (ok ? 'ok' : 'bad') + '">' + txt + '</span>'; }
   var rows = [
     ['Knot', elRep.name + ' T(' + prm.p + ',' + prm.q + ')'],
@@ -300,13 +324,11 @@ function updateElement(preview) {
     ['Crossing lift h', fmt(elRep.h, 2) + ' mm'],
     ['Min self-clearance (need)', f(elRep.liftFeasible && elRep.minClearance >= clear - 1e-6, fmt(elRep.minClearance, 2) + ' (' + fmt(clear, 2) + ') mm')],
     ['Tightest bend (limit)', f(elRep.bendOK, fmt(elRep.minBendRadius, 2) + ' (' + fmt(w.minBend, 1) + ') mm')],
-    ['Bloom floor for wire', prm.p < 2 ? '—' : fmt(elRep.betaMinPhysical, 3)],
-    ['Points used', n]
+    ['Lobe aspect ratio (length ÷ width at half length)', fmt(elRep.lobe.aspect, 2) + ' (' + fmt(elRep.lobe.length, 1) + ' / ' + fmt(elRep.lobe.width, 1) + ' mm)'],
+    ['Bloom floor for wire', prm.p < 2 ? '—' : elRep.floorApplies ? fmt(elRep.betaMinPhysical, 3) : 'n/a for m > 1 (use clearance)'],
+    ['Points used', n],
+    ['Self-inductance L (approx.)', fmt(d.L, 0) + ' nH']
   ];
-  try {
-    var L = I.selfL(elRep.points, w.d / 2);
-    rows.push(['Self-inductance L (approx.)', fmt(L, 0) + ' nH']);
-  } catch (e) {}
   $('elTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
 }
 var elTimer = null, previewPending = false;
@@ -316,11 +338,13 @@ function schedulePreview() {
   if (previewPending) return; previewPending = true;
   requestAnimationFrame(function () { previewPending = false; updateElement(true); });
 }
-['q', 'p', 'beta', 'bloomMode', 'bloomShape', 'size', 'theta', 'wd', 'wt', 'wb'].forEach(function (id) {
+['q', 'p', 'beta', 'sharp', 'bloomMode', 'bloomShape', 'size', 'theta', 'wd', 'wt', 'wb'].forEach(function (id) {
   var isSlider = $(id).type === 'range';
   $(id).addEventListener('input', function () {
     if (id === 'q') fillP();
-    if (isSlider) { $('betaV').textContent = (+$('beta').value).toFixed(3); $('thetaV').textContent = $('theta').value + '°'; schedulePreview(); }
+    if (id === 'bloomShape') $('sharp').disabled = $('bloomShape').value === 'symmetric';
+    // sliders: preview only while dragging (checks run on release, 'change'); other controls: checks now
+    if (isSlider) { $('betaV').textContent = (+$('beta').value).toFixed(3); $('thetaV').textContent = $('theta').value + '°'; $('sharpV').textContent = (+$('sharp').value).toFixed(1); schedulePreview(); }
     else scheduleElement();
     pairStale();
   });
@@ -336,10 +360,13 @@ function workerMain() {
         var last = 0;
         var r = KC.opt.run(m.cfg, function (p) { var t = Date.now(); if (t - last > 120) { last = t; postMessage({ type: 'progress', p: p }); } }, m.which);
         postMessage({ type: 'result', r: r });
+      } else if (m.cmd === 'element') {
+        var n = Math.min(KC.knot.adaptiveN(m.prm), 1600), rep = KC.knot.report(m.prm, m.wire, n);
+        postMessage({ type: 'element', id: m.id, rep: rep, n: n, L: KC.ind.selfL(rep.points, m.wire.d / 2) });
       } else if (m.cmd === 'pair') {
         postMessage({ type: 'pair', r: KC.opt.pairScan(m.kp, m.Rf, m.wire, m.a1, m.a2) });
       }
-    } catch (err) { postMessage({ type: 'error', msg: String(err && err.stack || err) }); }
+    } catch (err) { postMessage({ type: 'error', id: m.id, msg: String(err && err.stack || err) }); }
   };
 }
 var workerURL = URL.createObjectURL(new Blob(['var KC = {};\n' + KC_FACTORIES.map(function (f) { return '(' + f.toString() + ')(KC);'; }).join('\n') +
@@ -352,6 +379,7 @@ var pairRes = null, pairBusy = false;
 function pairStale() { pairRes = null; $('pairTable').innerHTML = '<tr><td>Settings changed</td><td>press Compute</td></tr>'; drawPair(); }
 ['a1', 'a2'].forEach(function (id) { $(id).addEventListener('input', function () { $(id + 'V').textContent = $(id).value + '°'; pairStale(); }); });
 $('a1V').textContent = '0°'; $('a2V').textContent = '0°';
+$('pairScale').addEventListener('change', drawPair);
 $('pairRun').onclick = function () {
   if (pairBusy || arrBusy) return;
   var prm = elemPrm(), Rf = K.footprintRadius(prm);
@@ -367,28 +395,51 @@ $('pairRun').onclick = function () {
     });
     $('pairTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
     drawPair();
-  }).postMessage({ cmd: 'pair', kp: { p: prm.p, q: prm.q, beta: prm.beta, shape: prm.bloomShape }, Rf: Rf, wire: wire(), a1: +$('a1').value * Math.PI / 180, a2: +$('a2').value * Math.PI / 180 });
+  }).postMessage({ cmd: 'pair', kp: { p: prm.p, q: prm.q, beta: prm.beta, shape: prm.bloomShape, sharpness: prm.sharpness }, Rf: Rf, wire: wire(), a1: +$('a1').value * Math.PI / 180, a2: +$('a2').value * Math.PI / 180 });
 };
 function drawPair() {
+  if (!$('pairCanvas').clientWidth) return;   // tab hidden: redrawn when the tab is opened
   var cv = sizeCanvas($('pairCanvas')), g = cv.g, W = cv.w, H = cv.h, m = { l: 56, r: 12, t: 12, b: 36 };
   g.clearRect(0, 0, W, H);
-  var thr = +$('thr').value, prm = elemPrm(), Rf = K.footprintRadius(prm);
-  var dmin = 0.5, dmax = 2.6, kmin = -0.1, kmax = 0.3;
-  if (pairRes) { var ks = pairRes.k; kmin = Math.min(-0.02, Math.min.apply(null, ks)); kmax = Math.max(0.02, Math.max.apply(null, ks)); }
+  var thr = +$('thr').value, prm = elemPrm(), Rf = K.footprintRadius(prm), db = $('pairScale').value === 'db';
+  var dmin = 0.5, dmax = 2.6, kmin = -0.1, kmax = 0.3, FLOOR = -60;   // dB floor: exact zeros (-infinity dB) are drawn here
+  // dB view: 20*log10|k| (coupling coefficient in dB — NOT bench S21, which also depends on Q and matching)
+  function val(k) { return db ? Math.max(FLOOR, 20 * Math.log10(Math.abs(k) || 1e-12)) : k; }
+  if (pairRes) {
+    var vs = pairRes.k.map(val);
+    if (db) { kmin = FLOOR; kmax = Math.max(-10, Math.ceil(Math.max.apply(null, vs) / 10) * 10); }
+    else { kmin = Math.min(-0.02, Math.min.apply(null, vs)); kmax = Math.max(0.02, Math.max.apply(null, vs)); }
+  } else if (db) { kmin = FLOOR; kmax = 0; }
   function X(dn) { return m.l + (dn - dmin) / (dmax - dmin) * (W - m.l - m.r); }
-  function Y(k) { return m.t + (kmax - k) / (kmax - kmin) * (H - m.t - m.b); }
-  g.fillStyle = css('--chip'); g.fillRect(m.l, Y(thr), W - m.l - m.r, Y(-thr) - Y(thr));
-  g.strokeStyle = css('--line'); g.lineWidth = 1; g.beginPath(); g.moveTo(m.l, Y(0)); g.lineTo(W - m.r, Y(0)); g.stroke();
+  function Y(v) { return m.t + (kmax - v) / (kmax - kmin) * (H - m.t - m.b); }
+  g.fillStyle = css('--chip');
+  if (db) g.fillRect(m.l, Y(val(thr)), W - m.l - m.r, Y(FLOOR) - Y(val(thr)));   // below threshold = shaded
+  else g.fillRect(m.l, Y(thr), W - m.l - m.r, Y(-thr) - Y(thr));
+  g.strokeStyle = css('--line'); g.lineWidth = 1;
+  if (!db) { g.beginPath(); g.moveTo(m.l, Y(0)); g.lineTo(W - m.r, Y(0)); g.stroke(); }
   g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
   for (var t = 0.5; t <= 2.51; t += 0.5) { g.fillText(t.toFixed(1), X(t) - 8, H - m.b + 16); g.beginPath(); g.moveTo(X(t), H - m.b); g.lineTo(X(t), H - m.b + 4); g.stroke(); }
   g.fillText('centre distance / footprint radius', W / 2 - 90, H - 4);
-  [kmin, 0, kmax].forEach(function (k) { g.fillText(k.toFixed(2), 6, Y(k) + 4); });
-  g.save(); g.translate(14, H / 2); g.rotate(-Math.PI / 2); g.restore();
+  if (db) {
+    for (var v = kmin; v <= kmax + 1e-9; v += 10) {
+      g.fillText(v + ' dB', 4, Y(v) + 4);
+      g.strokeStyle = css('--line'); g.beginPath(); g.moveTo(m.l, Y(v)); g.lineTo(W - m.r, Y(v)); g.stroke();
+    }
+    g.fillText('threshold ' + val(thr).toFixed(0) + ' dB', W - m.r - 110, Y(val(thr)) - 4);
+  } else [kmin, 0, kmax].forEach(function (k) { g.fillText(k.toFixed(2), 6, Y(k) + 4); });
   if (!pairRes) { g.fillText('Press Compute to scan k for these two elements.', m.l + 10, m.t + 20); }
   else {
-    g.strokeStyle = css('--accent'); g.lineWidth = 2; g.beginPath();
-    pairRes.d.forEach(function (d, i) { var x = X(d / pairRes.Rf), y = Y(pairRes.k[i]); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.stroke();
-    pairRes.zeros.forEach(function (z) { g.fillStyle = css('--bad'); g.beginPath(); g.arc(X(z.dOverRf), Y(0), 5, 0, 7); g.fill(); });
+    // in dB, add the exact zeros to the curve so the notches reach the floor instead of stopping between samples
+    var pts = pairRes.d.map(function (d, i) { return [d / pairRes.Rf, pairRes.k[i]]; });
+    if (db) pairRes.zeros.forEach(function (z) { pts.push([z.dOverRf, 0]); });
+    pts.sort(function (a, b) { return a[0] - b[0]; });
+    g.lineWidth = 2;
+    for (var i = 1; i < pts.length; i++) {   // in dB, colour by sign of k: accent = positive, magenta = negative
+      g.strokeStyle = !db || (pts[i][1] + pts[i - 1][1]) >= 0 ? css('--accent') : css('--wire');
+      g.beginPath(); g.moveTo(X(pts[i - 1][0]), Y(val(pts[i - 1][1]))); g.lineTo(X(pts[i][0]), Y(val(pts[i][1]))); g.stroke();
+    }
+    pairRes.zeros.forEach(function (z) { g.fillStyle = css('--bad'); g.beginPath(); g.arc(X(z.dOverRf), Y(db ? FLOOR : 0), 5, 0, 7); g.fill(); });
+    if (db) { g.fillStyle = css('--muted'); g.fillText('teal: k > 0 (overlap side) · magenta: k < 0', m.l + 8, m.t + 14); }
   }
   // the two elements drawn at the first zero (or at 1.5 Rf)
   var cv2 = sizeCanvas($('pairDraw')), g2 = cv2.g; g2.clearRect(0, 0, cv2.w, cv2.h);
@@ -472,7 +523,7 @@ var view3d = (function () {
 // ---------- array solve ----------
 var arrRes = null, arrBusy = false;
 function arrCfg() {
-  return { N: Math.max(2, Math.round(+$('N').value)), knot: { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, shape: $('bloomShape').value }, wire: wire(), helmet: helmet(),
+  return { N: Math.max(2, Math.round(+$('N').value)), knot: { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, shape: $('bloomShape').value, sharpness: +$('sharp').value }, wire: wire(), helmet: helmet(),
     opts: { target: $('target').value, rotation: $('rotation').value, theta0: +$('theta').value * Math.PI / 180, thresholdK: +$('thr').value, lambdaMax: +$('lamMax').value, seed: Math.round(+$('seed').value) } };
 }
 function setBusy(b) { arrBusy = b; $('runFast').disabled = $('runFull').disabled = b; $('cancel').disabled = !b; }

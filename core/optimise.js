@@ -77,7 +77,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var A = [], B = [];
     for (var ia = 0; ia < na; ia++) {
       var th = ia * period / na;
-      var base = { p: kp.p, q: kp.q, beta: kp.beta, size: 1, bloomMode: 'extent', bloomShape: kp.shape, h: hN, theta: th };
+      var base = { p: kp.p, q: kp.q, beta: kp.beta, size: 1, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, h: hN, theta: th };
       A.push(I.prep(K.points(base, o.nTable)));
       B.push(K.points(base, o.nTable));
     }
@@ -117,13 +117,13 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
 
   // Flat element at footprint radius Rf (mm): points, self-inductance.
   O.elementPoints = function (kp, Rf, theta, h, n) {
-    return K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, theta: theta, h: h }, n);
+    return K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, theta: theta, h: h }, n);
   };
 
   // ---------- Pair analysis (Design.md §5.3): k vs centre distance for two flat elements ----------
   O.pairScan = function (kp, Rf, wire, a1, a2, o) {
     o = Object.assign({ dMin: 0.5 * Rf, dMax: 2.6 * Rf, nd: 60, n: 300 }, o || {});
-    var c = clearanceOf(wire), lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape }, c, 200);
+    var c = clearanceOf(wire), lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness }, c, 200);
     var A = O.elementPoints(kp, Rf, a1, lift.h, o.n), Bp = O.elementPoints(kp, Rf, a2, lift.h, o.n);
     var pa = I.prep(A), L1 = I.selfL(A, wire.d / 2), L2 = I.selfL(Bp, wire.d / 2);
     function k(d) { return I.mutual(pa, Bp.map(function (p) { return [p[0] + d, p[1], p[2]]; }), c) / Math.sqrt(L1 * L2); }
@@ -146,7 +146,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var samples = S.samples(H, o.nSamples), area = S.coveredArea(H);
     var spacing = Math.sqrt(2 * area / (Math.sqrt(3) * cfg.N));   // DERIVED: hexagonal packing, area per element = (sqrt3/2) s^2
     var Rf0 = spacing / 1.5;
-    var lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf0, bloomMode: 'extent', bloomShape: kp.shape }, c, 200);
+    var lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf0, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness }, c, 200);
     var T = O.buildTable(kp, lift.h / Rf0, c / Rf0, o);
     var zn = O.tableZero(T) || 1.5;
     var ctx = { cfg: cfg, o: o, H: H, kp: kp, wire: w, c: c, a: w.d / 2, h: lift.h, liftFeasible: lift.feasible,
@@ -327,7 +327,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     }
     var covered = 0;
     ctx.samples.forEach(function (s) { for (var e = 0; e < N; e++) if (Lay.dist(s, st.C[e]) <= st.Rf) { covered++; return; } });
-    var planarRep = K.report({ p: ctx.kp.p, q: ctx.kp.q, beta: ctx.kp.beta, size: st.Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape }, ctx.wire, 400);
+    var planarRep = K.report({ p: ctx.kp.p, q: ctx.kp.q, beta: ctx.kp.beta, size: st.Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape, sharpness: ctx.kp.sharpness }, ctx.wire, 400);
     var distortion = el.map(function (E) { return K.wireLength(E.points) / K.wireLength(O.elementPoints(ctx.kp, st.Rf, 0, ctx.h, o.nFinal)) - 1; });
     var fp = stats(function (p) { return p.footprint; }), r1 = stats(function (p) { return p.ring1; });
     return {
