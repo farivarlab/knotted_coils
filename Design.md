@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.4 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.5 (v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -157,6 +157,7 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V4 | Convergence | Internal | k changes < 0.001 when the point count doubles |
 | V5 | Symmetry | Internal | M_ij = M_ji to machine precision; k invariant under rotating both elements by 2π/q |
 | V6 | Topology preserved under bloom | Internal | Crossing count and over/under pattern unchanged across β ∈ [β_min, β_max]; minimum self-clearance ≥ d_w + 2·t_i |
+| V8 *(added v1.5, pre-registered before running)* | B1 (Biot–Savart) field of a circular loop on its axis | Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in `core/field.js`) | Relative error < 0.5% at z = 0, 10, 20, 40, 80 mm for R = 50 mm, 400 points |
 | V7 *(added v1.3, pre-registered before running)* | Topology preserved under petal sharpness | Internal | Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i |
 
 If a check fails, the app shows a banner and every EM output is labelled "UNVALIDATED".
@@ -210,6 +211,13 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20, v1.5 (requested by Reza): quick B1 visualisation.**
+  - **Request (Reza):** "I just want a quick visualization that's reasonable. We will do simulations later."
+  - **What it shows:** the quasi-static magnetic field per unit current (Biot–Savart) of the solved wires, either per element or combined as root-sum-of-squares √Σ|B1ᵢ|².
+  - **Where:** on a placeholder head ellipsoid (helmet semi-axes minus 10 mm) and on axial, coronal or sagittal slices.
+  - **What it ignores:** wave effects and tissue, which matter at 3T and 7T. Maps are labelled exploratory, for comparing coverage and depth fall-off between designs only.
+  - **Scope:** this narrows the §1 and §8 exclusion of B1 maps. **E-fields remain excluded.**
+  - **New check:** V8 (§7), pre-registered.
 - **2026-10-20, v1.4: sharpness redefined after V7 FAILED (run 4, git 2188ab0).**
   - **Why v1.3 failed:** its power-law profile ((1+cos qφ)/2)^m added paired crossings to the flat drawing.
   - **New definition:** sharpness warps the lobe angle, ψ = qφ + a·sin(qφ) with a = 1 − 1/m. The same ψ drives both radius and lift, r = R(1 + β(1 + cos ψ)/2) and z = h·sin ψ.
