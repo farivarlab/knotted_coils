@@ -4,6 +4,19 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 (night) — Audit M2 (crossing shorts on the grid): checked, no short found
+- **Trigger:** the `trefoil_air_3T` run hovered between −8 and −17 dB for roughly 60,000 timesteps. Energy that never decays is the signature of a closed metal loop with no port in it, which a shorted crossing would create.
+- **Check:** `sim/check_crossings.py` rebuilds the openEMS grid exactly as the run does, without running FDTD, and snaps both strands at every crossing to grid nodes.
+- **Result:**
+  - Separation at the crossings is 1.57–1.69 mm on the 1 mm grid.
+  - No crossing shares a node, or sits one grid edge apart, in `trefoil_air_3T` or any of the three `pair_head_3T` cases.
+  - In `trefoil_air_3T`, one crossing has its two strands at diagonally neighbouring nodes, offset (0, 1, −1). No single grid edge joins those, so they cannot short.
+- **Outcome:** the run then decayed past the −40 dB stop criterion (−45.9 dB at about 70,000 timesteps). This is a slow-ringing, high-Q (low-loss) coil in air, not a short.
+- **Decision (Claude, overnight):**
+  - No mesh change mid-queue, so all cases keep the same mesh code.
+  - Margin is thin: half a cell (0.5 mm) less lift would put strands one edge apart. Any new case or grid must pass `check_crossings.py` before it is run.
+  - Adding a timestep cap stays an open item.
+
 ### 2026-10-20 (night) — Audit actions (steps 2–4)
 - **Step 1:** brainstorm, `docs/AUDIT_BRAINSTORM.md`.
 - **Step 2:** independent review (Fable), `docs/AUDIT_BRAINSTORM_REVIEW.md`. It added M1–M17.
