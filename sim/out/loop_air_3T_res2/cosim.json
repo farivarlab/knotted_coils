@@ -1,0 +1,25 @@
+{
+ "case": "loop_air_3T_res2",
+ "B0_T": 3,
+ "f0_MHz": 127.73243538299998,
+ "loaded": false,
+ "tissue_source": null,
+ "parameters": {
+  "SIGMA_CU": 58000000.0,
+  "Q_CAP": 1000.0,
+  "Q_IND": 100.0,
+  "Z_PRE": 2.0,
+  "PASSES": 3
+ },
+ "V16": {
+  "max_singular_value": 1.0000858535513428,
+  "max_reciprocity_error": 1.183429271032758e-06
+ },
+ "V15": {
+  "first_pass_C_pF": 27.750921433089307,
+  "predicted_MHz": 127.73243538299998,
+  "resonance_MHz": null,
+  "rel_err": null
+ },
+ "tuned": false
+}

@@ -1,0 +1,53 @@
+{
+ "case": "loop_air_3T",
+ "B0_T": 3,
+ "f0_MHz": 127.73243538299998,
+ "loaded": false,
+ "tissue_source": null,
+ "parameters": {
+  "SIGMA_CU": 58000000.0,
+  "Q_CAP": 1000.0,
+  "Q_IND": 100.0,
+  "Z_PRE": 2.0,
+  "PASSES": 3
+ },
+ "V16": {
+  "max_singular_value": 1.0006687576982292,
+  "max_reciprocity_error": 0.0008046755210205758
+ },
+ "V15": {
+  "first_pass_C_pF": 27.750921433089307,
+  "predicted_MHz": 127.73243538299998,
+  "resonance_MHz": 115.60927809908456,
+  "rel_err": -0.09491056243909142
+ },
+ "tuned": true,
+ "elements": [
+  {
+   "Ct_pF": 17.407733216204594,
+   "Cm_pF": 221.14928935558083,
+   "Lm_nH": 7.020245986111809,
+   "first_pass_Ct_pF": 27.750921433089307,
+   "S11_dB": -48.13089216147675,
+   "R_loop_ohm": 0.6348875012500687,
+   "L_fullwave_nH": 274.577611149218,
+   "L_quasistatic_nH": 223.7795836326815
+  }
+ ],
+ "V17": {
+  "max_S11_dB": -48.13089216147675,
+  "all_positive": true
+ },
+ "B1": {
+  "axial": [
+   {
+    "element": 0
+   }
+  ],
+  "coronal": [
+   {
+    "element": 0
+   }
+  ]
+ }
+}

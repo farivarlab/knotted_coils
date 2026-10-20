@@ -4,6 +4,22 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 (night) — v1.7 full-wave pipeline: first findings
+- **Defaults taken while Reza was away:**
+  - field strengths 3T and 7T;
+  - matching = shunt C_m, series L_m, with preamp decoupling;
+  - installed openEMS 0.37.0 (Windows package, Python 3.14 wheels) in `C:\Users\reza\.solvers\openEMS`, plus an isolated Python 3.14 environment `C:\Users\reza\.venvs\kc_em` (numpy, scipy, h5py, matplotlib, magpylib 6.0.0, openEMS, mariepy);
+  - no permanent environment variables (no `setx`).
+- **mariepy:** installed (0.0.0.dev106; pulled in PyTorch). Its repository contains AGENTS.md, CLAUDE.md and GEMINI.md, so it is probably at least partly AI-written. Cross-check only.
+- **Tissue values:**
+  - 7T: openEMS's bundled head phantom (attributed to IT'IS/Gabriel; secondary source).
+  - 3T: openEMS's 128 MHz *body* values mapped to head layers, an APPROXIMATION.
+  - IT'IS's own site serves values through a backend query and IFAC's calculator is an interactive app, so neither could be read quickly. Verified values remain an open item.
+- **V15 FAILED (first run, 1 mm grid, `AddWire` with radius 0.5 mm):** resonance at 115.6 MHz, −9.5% from the predicted 127.7 MHz (limit ±5%). The full-wave loop L was 274.6 nH against 223.8 nH quasi-static (+23%).
+- **Root-cause finding:** on a 2 mm grid, the radius-aware `AddWire` primitive **disconnected the wire** (port-to-port Z₀₁ ≈ 9 Ω vs 1,259 Ω at 1 mm). Only grid edges within the radius become metal, so a 0.5 mm wire on a coarse or oblique grid can break silently.
+- **Change:** wires now use `AddCurve` (a connected stair-step thin wire on the grid). Its effective radius depends on the grid and is corrected with the pre-registered V15b procedure: calibrated on the loop, validated on the trefoil.
+- **Also fixed:** openEMS changes the working directory during `Run()`, so the case path is now resolved before any run.
+
 ### 2026-10-20 — Design v1.6 development: failures found by the new checks (logged before the official run)
 Development runs of the pre-registered v1.6 checks (`KC_ONLY=…`; not official runs) found two real problems. Both were fixed, and the criteria were not changed.
 - **V14 FAILED (B1 vs Magpylib).** Worst relative difference at points ≥ 10 mm from the wires:

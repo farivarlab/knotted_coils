@@ -1,0 +1,162 @@
+{
+ "case": "loop_air_3T_res2",
+ "case_file": "C:\\Users\\reza\\OneDrive - McGill University\\claude\\knotted_coils\\sim\\cases\\loop_air_3T.json",
+ "openems_version": "0.37.0",
+ "options": {
+  "case": "sim/cases/loop_air_3T.json",
+  "res": 2.0,
+  "res_phantom": 3.0,
+  "gap": 2.0,
+  "air": 200.0,
+  "end_crit": 0.0001,
+  "fc_frac": 0.5,
+  "nf": 201,
+  "tag": "res2"
+ },
+ "ports": [
+  {
+   "element": 0,
+   "k": 0,
+   "feed": true,
+   "axis": 1,
+   "sign": 1.0,
+   "A": [
+    40.0,
+    -1.0,
+    0.0
+   ],
+   "B": [
+    40.0,
+    1.0,
+    0.0
+   ],
+   "p": [
+    40.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "element": 0,
+   "k": 1,
+   "feed": false,
+   "axis": 0,
+   "sign": -1.0,
+   "A": [
+    0.9999999999998461,
+    40.0,
+    0.0
+   ],
+   "B": [
+    -1.0000000000001539,
+    40.0,
+    0.0
+   ],
+   "p": [
+    -1.5386796548124316e-13,
+    40.0,
+    0.0
+   ]
+  },
+  {
+   "element": 0,
+   "k": 2,
+   "feed": false,
+   "axis": 1,
+   "sign": -1.0,
+   "A": [
+    -40.0,
+    0.9999999999998059,
+    0.0
+   ],
+   "B": [
+    -40.0,
+    -1.000000000000194,
+    0.0
+   ],
+   "p": [
+    -40.0,
+    -1.9405065163191245e-13,
+    0.0
+   ]
+  },
+  {
+   "element": 0,
+   "k": 3,
+   "feed": false,
+   "axis": 0,
+   "sign": 1.0,
+   "A": [
+    -0.99999999999978,
+    -40.0,
+    0.0
+   ],
+   "B": [
+    1.00000000000022,
+    -40.0,
+    0.0
+   ],
+   "p": [
+    2.200226778662628e-13,
+    -40.0,
+    0.0
+   ]
+  }
+ ],
+ "runs": [
+  {
+   "port": 0,
+   "cells": 142100,
+   "seconds": 12.418051719665527
+  },
+  {
+   "port": 1,
+   "cells": 142100,
+   "seconds": 8.23790717124939
+  },
+  {
+   "port": 2,
+   "cells": 142100,
+   "seconds": 8.33239197731018
+  },
+  {
+   "port": 3,
+   "cells": 142100,
+   "seconds": 12.3057222366333
+  }
+ ],
+ "planes": [
+  {
+   "name": "axial",
+   "axis": 2,
+   "pos": 0.0,
+   "start": [
+    -120,
+    -140,
+    0.0
+   ],
+   "stop": [
+    120,
+    140,
+    0.0
+   ]
+  },
+  {
+   "name": "coronal",
+   "axis": 1,
+   "pos": 20.0,
+   "start": [
+    -120,
+    20.0,
+    -150
+   ],
+   "stop": [
+    120,
+    20.0,
+    150
+   ]
+  }
+ ],
+ "f0_Hz": 127732435.38299999,
+ "note": "S over band; H planes per run normalised to unit incident wave at the driven port (openEMS uf_inc)."
+}
