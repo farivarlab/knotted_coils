@@ -1,7 +1,8 @@
 // Provenance: written with Claude Code (Anthropic AI coding assistant) under the direction of
 // Reza Farivar (McGill University), who is accountable for it. See README 'Provenance and AI-use statement'.
 /*
-VALIDATION RUNNER — the pre-registered checks V1–V6 of Design.md §7 (frozen 2026-10-20, git 39a4e83),
+VALIDATION RUNNER — the pre-registered checks of Design.md §7 (V1–V6 registered in git 39a4e83, V7 in 30d6fa1, V8 in ff1a40e,
+V9–V14 in 91c4df5, V15–V20 in 527aba1, V15b in be426cb),
 applied mechanically. Pass criteria are copied from Design.md and must not be edited here.
 
   node tests/run.js        -> prints results; writes validation/validation_report.{json,html}
@@ -310,6 +311,53 @@ want('V14') && (function () {
     rows: res ? res.cases : [], reference: 'Magpylib 6.0.0 current.Polyline (Ortner & Coliado Bandeira 2020, SoftwareX 11:100466, doi:10.1016/j.softx.2020.100466)' });
 })();
 
+// ---------------- Design v1.7 checks V15-V20 (pre-registered in Design.md §7, git 527aba1 / be426cb) ----------------
+// The full-wave runs happen in Python (sim/run_openems.py + sim/cosim.py); this block reads their cosim.json outputs so
+// the verdicts reach this report and the app banner (audit M1). Official set = untagged sim/out/<case>/ folders
+// (thin-curve wires, 1 mm grid). Missing results -> NOT RUN, never PASS.
+(function () {
+  var simOut = path.join(root, 'sim', 'out');
+  function load(name) { var f = path.join(simOut, name, 'cosim.json'); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; }
+  function all() { return fs.existsSync(simOut) ? fs.readdirSync(simOut).filter(function (d) { return d.indexOf('_') > 0 && !/_(res|curve|addwire)/.test(d) && fs.existsSync(path.join(simOut, d, 'cosim.json')); }).map(function (d) { return load(d); }) : []; }
+  var loop = load('loop_air_3T'), hist = load('loop_air_3T_addwire_res1.0');
+  want('V15') && rec({ id: 'V15', title: 'Full-wave loop resonance with first-pass capacitors vs prediction (openEMS, thin curves, 1 mm grid)',
+    criterion: 'within ±5% of 127.73 MHz', verdict: !loop || !loop.V15 || loop.V15.rel_err == null ? 'NOT RUN' : Math.abs(loop.V15.rel_err) <= 0.05 ? 'PASS' : 'FAIL',
+    summary: loop && loop.V15 ? 'resonance ' + (loop.V15.resonance_MHz || NaN).toFixed(2) + ' MHz (' + (100 * loop.V15.rel_err).toFixed(1) + '%)' +
+      (hist && hist.V15 ? '; first run with AddWire: ' + (100 * hist.V15.rel_err).toFixed(1) + '%' : '') : 'no result', rows: loop ? [loop.V15, loop.thin_wire_calibration] : [] });
+  var tre = load('trefoil_air_3T');
+  var v15b = tre && tre.V15b ? tre.V15b[0] : null;
+  want('V15b') && rec({ id: 'V15b', title: 'Thin-wire correction carries over: trefoil in air, corrected full-wave L vs quasi-static L',
+    criterion: '|rel err| <= 5%', verdict: !v15b ? 'NOT RUN' : Math.abs(v15b.rel_err) <= 0.05 ? 'PASS' : 'FAIL',
+    summary: v15b ? 'L corrected ' + v15b.L_corrected_nH.toFixed(1) + ' nH vs ' + v15b.L_quasistatic_nH.toFixed(1) + ' nH (' + (100 * v15b.rel_err).toFixed(1) + '%)' : 'no result', rows: v15b ? [v15b] : [] });
+  var runs = all();
+  var v16bad = runs.filter(function (r) { return !(r.V16.max_singular_value <= 1.001 && r.V16.max_reciprocity_error <= 0.02); });
+  want('V16') && rec({ id: 'V16', title: 'Extracted S-matrices are passive and reciprocal (all official full-wave cases)',
+    criterion: 'max singular value <= 1.001 and |Sij - Sji| <= 0.02', verdict: !runs.length ? 'NOT RUN' : v16bad.length ? 'FAIL' : 'PASS',
+    summary: runs.length + ' cases' + (v16bad.length ? '; failing: ' + v16bad.map(function (r) { return r.case + ' (' + r.V16.max_singular_value.toFixed(4) + ')'; }).join(', ') : ''),
+    rows: runs.map(function (r) { return { case: r.case, V16: r.V16 }; }) });
+  var v17 = runs.map(function (r) { return { case: r.case, tuned: r.tuned, V17: r.V17 }; });
+  var v17bad = v17.filter(function (x) { return !x.tuned || !x.V17 || x.V17.max_S11_dB > -20 || !x.V17.all_positive; });
+  want('V17') && rec({ id: 'V17', title: 'Co-simulation tunes and matches every element (S11 in the operating state, neighbours preamp-terminated)',
+    criterion: '|S11(f0)| <= -20 dB; all Ct, Cm, Lm positive and finite', verdict: !runs.length ? 'NOT RUN' : v17bad.length ? 'FAIL' : 'PASS',
+    summary: runs.length + ' cases' + (v17bad.length ? '; failing: ' + v17bad.map(function (x) { return x.case; }).join(', ') : ''), rows: v17 });
+  ['3T', '7T'].forEach(function (b) {
+    var r = load('trefoil_head_' + b), v = r && r.V18;
+    want('V18') && rec({ id: 'V18-' + b, title: 'B1 Tier 2 (' + b + '): quasi-static vs full-wave |B1-| within 20 mm of the head surface (classification)',
+      criterion: 'max relative difference <= 20% (PASS = quasi-static map valid near the surface for this case)',
+      verdict: !v || v.max_rel_diff_within_20mm == null ? 'NOT RUN' : v.max_rel_diff_within_20mm <= 0.2 ? 'PASS' : 'FAIL',
+      summary: v ? 'max ' + (100 * v.max_rel_diff_within_20mm).toFixed(1) + '%; breakdown depth (mm) ' + JSON.stringify(v.breakdown_depths_mm) : 'no result', rows: v ? [v, r.B1] : [] });
+  });
+  var pr = ['d-4', 'd+0', 'd+4'].map(function (t) { return load('pair_head_3T_' + t); });
+  var pOK = pr.every(function (r) { return r && r.coupling; });
+  var s = pOK ? pr.map(function (r) { return r.coupling.S21_dB; }) : null;
+  want('V19') && rec({ id: 'V19', title: 'Quasi-static null survives capacitors and head load (trefoil pair, 3T, spacings d0-4, d0, d0+4)',
+    criterion: 'S21(f0) <= -15 dB at d0 AND the smallest |S21| of the three is at d0', verdict: !pOK ? 'NOT RUN' : (s[1] <= -15 && s[1] <= s[0] && s[1] <= s[2]) ? 'PASS' : 'FAIL',
+    summary: pOK ? 'S21 dB at d0-4/d0/d0+4: ' + s.map(function (x) { return x.toFixed(1); }).join(' / ') : 'no result', rows: pOK ? pr.map(function (r) { return { case: r.case, coupling: r.coupling }; }) : [] });
+  var mf = path.join(simOut, 'mariepy_trefoil_head.json'), mr = fs.existsSync(mf) ? JSON.parse(fs.readFileSync(mf, 'utf8')) : null;
+  want('V20') && rec({ id: 'V20', title: 'Second solver (mariepy): loaded trefoil capacitor values within 10% of openEMS',
+    criterion: 'within 10%; NOT EVALUABLE if mariepy cannot run', verdict: mr ? mr.verdict : 'NOT EVALUABLE', summary: mr ? mr.summary : 'no mariepy result (see DECISIONS.md)', rows: mr ? [mr] : [] });
+})();
+
 // POST-HOC (added after run 1): V6's test, restricted to blooms at or above the physical floor
 // betaMinPhysical for this wire. Informational only; it does not change V6's verdict.
 want('PH2') && (function () {
@@ -342,7 +390,7 @@ want('PH1') && (function () {
 var git = '';
 try { git = require('child_process').execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim(); } catch (e) { git = 'unknown'; }
 var out = { generated: new Date().toISOString(), git: git, wire: WIRE, results: results,
-  preregistered: 'Design.md v1.0 §7 (git 39a4e83)',
+  preregistered: 'Design.md §7: V1-V6 git 39a4e83; V7 30d6fa1; V8 ff1a40e; V9-V14 91c4df5; V15-V20 527aba1; V15b be426cb',
   allPreregisteredPass: results.filter(function (r) { return /^V/.test(r.id); }).every(function (r) { return r.verdict === 'PASS'; }) };
 var vdir = path.join(root, 'validation'); if (!fs.existsSync(vdir)) fs.mkdirSync(vdir);
 fs.writeFileSync(path.join(vdir, 'validation_report.json'), JSON.stringify(out, null, 1));
