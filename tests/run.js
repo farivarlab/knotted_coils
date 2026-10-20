@@ -102,7 +102,8 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 
 // V6 — topology preserved under bloom, for every catalogue knot (q = 1..8), core radius 30 mm.
 (function () {
-  var betas = [0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
+  // v1.2 (2026-10-20): bloom range extended to Design v1.2 beta_max = 3.0 for the outward shape; criterion unchanged.
+  var betas = [0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.2, 1.6, 2.0, 2.5, 3.0], c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
   // Harness fix after run 1 (logged in DECISIONS.md): the reference over/under pattern is taken at the
   // nominal bloom beta = 0.4, not at the first (most degenerate) beta; point count is adaptive. Criterion unchanged.
   K.catalogue().forEach(function (row) {
@@ -118,7 +119,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
     if (fails.length) allOK = false;
     rows.push({ knot: row.name + ' T(' + row.p + ',' + row.q + ')', pass: fails.length === 0, fails: fails });
   });
-  rec({ id: 'V6', title: 'Topology and clearance across bloom beta = 0.02–0.9 (catalogue knots, core R = 30 mm, placeholder wire)',
+  rec({ id: 'V6', title: 'Topology and clearance across bloom beta = 0.02–3.0, Design v1.2 outward bloom (catalogue knots, core R = 30 mm, placeholder wire)',
     criterion: 'crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i', verdict: allOK ? 'PASS' : 'FAIL',
     summary: rows.filter(function (r) { return !r.pass; }).map(function (r) { return r.knot + ' fails at beta=' + r.fails.map(function (f) { return f.beta; }).join(','); }).join('; ') || 'all knots pass',
     rows: rows });
@@ -129,10 +130,10 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 (function () {
   var c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
   K.catalogue().forEach(function (row) {
-    var bmin = K.betaMinPhysical(row.p, 30, c), b0 = Math.ceil((bmin + 1e-9) * 200) / 200, fails = [];
+    var bmin = K.betaMinPhysical(row.p, 30, c, 'outward'), b0 = Math.ceil((bmin + 1e-9) * 200) / 200, fails = [];
     var ref = { p: row.p, q: row.q, beta: 0.4, size: 30, bloomMode: 'core' }, nRef = K.adaptiveN(ref);
     var refPat = K.crossings(K.points(Object.assign({}, ref, { h: K.solveLift(ref, c, nRef).h }), nRef)).pattern;
-    [b0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].filter(function (b) { return b >= b0; }).forEach(function (b) {
+    [b0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.2, 1.6, 2.0, 2.5, 3.0].filter(function (b) { return b >= b0; }).forEach(function (b) {
       var prm = { p: row.p, q: row.q, beta: b, size: 30, bloomMode: 'core' }, n = K.adaptiveN(prm);
       var lift = K.solveLift(prm, c, n), cr = K.crossings(K.points(Object.assign({}, prm, { h: lift.h }), n));
       if (!(cr.list.length === row.crossings && K.samePattern(refPat, cr.pattern) && lift.feasible)) fails.push(b);
@@ -140,7 +141,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
     if (fails.length) allOK = false;
     rows.push({ knot: 'T(' + row.p + ',' + row.q + ')', betaMinPhysical: bmin, testedFrom: b0, failsAt: fails });
   });
-  rec({ id: 'PH2', title: 'POST-HOC: V6 test from the physical bloom floor (c / (2 R sin(pi/p))) upward',
+  rec({ id: 'PH2', title: 'POST-HOC: V6 test from the physical bloom floor (outward shape: c / (R sin(pi/p))) upward',
     criterion: 'post-hoc; not pre-registered (informational)', verdict: allOK ? 'AGREES' : 'DISAGREES',
     summary: rows.map(function (r) { return r.knot + ' from ' + r.testedFrom + (r.failsAt.length ? ' FAILS ' + r.failsAt : ''); }).join('; '), rows: rows });
 })();

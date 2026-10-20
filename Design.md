@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.1 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 change to §5 approved by Reza 2026-10-20, see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.2 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 change to §5 and v1.2 change to §3 requested and approved by Reza 2026-10-20, see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -28,7 +28,7 @@ It must:
 | **Torus knot T(p,q)** | A knot that winds *p* times around a central axis and *q* times through it. Viewed from above it is a rosette with *q* lobes |
 | **Lobe** | One outward petal of the rosette |
 | **Crossing** | A point where the wire passes over itself |
-| **Bloom (β)** | Lobe-amplitude parameter. β→0 collapses the strands toward one circle (overlapping but still knotted); larger β opens the lobes |
+| **Bloom (β)** | Lobe-length parameter (v1.2). The base circle stays fixed and each lobe extends outward by β × base radius, so lobe aspect ratio rises with β. β→0 collapses the strands onto the base circle (overlapping but still knotted) |
 | **Mutual inductance (M)** | How much magnetic flux from a current in one coil threads another coil. M≈0 means the two coils are geometrically decoupled |
 | **Self-inductance (L)** | Flux from a coil threading itself |
 | **Coupling coefficient (k)** | k = M / √(L₁L₂). A dimensionless measure of coupling in the range −1 to 1, comparable across coils of different sizes |
@@ -44,7 +44,8 @@ It must:
 Each element is a torus knot laid flat in a local plane, with coordinates in that plane (x, y) and a small out-of-plane offset (z) for crossings, for φ ∈ [0, 2π):
 
 ```
-r(φ) = R · (1 + β · cos(q·φ))
+r(φ) = R · (1 + β · (1 + cos(q·φ)) / 2)     ← v1.2 "outward" (default)
+r(φ) = R · (1 + β · cos(q·φ))               ← v1.0 "symmetric" (kept as an option)
 x(φ) = r(φ) · cos(p·φ + θ)
 y(φ) = r(φ) · sin(p·φ + θ)
 z(φ) = h · sin(q·φ)          ← over/under at crossings only
@@ -54,7 +55,7 @@ z(φ) = h · sin(q·φ)          ← over/under at crossings only
 - **R** = core radius, which sets element size; **θ** = in-plane rotation.
 - **h** = crossing lift. It must be at least one wire diameter plus insulation. Its job is to keep the over/under topology; it is not 3D shape.
 - Number of crossings in this projection = **q·(p−1)**.
-- Footprint radius = R·(1+β).
+- Footprint radius = R·(1+β) for both shapes. With the outward shape the innermost radius stays R, so lobes only grow outward.
 
 ### 3.2 Catalogue: 1 to 8 lobes
 
@@ -83,7 +84,8 @@ Higher p for the same q is also allowed, e.g. T(3,5) or T(3,7), giving more wind
 
 ### 3.3 Bloom
 
-- β ∈ [β_min, β_max], with **β_min > 0** (default 0.02) and β_max < 1 (default 0.9). At β = 0 the strands meet and the topology is lost; at β = 1 the lobes touch the centre.
+- β ∈ [β_min, β_max], with **β_min > 0** (default 0.02) and **β_max = 3.0** (v1.2, outward shape). At β = 0 the strands meet and the topology is lost.
+- *(v1.0 symmetric shape: β_max < 1, default 0.9. At β = 1 the lobes touch the centre.)*
 - **Bloom mode** (open decision D2): either *constant core* (R fixed, footprint grows with β) or *constant extent* (footprint radius fixed, R shrinks as β grows).
 - β can be set globally or per element.
 
@@ -207,6 +209,16 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20, v1.2 (requested by Reza): bloom extends the lobes instead of pinching.**
+  - **Request (Reza):** "currently, 'bloom' is just pinching a portion of the loop. I want 'bloom' to make the lobes more extended, such that each lobe's aspect ratio would increase as I increase 'bloom'."
+  - **New default §3.1 shape ("outward"):** r = R(1 + β(1 + cos qφ)/2).
+    - The base circle R is fixed and each lobe grows outward by βR, so lobe length = β × R at a fixed base width.
+    - It is still a torus knot, on a torus with centre radius R(1+β/2) and in-plane tube radius βR/2.
+  - **§3.3:** β_max raised to 3.0.
+  - **The v1.0 "symmetric" shape remains selectable,** so earlier results can be reproduced.
+  - **Consequence:** the buildable bloom floor doubles to c / (R sin(π/p)), because strands separate half as fast with β.
+  - **V6:** re-run over β = 0.02–3.0 with the same criterion.
+  - **Earlier results used the symmetric shape:** validation run 2 and the worst-pair comparison were both done before v1.2.
 - **2026-10-20, v1.1 addendum: worst-pair term implemented.**
   - The λ_max·max|k| term of §5.1 is now implemented as a smooth stand-in: λ_max·k⁴/thr² per neighbour pair, with λ_max = 1.
   - It was made the default by a pre-registered paired comparison (`validation/COMPARE_worstpair_PROTOCOL.md`, git 6d96721): all three criteria were met.

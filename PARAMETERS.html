@@ -104,8 +104,15 @@ tr:nth-child(even) td { background: var(--panel); }
 </thead>
 <tbody>
 <tr>
+<td>Bloom shape</td>
+<td>outward (lobes extend from a fixed base circle)</td>
+<td>JUDG</td>
+<td>Design v1.2 (Reza 2026-10-20); ‘symmetric’ (v1.0) selectable</td>
+<td>knot, app</td>
+</tr>
+<tr>
 <td>Bloom range β</td>
-<td>0.02–0.9 (UI allows 0.005–0.95)</td>
+<td>0.02–3.0 outward, 0.02–0.9 symmetric (UI allows 0.005–3)</td>
 <td>JUDG</td>
 <td>Design §3.3. <strong>Validation run 1 showed 0.02 is below the buildable floor for the placeholder wire</strong>. See DECISIONS.md</td>
 <td>knot, app</td>
@@ -259,7 +266,7 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 <tr>
 <td>Bloom floor formula</td>
-<td>c / (2 R sin(π/p))</td>
+<td>c / (R sin(π/p)) outward; c / (2 R sin(π/p)) symmetric</td>
 <td>DERIVED</td>
 <td>Claude’s geometric argument; agrees with the numerical lift solver (see DECISIONS.md)</td>
 <td><code>core/knot.js</code></td>

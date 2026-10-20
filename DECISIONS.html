@@ -33,6 +33,21 @@ tr:nth-child(even) td { background: var(--panel); }
 </style></head><body><h1>Decision Log — Knotted Coil Designer</h1>
 <p>Dated entries: what was decided, why, who decided it, and what the alternatives were. Newest first.</p>
 <hr>
+<h3>2026-10-20 — Design v1.2: bloom extends lobes (outward shape)</h3>
+<ul>
+<li><strong>Request (Reza):</strong> bloom should lengthen the lobes, with aspect ratio rising with bloom, rather than pinch part of the loop.</li>
+<li><strong>Cause of the pinch:</strong> the v1.0 formula R(1 + β cos qφ) moves the lobe tips out <em>and</em> the waist between lobes in by the same amount. At high β the waist collapses toward the centre.</li>
+<li><strong>Change:</strong>
+<ul>
+<li>New default: R(1 + β(1 + cos qφ)/2). The base circle stays fixed and the lobes extend outward only (lobe length = βR).</li>
+<li>β_max raised to 3.0.</li>
+<li>The v1.0 “symmetric” shape is kept as an option.</li>
+</ul>
+</li>
+<li><strong>Alternative considered:</strong> an extra “petal sharpness” exponent to narrow each lobe as well. Not built; the length change alone makes aspect ratio rise with β.</li>
+<li><strong>Side effect:</strong> the bloom floor doubles to c / (R sin(π/p)). At R = 30 mm with the placeholder wire, that is 0.05 for p = 2 and 0.058 for p = 3.</li>
+<li><strong>Pre-v1.2 results:</strong> validation run 2 and the worst-pair comparison used the symmetric shape. Their conclusions do not automatically carry over.</li>
+</ul>
 <h3>2026-10-20 — DECIDED: “decoupled” = nearest ring (Design v1.1)</h3>
 <ul>
 <li><strong>Decided by:</strong> Reza, choosing between the frozen footprint-overlap rule and the nearest-ring rule.</li>

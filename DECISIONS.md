@@ -4,6 +4,17 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 — Design v1.2: bloom extends lobes (outward shape)
+- **Request (Reza):** bloom should lengthen the lobes, with aspect ratio rising with bloom, rather than pinch part of the loop.
+- **Cause of the pinch:** the v1.0 formula R(1 + β cos qφ) moves the lobe tips out *and* the waist between lobes in by the same amount. At high β the waist collapses toward the centre.
+- **Change:**
+  - New default: R(1 + β(1 + cos qφ)/2). The base circle stays fixed and the lobes extend outward only (lobe length = βR).
+  - β_max raised to 3.0.
+  - The v1.0 "symmetric" shape is kept as an option.
+- **Alternative considered:** an extra "petal sharpness" exponent to narrow each lobe as well. Not built; the length change alone makes aspect ratio rise with β.
+- **Side effect:** the bloom floor doubles to c / (R sin(π/p)). At R = 30 mm with the placeholder wire, that is 0.05 for p = 2 and 0.058 for p = 3.
+- **Pre-v1.2 results:** validation run 2 and the worst-pair comparison used the symmetric shape. Their conclusions do not automatically carry over.
+
 ### 2026-10-20 — DECIDED: "decoupled" = nearest ring (Design v1.1)
 - **Decided by:** Reza, choosing between the frozen footprint-overlap rule and the nearest-ring rule.
 - **What changed:**

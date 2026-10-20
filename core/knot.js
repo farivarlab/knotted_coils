@@ -9,10 +9,13 @@ WHAT IT DOES (plain language):
   over/under pattern of the knot is kept. "Bloom" (beta) sets how far the lobes reach out:
   small beta = strands nearly on top of each other (still knotted), large beta = open petals.
 
-METHOD (Design.md §3.1):
-  r(phi) = R (1 + beta cos(q phi));  x = r cos(p phi + theta);  y = r sin(p phi + theta);
-  z = h sin(q phi).  This is a torus knot on a flattened torus (in-plane tube radius beta*R,
-  vertical tube radius h), so the knot type is the same for every beta in (0,1) and h > 0.
+METHOD (Design.md §3.1, v1.2):
+  r(phi) = R (1 + beta (1 + cos(q phi))/2)   ['outward', default: lobes grow out from a fixed base circle R]
+  r(phi) = R (1 + beta cos(q phi))           ['symmetric', v1.0: lobes out and waist in]
+  x = r cos(p phi + theta);  y = r sin(p phi + theta);  z = h sin(q phi).
+  Either way this is a torus knot on a flattened torus (outward: centre radius R(1+beta/2), in-plane tube
+  radius beta*R/2; vertical tube radius h), so the knot type is the same for every beta > 0 and h > 0
+  (symmetric additionally needs beta < 1).
   Units: millimetres throughout.
 
 MATLAB EQUIVALENT:
@@ -67,9 +70,13 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   // Points of the closed curve (first point not repeated). prm: {p,q,beta,size,bloomMode,theta,h}
   knot.points = function (prm, n) {
     var R = knot.coreRadius(prm), p = prm.p, q = prm.q, b = prm.beta, th = prm.theta || 0, h = prm.h || 0;
+    var shape = prm.bloomShape || 'outward';
     var P = new Array(n);
     for (var i = 0; i < n; i++) {
-      var phi = 2 * Math.PI * i / n, r = R * (1 + b * Math.cos(q * phi));
+      var phi = 2 * Math.PI * i / n, c = Math.cos(q * phi);
+      // 'outward' (Design v1.2 default): base circle R stays put, lobes grow outward to R(1+beta), so each lobe
+      // gets longer at fixed base width (aspect ratio rises with beta). 'symmetric' (v1.0): lobes out AND waist in.
+      var r = shape === 'symmetric' ? R * (1 + b * c) : R * (1 + b * (1 + c) / 2);
       P[i] = [r * Math.cos(p * phi + th), r * Math.sin(p * phi + th), h * Math.sin(q * phi)];
     }
     return P;
@@ -180,8 +187,10 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   // are spread evenly round it, so neighbouring strands are at best 2*beta*R*sin(pi/p) apart in-plane.
   // DERIVED (Claude's geometric argument, approximate); agrees with solveLift numerically to within one
   // 0.005 beta step for p = 2, 3, 5 at R = 30 mm, c = 1.5 mm.
-  knot.betaMinPhysical = function (p, R, clear) {
-    return p < 2 ? 0 : clear / (2 * R * Math.sin(Math.PI / p));
+  // 'outward' shape (v1.2): the in-plane tube radius is beta*R/2, not beta*R, so the floor doubles.
+  knot.betaMinPhysical = function (p, R, clear, shape) {
+    var f = (shape || 'outward') === 'symmetric' ? 2 : 1;
+    return p < 2 ? 0 : clear / (f * R * Math.sin(Math.PI / p));
   };
 
   // Enough points to resolve every crossing: start at 100*p*q (at least 400) and double until
@@ -210,7 +219,7 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       h: lift.h, liftFeasible: lift.feasible, minClearance: lift.clearance, requiredClearance: clear,
       wireLength: knot.wireLength(P), crossings: cr.list.length, expectedCrossings: knot.expectedCrossings(prm.p, prm.q),
       pattern: cr.pattern, minBendRadius: bend, bendOK: bend >= wire.minBend, points: P, n: n,
-      betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear)
+      betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear, prm.bloomShape)
     };
   };
 });
