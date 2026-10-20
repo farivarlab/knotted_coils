@@ -90,4 +90,4 @@ This software was written with **Claude Code** (Anthropic's AI coding assistant,
 - Failures are recorded in `DECISIONS.md` and in the git history.
 - Any use of results in publications must disclose AI assistance as the venue requires (COPE/ICMJE for journals; current Tri-Agency guidance for grants).
 
-**Third-party code:** Three.js 0.149.0, © three.js authors, MIT licence.
+**Third-party code:** Three.js 0.149.0 (MIT) is bundled. Used by scripts but not bundled: openEMS 0.37.0 (GPL-3.0) / CSXCAD (LGPL-3.0), mariepy (GPL-3.0+), Magpylib 6.0.0 (BSD-2), numpy/scipy/h5py/matplotlib, PyTorch. See NOTICE.txt.

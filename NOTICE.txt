@@ -12,4 +12,12 @@ Confirm any design with full-wave electromagnetic simulation or bench measuremen
 AI USE: written with Claude Code (Anthropic AI coding assistant) under the direction of Reza Farivar, who is
 accountable for it. See README "Provenance and AI-use statement".
 
-THIRD-PARTY: three.js 0.149.0 (c) three.js authors, MIT licence — vendor/three-LICENSE.txt.
+THIRD-PARTY (audit D7):
+  Bundled:  three.js 0.149.0 (c) three.js authors, MIT licence - vendor/three-LICENSE.txt.
+  Used by scripts, NOT bundled (installed separately by the user):
+    openEMS 0.37.0 (GPL-3.0) and CSXCAD (LGPL-3.0)  - sim/run_openems.py
+    mariepy 0.0.0.dev106 (GPL-3.0-or-later)          - sim/v20_mariepy.py (cross-check only)
+    Magpylib 6.0.0 (BSD-2-Clause per its LICENSE file) - tests/b1_crosscheck.py, sim/cosim.py
+    numpy, scipy, h5py, matplotlib (BSD-style), PyTorch (BSD-3, pulled in by mariepy)
+  Archived sources (sources/): Rosa & Grover 1912 (US government publication, NIST);
+    NIST CODATA 2022 page (US government work).

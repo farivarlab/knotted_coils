@@ -4,5 +4,11 @@
   "L_raw_nH": 278.5744552180452,
   "loop_R_mm": 40.0,
   "from_case": "loop_air_3T_curve_res1.0"
+ },
+ "res0.5_curve": {
+  "a_eff_mm": 0.08426672920580289,
+  "L_raw_nH": 313.76162312018,
+  "loop_R_mm": 40.0,
+  "from_case": "loop_air_3T_curve_res0.5"
  }
 }

@@ -16,7 +16,7 @@ footprint radius 45 mm; 4 breaks; wire radius 0.5 mm (placeholder wire).
 */
 'use strict';
 var fs = require('fs'), path = require('path'), root = path.join(__dirname, '..');
-['knot', 'inductance', 'surface', 'layout', 'optimise', 'field'].forEach(function (m) { require(path.join(root, 'core', m + '.js')); });
+['knot', 'inductance', 'surface', 'layout', 'optimise', 'field', 'phantom'].forEach(function (m) { require(path.join(root, 'core', m + '.js')); });
 var KC = globalThis.KC, K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 var WIRE = { d: 1.0, tIns: 0.25, minBend: 2 };   // JUDG PLACEHOLDER (same as tests/run.js)
 var A = WIRE.d / 2, CLEAR = WIRE.d + 2 * WIRE.tIns, NB = 4, CAPCLEAR = 5;
@@ -24,19 +24,8 @@ var outDir = path.join(root, 'sim', 'cases'); if (!fs.existsSync(outDir)) fs.mkd
 var H = JSON.parse(JSON.stringify(S.DEFAULTS));
 var HEAD = KC.field.head(H);                     // helmet - 10 mm (same placeholder head as the B1 view)
 
-// Tissue properties (Design.md §6b): 7T from openEMS's bundled phantom_head_298MHz.h5 (attributed by openEMS to IT'IS /
-// Gabriel; secondary, not independently verified). 3T: APPROXIMATION from openEMS's phantom_body_128MHz.h5
-// (Tissue->brain, Bone->skull, Skin->skin).
-var TISSUE = {
-  7: { brain: { epsR: 52.7, kappa: 0.95 }, skull: { epsR: 11.4, kappa: 0.29 }, skin: { epsR: 38.9, kappa: 0.84 },
-    source: 'openEMS 0.37.0 resources/phantoms/phantom_head_298MHz.h5 (openEMS attributes values to IT\'IS database, Gabriel model); not independently verified' },
-  3: { brain: { epsR: 62.8, kappa: 0.66 }, skull: { epsR: 12.5, kappa: 0.13 }, skin: { epsR: 46.8, kappa: 0.58 },
-    source: 'APPROXIMATION: openEMS 0.37.0 phantom_body_128MHz.h5 values (Tissue->brain, Bone->skull, Skin->skin); verified 128 MHz head values are an open item' }
-};
-function phantom(B0) {
-  return { type: 'head3', axes: [HEAD.a, HEAD.b, HEAD.c], skin_mm: 4, skull_mm: 7,   // JUDG PLACEHOLDER layer thicknesses
-    zMin: H.zCut - 60, tissue: TISSUE[B0] };
-}
+// Phantom (tissue values, layers, neck cut) from core/phantom.js, the single source of truth (audit D9).
+function phantom(B0) { return KC.phantom.spec(H, B0); }
 
 // One element as world wire + breaks. `centre`: point on the helmet; flat knot wrapped like the array solver does.
 function elementAt(kp, Rf, theta, centre, mirror) {

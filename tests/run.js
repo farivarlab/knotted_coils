@@ -355,7 +355,10 @@ want('V14') && (function () {
     summary: pOK ? 'S21 dB at d0-4/d0/d0+4: ' + s.map(function (x) { return x.toFixed(1); }).join(' / ') : 'no result', rows: pOK ? pr.map(function (r) { return { case: r.case, coupling: r.coupling }; }) : [] });
   var mf = path.join(simOut, 'mariepy_trefoil_head.json'), mr = fs.existsSync(mf) ? JSON.parse(fs.readFileSync(mf, 'utf8')) : null;
   want('V20') && rec({ id: 'V20', title: 'Second solver (mariepy): loaded trefoil capacitor values within 10% of openEMS',
-    criterion: 'within 10%; NOT EVALUABLE if mariepy cannot run', verdict: mr ? mr.verdict : 'NOT EVALUABLE', summary: mr ? mr.summary : 'no mariepy result (see DECISIONS.md)', rows: mr ? [mr] : [] });
+    // verdict applied HERE from the raw values (audit D8), not copied from the script's own verdict field
+    criterion: 'within 10%; NOT EVALUABLE if mariepy cannot run',
+    verdict: !mr || !mr.rel_diff ? 'NOT EVALUABLE' : Object.keys(mr.rel_diff).every(function (k) { return Math.abs(mr.rel_diff[k]) <= 0.10; }) ? 'PASS' : 'FAIL',
+    summary: mr ? mr.summary : 'no mariepy result (see DECISIONS.md)', rows: mr ? [mr] : [] });
 })();
 
 // POST-HOC (added after run 1): V6's test, restricted to blooms at or above the physical floor

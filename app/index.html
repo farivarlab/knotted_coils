@@ -227,10 +227,11 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 <script src="../core/layout.js"></script>
 <script src="../core/optimise.js"></script>
 <script src="../core/field.js"></script>
+<script src="../core/phantom.js"></script>
 <script src="../validation/validation_status.js" onerror="window.KC_VALIDATION=null"></script>
 <script>
 'use strict';
-var APP_VERSION = '0.2.0';   // 0.2.0 = Design v1.6
+var APP_VERSION = '0.3.0';   // 0.3.0 = Design v1.7 (audit D10)
 var K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 function $(id) { return document.getElementById(id); }
 function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -450,11 +451,16 @@ function pairStale() { pairRes = null; $('pairTable').innerHTML = '<tr><td>Setti
 ['a1', 'a2'].forEach(function (id) { $(id).addEventListener('input', function () { $(id + 'V').textContent = $(id).value + '°'; pairStale(); }); });
 $('a1V').textContent = '0°'; $('a2V').textContent = '0°';
 $('pairScale').addEventListener('change', drawPair);
+// The pair scan has its own worker (audit D2: sharing the solver's worker let a solve or Cancel kill a running scan
+// and leave the Compute button disabled).
+var pairWorker = null;
 $('pairRun').onclick = function () {
-  if (pairBusy || arrBusy) return;
+  if (pairBusy) return;
   var prm = elemPrm(), Rf = K.footprintRadius(prm);
   pairBusy = true; $('pairRun').disabled = true; $('pairTable').innerHTML = '<tr><td>Computing…</td><td></td></tr>';
-  newWorker(function (e) {
+  if (pairWorker) pairWorker.terminate();
+  pairWorker = new Worker(workerURL);
+  pairWorker.onmessage = (function (e) {
     pairBusy = false; $('pairRun').disabled = false;
     if (e.data.type === 'error') { $('pairTable').innerHTML = '<tr><td>Error</td><td>' + e.data.msg + '</td></tr>'; return; }
     pairRes = e.data.r; pairRes.Rf = Rf; pairRes.prm = prm; pairRes.a1 = +$('a1').value * Math.PI / 180; pairRes.a2 = +$('a2').value * Math.PI / 180;
@@ -465,7 +471,8 @@ $('pairRun').onclick = function () {
     });
     $('pairTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
     drawPair();
-  }).postMessage({ cmd: 'pair', kp: { p: prm.p, q: prm.q, beta: prm.beta, shape: prm.bloomShape, sharpness: prm.sharpness }, Rf: Rf, wire: wire(), a1: +$('a1').value * Math.PI / 180, a2: +$('a2').value * Math.PI / 180 });
+  });
+  pairWorker.postMessage({ cmd: 'pair', kp: { p: prm.p, q: prm.q, beta: prm.beta, shape: prm.bloomShape, sharpness: prm.sharpness }, Rf: Rf, wire: wire(), a1: +$('a1').value * Math.PI / 180, a2: +$('a2').value * Math.PI / 180 });
 };
 function drawPair() {
   if (!$('pairCanvas').clientWidth) return;   // tab hidden: redrawn when the tab is opened
@@ -861,14 +868,11 @@ $('exPorts').onclick = function () {
 // ---- Full-wave co-simulation link (Design v1.7 §6b) ----
 // Case file: same schema as tests/export_case.js (wires in world mm, breaks with tangent, first break = feed).
 // Tissue values must match sim/: 7T from openEMS's bundled head phantom (secondary source), 3T an approximation.
-var KC_TISSUE = {
-  7: { brain: { epsR: 52.7, kappa: 0.95 }, skull: { epsR: 11.4, kappa: 0.29 }, skin: { epsR: 38.9, kappa: 0.84 }, source: 'openEMS 0.37.0 phantom_head_298MHz.h5 (attributed to IT\'IS/Gabriel); not independently verified' },
-  3: { brain: { epsR: 62.8, kappa: 0.66 }, skull: { epsR: 12.5, kappa: 0.13 }, skin: { epsR: 46.8, kappa: 0.58 }, source: 'APPROXIMATION: openEMS 0.37.0 phantom_body_128MHz.h5 values mapped to head layers' }
-};
+// tissue values and phantom layers come from core/phantom.js (single source; audit D9)
 $('exCase').onclick = function () {
   if (!need()) return;
   var B0 = +$('B0').value, nb = Math.max(1, Math.round(+$('nBreaks').value)), clr = +$('capClear').value, N = arrRes.N;
-  if (!KC_TISSUE[B0]) { alert('Co-simulation phantoms are defined for 3 T and 7 T only.'); return; }
+  if (!KC.phantom.TISSUE[B0]) { alert('Co-simulation phantoms are defined for 3 T and 7 T only.'); return; }
   var H = arrRes.config.helmet, hd = KC.field.head(H);
   var els = arrRes.wires.map(function (Wp, e) {
     var bk = K.breaks(arrRes.flats[e], nb, clr), n = Wp.length;
@@ -882,7 +886,7 @@ $('exCase').onclick = function () {
   var name = 'app_array_N' + N + '_' + B0 + 'T_' + stamp();
   var c = { name: name, created: new Date().toISOString(), B0_T: B0, f0_Hz: K.GAMMA_BAR_MHZ_PER_T * 1e6 * B0, wire_radius_mm: arrRes.config.wire.d / 2, nBreaks: nb,
     firstPassCap_pF: els.map(function (e) { return K.capacitor(e.L_nH, nb, B0).perCapPF; }), elements: els,
-    phantom: { type: 'head3', axes: [hd.a, hd.b, hd.c], skin_mm: 4, skull_mm: 7, zMin: H.zCut - 60, tissue: KC_TISSUE[B0] },
+    phantom: KC.phantom.spec(H, B0),
     quasistatic: { L_nH: els.map(function (e) { return e.L_nH; }), M_nH: M }, helmet: H, purpose: 'app export',
     warning: 'One FDTD run per break: ' + (N * nb) + ' runs. Exploratory.' };
   download(name + '.json', JSON.stringify(c), 'application/json');

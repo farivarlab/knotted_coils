@@ -4,6 +4,40 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 (night) — Audit actions (steps 2–4)
+- **Step 1:** brainstorm, `docs/AUDIT_BRAINSTORM.md`.
+- **Step 2:** independent review (Fable), `docs/AUDIT_BRAINSTORM_REVIEW.md`. It added M1–M17.
+- **Step 3:** four independent area audits (Fable), `docs/AUDIT_REPORT_A.md` to `D.md`.
+- **Fixed before any main simulation result existed** (commit 4d67469):
+  - M3: superposition check run;
+  - M5: air pair case;
+  - M6: S11 in both termination states. The V17 verdict uses the operating state (neighbours preamp-terminated). This is a harness clarification, chosen before any pair result existed; the criterion's numbers are unchanged;
+  - M7: robust B1 normalisation, information only;
+  - M10: git hash and options recorded in every output;
+  - M13: coronal plane measured from the head surface. A harness clarification of V18's plane, made before any V18 result;
+  - M14: depth also measured from the neck cut. A harness clarification of V18, made before any V18 result;
+  - M15: air-resistance warning.
+- **Fixed afterwards:**
+  - M1: V15–V20 aggregated into the report (commit 2734546);
+  - M17: registration pointers;
+  - D2: separate pair worker;
+  - D7: licence inventory;
+  - D8: V20 verdict computed in run.js; script tracked;
+  - D9: single `core/phantom.js`;
+  - D10: app version 0.3.0;
+  - D14: PARAMETERS rows.
+- **More fixes:** listed below as they are made.
+- **D16:** the hashes `39ae3d4`/`ccfb5f5` in `docs/research_integrity/VALIDATION_PROTOCOL.md` belong to the Lab_3d repository. The path is shown there, and the file is a copy of Reza's framework, so it is left unchanged.
+
+### 2026-10-20 (night) — Thin-wire evidence: V15 runs on three grids
+- **Second V15 run:** 1 mm grid, `AddCurve` thin curve. Resonance 114.6 MHz, **−10.3% (FAIL)**. Calibrated effective radius a_eff = 0.170 mm.
+- **Third run:** 0.5 mm grid. Resonance 108.0 MHz, **−15.4%**; a_eff = 0.084 mm.
+- **What the scaling shows:**
+  - a_eff ≈ 0.17 × the grid cell, so refining the grid makes the raw model *worse*.
+  - The thin-wire relation predicts ΔL = (μ₀/2π)·ℓ·ln(0.170/0.084) = 35.4 nH between the two grids; openEMS gave 35.2 nH. This is independent evidence that the error is the effective-radius effect V15b corrects. It is not part of any pre-registered verdict.
+- **Side note:** at 0.5 mm, V16 (passivity) was 1.0023, above its 1.001 limit, on a tagged sensitivity run (not official).
+- **Official V15 verdict:** comes from the untagged official loop run in the overnight queue.
+
 ### 2026-10-20 (night) — v1.7 full-wave pipeline: first findings
 - **Defaults taken while Reza was away:**
   - field strengths 3T and 7T;

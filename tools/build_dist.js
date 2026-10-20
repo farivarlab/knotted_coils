@@ -17,7 +17,7 @@ const before = (html.match(/\.\.\//g) || []).length;
 html = html.replace(/\.\.\//g, './');
 fs.mkdirSync(dist, { recursive: true });
 fs.writeFileSync(path.join(dist, 'index.html'), html);
-['knot', 'inductance', 'surface', 'layout', 'optimise', 'field'].forEach(m => copy('core/' + m + '.js'));
+['knot', 'inductance', 'surface', 'layout', 'optimise', 'field', 'phantom'].forEach(m => copy('core/' + m + '.js'));
 ['three-0.149.0.min.js', 'three-LICENSE.txt'].forEach(f => copy('vendor/' + f));
 ['validation_status.js', 'validation_report.html', 'compare_worstpair.html'].forEach(f => copy('validation/' + f));
 ['README.html', 'Design.html', 'DECISIONS.html', 'PARAMETERS.html', 'NOTICE.txt'].forEach(f => copy(f));

@@ -14,7 +14,7 @@ Last updated 2026-10-20.
 | Insulation thickness t_i | 0.25 mm | JUDG PLACEHOLDER | Awaiting spec (D5) | app, tests |
 | Minimum bend radius | 2 mm | JUDG PLACEHOLDER | Awaiting spec (D5) | app, tests |
 | Helmet semi-axes a, b, c | 85, 105, 110 mm | JUDG PLACEHOLDER | Rough adult head plus clearance, not measured. Awaiting former dimensions (D4) | `core/surface.js` |
-| Lowest covered height zCut | 0 mm | JUDG PLACEHOLDER | Ellipsoid equator | `core/surface.js` |
+| Lowest covered height zCut | ~~0 mm~~ **superseded: −20 mm since v1.6** (see v1.6 table) | JUDG PLACEHOLDER | Ellipsoid equator (v1.0–v1.5) | `core/surface.js` |
 | Face opening half-angle / top | 40° / 60 mm | JUDG PLACEHOLDER | Visual guess | `core/surface.js` |
 
 ## Design defaults (Design.md v1.0)
@@ -99,7 +99,7 @@ Last updated 2026-10-20.
 | Element points (element view) | adaptive: 100·p·q (min 400), doubled until crossing count is stable | JUDG | Added after validation run 1 | `core/knot.js` |
 | Stage-1 table | 128 pts; d = 0.3–3.0 Rf in 55 steps; 12 rotation steps per 2π/q | JUDG / DERIVED | Speed. Stage 2 corrects table error | `core/optimise.js` |
 | Stage-2 / final points | 160 / 300 per element | JUDG | V4: k converged to < 0.001 at 300 | `core/optimise.js` |
-| Self-L points | 300 | JUDG | | `core/optimise.js` |
+| Self-L points | 300 (solver); ≤ 800 (Element tab, thinned from the adaptive point count) | JUDG | | `core/optimise.js` |
 | Worst-pair weight λ_max | 1 (cost term λ_max·k⁴/thr²) | JUDG | Chosen before testing, not tuned. Made default by the pre-registered comparison, `validation/compare_worstpair.html` | `core/optimise.js` |
 | Coverage weight λ | 1 | JUDG | Makes gaps dominate k² terms | `core/optimise.js` |
 | Neighbour weight taper | 2.0 → 2.4 Rf (footprint); 1.35 → 1.55 × null spacing (ring1) | JUDG | Stops pairs escaping by stepping just past the cut-off | `core/optimise.js` |
