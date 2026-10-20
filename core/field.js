@@ -11,7 +11,8 @@ WHAT IT DOES (plain language):
   use it to compare coverage and depth fall-off between designs, not as absolute numbers. EXPLORATORY.
 
 METHOD:
-  B(r) = (mu0/4pi) sum_i I dl_i x (r - m_i) / |r - m_i|^3   (straight-segment midpoint rule)
+  B(r) = sum over straight wire segments of the exact finite-segment Biot-Savart field (see F.vector); v1.5 used the
+  midpoint rule  (mu0/4pi) sum_i I dl_i x (r - m_i) / |r - m_i|^3, replaced 2026-10-20 after V14 found ~1% error.
   Units: mm in, microtesla per ampere out. mu0/4pi = 1e-7 T m/A; with lengths in mm the sum has units 1/mm
   = 1e3 /m, so B = 1e-4 T per A per (1/mm) = 100 uT/A per (1/mm).                       [DERIVED]
   Check (V8): on the axis of a circular loop, every piece dl is perpendicular to (r - m) and |r - m| = sqrt(R^2+z^2);
@@ -35,27 +36,26 @@ VALIDATED BY: tests/run.js V8.
   var UT = 100;          // DERIVED: microtesla per ampere per (1/mm); see header
   F.HEAD_GAP = 10;       // JUDG PLACEHOLDER: head surface sits 10 mm inside the helmet former
 
-  // |B| (uT/A) at (x,y,z) from one prepped polyline (KC.ind.prep).
-  F.magnitude = function (W, x, y, z) {
-    var bx = 0, by = 0, bz = 0;
-    for (var i = 0; i < W.n; i++) {
-      var rx = x - W.mx[i], ry = y - W.my[i], rz = z - W.mz[i], r2 = rx * rx + ry * ry + rz * rz;
-      if (r2 < 1e-6) continue;
-      var inv = 1 / (r2 * Math.sqrt(r2));
-      bx += (W.dy[i] * rz - W.dz[i] * ry) * inv; by += (W.dz[i] * rx - W.dx[i] * rz) * inv; bz += (W.dx[i] * ry - W.dy[i] * rx) * inv;
-    }
-    return UT * Math.sqrt(bx * bx + by * by + bz * bz);
-  };
+  // B (uT/A) at (x,y,z) from one prepped polyline (KC.ind.prep), summing the EXACT field of each straight segment:
+  //   with a = A - P, b = B - P (segment ends relative to the field point P):
+  //   B = (mu0/4pi) (a x b) (|a| + |b|) / (|a| |b| (|a| |b| + a.b))
+  // Standard closed form for a finite straight filament, not cited from a source here (DERIVED/CONV); its correctness
+  // is established numerically by V8 (on-axis loop) and V14 (independent library). Replaced the midpoint rule on
+  // 2026-10-20 after V14 (development run) showed up to ~1% error 10-20 mm from thinned wires.
   F.vector = function (W, x, y, z) {
     var bx = 0, by = 0, bz = 0;
     for (var i = 0; i < W.n; i++) {
-      var rx = x - W.mx[i], ry = y - W.my[i], rz = z - W.mz[i], r2 = rx * rx + ry * ry + rz * rz;
-      if (r2 < 1e-6) continue;
-      var inv = 1 / (r2 * Math.sqrt(r2));
-      bx += (W.dy[i] * rz - W.dz[i] * ry) * inv; by += (W.dz[i] * rx - W.dx[i] * rz) * inv; bz += (W.dx[i] * ry - W.dy[i] * rx) * inv;
+      var ax = W.sx[i] - x, ay = W.sy[i] - y, az = W.sz[i] - z;
+      var cx = ax + W.dx[i], cy = ay + W.dy[i], cz = az + W.dz[i];          // b = B - P
+      var la = Math.sqrt(ax * ax + ay * ay + az * az), lb = Math.sqrt(cx * cx + cy * cy + cz * cz);
+      var den = la * lb * (la * lb + ax * cx + ay * cy + az * cz);
+      if (den < 1e-12) continue;                                             // on the segment or its extension
+      var f = (la + lb) / den;
+      bx += (ay * cz - az * cy) * f; by += (az * cx - ax * cz) * f; bz += (ax * cy - ay * cx) * f;
     }
     return [UT * bx, UT * by, UT * bz];
   };
+  F.magnitude = function (W, x, y, z) { var b = F.vector(W, x, y, z); return Math.sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]); };
 
   F.onAxisLoop = function (R, z) { return UT * 2 * Math.PI * R * R / Math.pow(R * R + z * z, 1.5); };
 

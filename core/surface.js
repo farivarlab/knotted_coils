@@ -6,8 +6,8 @@ knot onto the curved surface.
 
 WHAT IT DOES (plain language):
   The helmet is an ellipsoid  x^2/a^2 + y^2/b^2 + z^2/c^2 = 1  (x = left-right, y = back-to-front,
-  z = up; mm). The array covers everything above z = zCut, minus an optional face opening at the
-  front. A flat knot is drawn in the plane touching the helmet at the element's centre, and each
+  z = up; mm). The array covers everything above z = zCut, minus face exclusion zones (eyes, mouth;
+  Design v1.6) and an optional crude face wedge at the front. A flat knot is drawn in the plane touching the helmet at the element's centre, and each
   point is then pushed along the surface normal onto the helmet (Design.md §4). The crossing lift
   is applied along the local normal.
 
@@ -26,10 +26,20 @@ VALIDATED BY: not separately validated; distortion of each wrapped element is me
 
   S.DEFAULTS = {
     a: 85, b: 105, c: 110,      // JUDG PLACEHOLDER: inner helmet semi-axes (mm), rough adult head + clearance. Replace with real former.
-    zCut: 0,                    // JUDG PLACEHOLDER: lowest covered height (mm); 0 = ellipsoid equator.
-    face: true,                 // JUDG PLACEHOLDER: leave a face opening at the front (+y).
-    faceHalfAngle: 40,          // JUDG PLACEHOLDER: half-width of the face opening (degrees from +y, seen from above).
-    faceTop: 60                 // JUDG PLACEHOLDER: face opening extends up to this height (mm).
+    zCut: -20,                  // JUDG PLACEHOLDER: lowest covered height (mm). v1.6: was 0; lowered now that eye/mouth zones protect the face.
+    face: false,                // JUDG PLACEHOLDER: crude face wedge at the front (+y). v1.6: off by default, replaced by `zones`.
+    faceHalfAngle: 40,          // JUDG PLACEHOLDER: half-width of the face wedge (degrees from +y, seen from above).
+    faceTop: 60,                // JUDG PLACEHOLDER: face wedge extends up to this height (mm).
+    // Face exclusion zones (Design v1.6, WP11). Each is an ellipse in angle seen from the helmet centre:
+    // az = azimuth from the front (+y) towards +x, el = elevation above the equator (both degrees, computed on the
+    // ellipsoid-normalised direction so the same zone lands consistently on head and helmet); w, hgt = half-widths.
+    // All values JUDG PLACEHOLDER (rough adult proportions), to be replaced by measured positions or a real head mesh.
+    zones: [
+      { name: 'right eye', az: -17, el: 5, w: 13, hgt: 10 },
+      { name: 'left eye', az: 17, el: 5, w: 13, hgt: 10 },
+      { name: 'mouth', az: 0, el: -30, w: 20, hgt: 9 }
+    ],
+    zoneMargin: 5               // JUDG PLACEHOLDER: wires must stay at least this far (mm) outside every zone.
   };
 
   function norm(v) { var l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; }
@@ -66,8 +76,31 @@ VALIDATED BY: not separately validated; distortion of each wrapped element is me
     return [q[0] + t * n[0], q[1] + t * n[1], q[2] + t * n[2]];
   };
 
+  // Angular position of p (degrees), on the ellipsoid-normalised direction.
+  S.angles = function (H, p) {
+    var x = p[0] / H.a, y = p[1] / H.b, z = p[2] / H.c, r = Math.sqrt(x * x + y * y + z * z);
+    return { az: Math.atan2(x, y) * 180 / Math.PI, el: Math.asin(Math.max(-1, Math.min(1, z / r))) * 180 / Math.PI };
+  };
+  // Index of the first exclusion zone containing p, grown by `margin` mm (converted to angle at the front
+  // radius H.b); -1 if none.
+  S.zoneHit = function (H, p, margin) {
+    var Z = H.zones || [], A = S.angles(H, p), m = (margin || 0) / H.b * 180 / Math.PI;
+    for (var i = 0; i < Z.length; i++) {
+      var da = A.az - Z[i].az; da = ((da + 540) % 360) - 180;
+      var u = da / (Z[i].w + m), v = (A.el - Z[i].el) / (Z[i].hgt + m);
+      if (u * u + v * v <= 1) return i;
+    }
+    return -1;
+  };
+  // Number of wire points inside any zone (grown by margin); used by the solver and the final report.
+  S.zonePoints = function (H, pts, margin) {
+    var c = 0; for (var i = 0; i < pts.length; i++) if (S.zoneHit(H, pts[i], margin) >= 0) c++;
+    return c;
+  };
+
   S.inCoverage = function (H, p) {
     if (p[2] < H.zCut) return false;
+    if (S.zoneHit(H, p, 0) >= 0) return false;
     if (H.face && p[1] > 0 && p[2] < H.faceTop) {
       var ang = Math.atan2(Math.abs(p[0]), p[1]) * 180 / Math.PI;
       if (ang < H.faceHalfAngle) return false;

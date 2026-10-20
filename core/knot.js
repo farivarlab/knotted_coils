@@ -85,7 +85,14 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       // gets longer at fixed base width (aspect ratio rises with beta). 'symmetric' (v1.0): lobes out AND waist in.
       var r = shape === 'symmetric' ? R * (1 + b * c) : R * (1 + b * (1 + c) / 2);
       P[i] = [r * Math.cos(p * phi + th), r * Math.sin(p * phi + th), h * Math.sin(psi)];
+      // mirror (Design v1.6): reflect across the element's local x axis -> mirror-image knot (opposite handedness).
+      // Used for the left/right twin of an element in a symmetric layout (see optimise.js ring mode).
+      if (prm.mirror) P[i][1] = -P[i][1];
     }
+    // A reflection also reverses the direction the current circulates. Reverse the point order (keeping point 0) so
+    // every element circulates the same way as seen from outside, and coupling signs follow one convention across
+    // the array (found by check V9 in development, 2026-10-20: midline pairs had k of equal size, opposite sign).
+    if (prm.mirror) P = [P[0]].concat(P.slice(1).reverse());
     return P;
   };
 
@@ -264,6 +271,66 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       n *= 2;
     }
     return 102400;
+  };
+
+  // ---------- Capacitor breaks (Design v1.6, WP5) ----------
+  // Place n breaks evenly by wire length, keeping at least `clear` mm (measured along the wire) from every pass
+  // through a crossing. Method: try 200 common offsets for the evenly spaced set, keep the one with the largest
+  // minimum distance to a crossing; then nudge any remaining offender individually by up to a quarter segment.
+  // Succeeds only if every break clears and longest/shortest segment <= 1.5 (V10).
+  knot.breaks = function (P, n, clear) {
+    var N = P.length, s = new Float64Array(N + 1);
+    for (var i = 0; i < N; i++) { var a = P[i], b = P[(i + 1) % N]; s[i + 1] = s[i] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]); }
+    var L = s[N], cr = knot.crossings(P).list, xs = [];
+    cr.forEach(function (c) {
+      xs.push(s[c.i] + c.s * (s[c.i + 1] - s[c.i]));
+      xs.push(s[c.j] + c.t * (s[c.j + 1] - s[c.j]));
+    });
+    function dist(pos) {   // along-wire distance from pos to the nearest crossing pass (cyclic)
+      var m = Infinity;
+      for (var k = 0; k < xs.length; k++) { var d = ((pos - xs[k]) % L + L) % L; m = Math.min(m, d, L - d); }
+      return m;
+    }
+    var seg = L / n, best = 0, bestMin = -1;
+    for (var t = 0; t < 200; t++) {
+      var off = seg * t / 200, mn = Infinity;
+      for (var k2 = 0; k2 < n; k2++) mn = Math.min(mn, dist(off + k2 * seg));
+      if (mn > bestMin) { bestMin = mn; best = off; }
+    }
+    var pos = []; for (var k3 = 0; k3 < n; k3++) pos.push(best + k3 * seg);
+    for (var k4 = 0; k4 < n; k4++) {   // individual nudges: the smallest move (up to a quarter segment) that clears
+      if (dist(pos[k4]) >= clear) continue;
+      var bp = pos[k4], bd = dist(bp), found = false;
+      for (var u = 1; u <= 100 && !found; u++) {
+        for (var sg = -1; sg <= 1; sg += 2) {
+          var qq = pos[k4] + sg * u / 100 * seg / 4, dq = dist(qq);
+          if (dq >= clear) { bp = qq; found = true; break; }
+          if (dq > bd) { bd = dq; bp = qq; }
+        }
+      }
+      pos[k4] = bp;
+    }
+    pos = pos.map(function (x) { return ((x % L) + L) % L; }).sort(function (x, y) { return x - y; });
+    var segs = pos.map(function (x, k) { var nx = k + 1 < n ? pos[k + 1] : pos[0] + L; return nx - x; });
+    var minD = xs.length ? Math.min.apply(null, pos.map(dist)) : Infinity;
+    var ratio = Math.max.apply(null, segs) / Math.min.apply(null, segs);
+    function pointAt(x) {   // 3D point and unit tangent at arc position x
+      var lo = 0, hi = N; while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (s[mid] <= x) lo = mid; else hi = mid; }
+      var A = P[lo], B = P[(lo + 1) % N], f = (x - s[lo]) / ((s[lo + 1] - s[lo]) || 1);
+      var tg = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], tl = Math.hypot(tg[0], tg[1], tg[2]) || 1;
+      return { p: [A[0] + f * tg[0], A[1] + f * tg[1], A[2] + f * tg[2]], t: [tg[0] / tl, tg[1] / tl, tg[2] / tl], index: lo, f: f };
+    }
+    return { ok: minD >= clear && ratio <= 1.5, n: n, wireLength: L, arc: pos, segments: segs, minDistToCrossing: minD,
+      segRatio: ratio, crossings: cr.length, at: pos.map(pointAt) };
+  };
+
+  // First-pass series capacitor value (lumped, no parasitics). L in nH, B0 in tesla -> pF per capacitor.
+  knot.GAMMA_BAR_MHZ_PER_T = 42.577478461;   // LIT: CODATA 2022 proton gyromagnetic ratio / 2pi (free proton), NIST; VERIFIED 2026-10-20, sources/
+  knot.capacitor = function (Lnh, n, B0) {
+    var f = knot.GAMMA_BAR_MHZ_PER_T * 1e6 * B0, w = 2 * Math.PI * f, Ctot = 1 / (w * w * Lnh * 1e-9);
+    var lambda = 299792458 / f * 1000;   // free-space wavelength, mm (speed of light: SI exact value)
+    return { fMHz: f / 1e6, totalPF: Ctot * 1e12, perCapPF: n * Ctot * 1e12, lambdaMM: lambda,
+      maxSegmentMM: lambda / 10 };       // JUDG: lambda/10 segment rule of thumb (not a cited value)
   };
 
   // Everything a user needs to judge one element: geometry + fabrication checks.

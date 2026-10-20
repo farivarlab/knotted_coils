@@ -18,10 +18,13 @@ var KC = globalThis.KC, I = KC.ind, K = KC.knot;
 
 var WIRE = { d: 1.0, tIns: 0.25, minBend: 2 };   // JUDG PLACEHOLDER wire (Design.md D5) until Reza supplies the spec
 var results = [];
+// KC_ONLY=V9,V10 runs a subset (development only; official runs use all checks and record the git hash)
+var ONLY = process.env.KC_ONLY ? process.env.KC_ONLY.split(',') : null;
+function want(id) { return !ONLY || ONLY.indexOf(id) >= 0; }
 function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0, 14) + r.id + '  ' + r.title + (r.summary ? '  — ' + r.summary : '')); }
 
 // V1 — Maxwell coaxial circles. Criterion: relative error < 0.5% across 5 separations.
-(function () {
+want('V1') && (function () {
   var rows = [], worst = 0;
   [5, 10, 20, 40, 80].forEach(function (d) {
     var num = I.mutual(I.circle(50, 400), I.circle(40, 400, 0, 0, d), 0), ref = I.maxwellCoaxial(50, 40, d), e = (num - ref) / ref;
@@ -34,7 +37,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // V2 — circle self-inductance (surface current). Criterion: relative error < 2% for R/a >= 50.
-(function () {
+want('V2') && (function () {
   var rows = [], worst = 0;
   [50, 100, 200].forEach(function (ra) {
     var a = 50 / ra, num = I.selfL(I.circle(50, 400), a), ref = I.circleSelfL(50, a), e = (num - ref) / ref;
@@ -47,7 +50,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // V3 — zero-coupling spacing of two coplanar equal circles. Criterion: within 1% of the VERIFIED value.
-(function () {
+want('V3') && (function () {
   var R = 50, n = 400, a = WIRE.d / 2, c = WIRE.d + 2 * WIRE.tIns, A = I.prep(I.circle(R, n)), L = I.selfL(I.circle(R, n), a);
   function k(d) { return I.mutual(A, I.circle(R, n, d, 0, 0), c) / L; }
   var lo = 60, hi = 90;
@@ -63,7 +66,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // V4 — convergence. Criterion: k changes < 0.001 when the point count doubles.
-(function () {
+want('V4') && (function () {
   var kp = { p: 2, q: 3, beta: 0.4 }, Rf = 40, rows = [], worst = 0;
   [[0, 0], [0.3, 0.7]].forEach(function (ang) {
     [1.14, 1.6].forEach(function (dn) {
@@ -82,7 +85,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // V5 — symmetry. Criterion: M_ij = M_ji to machine precision; k invariant under rotating both by 2pi/q.
-(function () {
+want('V5') && (function () {
   var rows = [], worst = 0;
   [[2, 3], [3, 4], [2, 5], [3, 8]].forEach(function (pq) {
     var kp = { p: pq[0], q: pq[1], beta: 0.4 }, n = 40 * pq[1], Rf = 40, c = 1.5, rot = 2 * Math.PI / pq[1];
@@ -101,7 +104,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // V6 — topology preserved under bloom, for every catalogue knot (q = 1..8), core radius 30 mm.
-(function () {
+want('V6') && (function () {
   // v1.2 (2026-10-20): bloom range extended to Design v1.2 beta_max = 3.0 for the outward shape; criterion unchanged.
   var betas = [0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.2, 1.6, 2.0, 2.5, 3.0], c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
   // Harness fix after run 1 (logged in DECISIONS.md): the reference over/under pattern is taken at the
@@ -126,7 +129,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // V7 — topology under petal sharpness (pre-registered in Design.md v1.3, git 30d6fa1, before this code ran).
-(function () {
+want('V7') && (function () {
   var ms = [1, 1.5, 2, 3, 4, 6, 8, 12, 16], betas = [0.1, 0.4, 0.8, 1.5, 3.0], c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
   K.catalogue().forEach(function (row) {
     var ref = { p: row.p, q: row.q, beta: 0.4, size: 30, bloomMode: 'core', sharpness: 1 }, nRef = K.adaptiveN(ref);
@@ -150,7 +153,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // V8 — on-axis field of a circular loop vs closed form (pre-registered in Design.md v1.5, git ff1a40e).
-(function () {
+want('V8') && (function () {
   var W = I.prep(I.circle(50, 400)), rows = [], worst = 0;
   [0, 10, 20, 40, 80].forEach(function (z) {
     var num = KC.field.magnitude(W, 0, 0, z), ref = KC.field.onAxisLoop(50, z), e = (num - ref) / ref;
@@ -161,9 +164,155 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
     summary: 'worst ' + (worst * 100).toFixed(4) + '%', rows: rows, reference: 'Closed form DERIVED from Biot–Savart (core/field.js header); not a literature value' });
 })();
 
+// ---------------- Design v1.6 checks (pre-registered in Design.md §7, git 91c4df5, before their code) ----------------
+var V16_KNOT = { p: 2, q: 3, beta: 0.8, shape: 'outward', sharpness: 1 };
+function helmetDefaults() { return JSON.parse(JSON.stringify(KC.surface.DEFAULTS)); }
+function solve(N, knot, extra, which) {
+  return KC.opt.run({ N: N, knot: knot, wire: WIRE, helmet: helmetDefaults(), opts: Object.assign({ seed: 1 }, extra) }, null, which || 'fast');
+}
+var V9_ARRAYS = null;
+function v9Arrays() {
+  if (!V9_ARRAYS) V9_ARRAYS = [
+    { name: 'T(2,3) b=0.8 N=16 ring', r: solve(16, V16_KNOT, { layout: 'ring' }) },
+    { name: 'T(2,5) b=0.8 m=2 N=24 ring', r: solve(24, { p: 2, q: 5, beta: 0.8, shape: 'outward', sharpness: 2 }, { layout: 'ring' }) }
+  ];
+  return V9_ARRAYS;
+}
+
+// V9 — exact left-right symmetry of ring layouts.
+want('V9') && (function () {
+  var rows = [], ok = true;
+  v9Arrays().forEach(function (A) {
+    var r = A.r, N = r.N, wErr = 0, kErr = 0, kMidErr = 0, pairsChecked = 0;
+    r.elements.forEach(function (e, i) {
+      if (e.midline || e.twin == null) return;
+      // mirrored elements run in reversed point order (same curve; current circulates the same way seen from outside),
+      // so point t of one twin corresponds to point (n - t) mod n of the other (harness updated 2026-10-20, criterion unchanged)
+      var j = e.twin, Wi = r.wires[i], Wj = r.wires[j], nW = Wi.length;
+      for (var t = 0; t < nW; t++) { var u = (nW - t) % nW; wErr = Math.max(wErr, Math.abs(Wi[t][0] + Wj[u][0]), Math.abs(Wi[t][1] - Wj[u][1]), Math.abs(Wi[t][2] - Wj[u][2])); }
+    });
+    var P = r.elements.map(function (e, i) { return e.midline || e.twin == null ? i : e.twin; });
+    for (var a = 0; a < N; a++) for (var b = a + 1; b < N; b++) {
+      var d = Math.abs(r.kMatrix[a * N + b] - r.kMatrix[P[a] * N + P[b]]);
+      if (r.elements[a].midline || r.elements[b].midline) kMidErr = Math.max(kMidErr, d); else kErr = Math.max(kErr, d);
+      pairsChecked++;
+    }
+    var pass = wErr < 1e-9 && kErr < 1e-9 && kMidErr < 1e-3;
+    if (!pass) ok = false;
+    rows.push({ array: A.name, maxWireMirrorErr_mm: wErr, maxKErr_nonMidline: kErr, maxKErr_midlinePairs: kMidErr, pairsChecked: pairsChecked, pass: pass });
+  });
+  rec({ id: 'V9', title: 'Ring layouts are exactly left-right symmetric (wires and coupling matrix)',
+    criterion: 'mirror pairs: wires < 1e-9 mm; k < 1e-9 (no midline element), < 1e-3 (midline pairs)', verdict: ok ? 'PASS' : 'FAIL',
+    summary: rows.map(function (x) { return x.array + ': wire ' + x.maxWireMirrorErr_mm.toExponential(1) + ' mm, k ' + x.maxKErr_nonMidline.toExponential(1) + ' / midline ' + x.maxKErr_midlinePairs.toExponential(1); }).join('; '), rows: rows });
+})();
+
+// V10 — capacitor break placement.
+want('V10') && (function () {
+  var rows = [], ok = true, infeasible = 0, total = 0;
+  K.catalogue().forEach(function (row) {
+    [0.4, 1.5].forEach(function (b) { [1, 4].forEach(function (m) { [4, 8].forEach(function (nb) {
+      var prm = { p: row.p, q: row.q, beta: b, size: 30, bloomMode: 'core', sharpness: m }, n = K.adaptiveN(prm);
+      var P = K.points(Object.assign({}, prm, { h: 1 }), n), bk = K.breaks(P, nb, 5); total++;
+      if (!bk.ok) { infeasible++; rows.push({ knot: 'T(' + row.p + ',' + row.q + ')', beta: b, m: m, breaks: nb, reported: 'infeasible', minD: bk.minDistToCrossing, ratio: bk.segRatio }); return; }
+      var viol = bk.minDistToCrossing < 5 - 1e-9 || bk.segRatio > 1.5 + 1e-9;   // re-check the reported success
+      if (viol) ok = false;
+      if (viol) rows.push({ knot: 'T(' + row.p + ',' + row.q + ')', beta: b, m: m, breaks: nb, reported: 'ok', minD: bk.minDistToCrossing, ratio: bk.segRatio, violation: true });
+    }); }); });
+  });
+  rec({ id: 'V10', title: 'Capacitor breaks: >= 5 mm from every crossing pass, segments within 1.5x, whenever placement reports success',
+    criterion: 'no reported success violates clearance or segment ratio; infeasible cases counted, not failed', verdict: ok ? 'PASS' : 'FAIL',
+    summary: (total - infeasible) + ' of ' + total + ' placed successfully; ' + infeasible + ' reported infeasible', rows: rows });
+})();
+
+// V11 — capacitor value vs closed form n/(w^2 L), L from the verified ring formula.
+want('V11') && (function () {
+  var rows = [], worst = 0, a = 0.5, R = 50, Lnum = I.selfL(I.circle(R, 400), a), Lcf = I.circleSelfL(R, a);
+  [4, 8].forEach(function (nb) { [3, 7].forEach(function (B0) {
+    var ours = K.capacitor(Lnum, nb, B0).perCapPF, w = 2 * Math.PI * K.GAMMA_BAR_MHZ_PER_T * 1e6 * B0, ref = nb / (w * w * Lcf * 1e-9) * 1e12, e = (ours - ref) / ref;
+    worst = Math.max(worst, Math.abs(e)); rows.push({ breaks: nb, B0: B0, ours_pF: ours, closedForm_pF: ref, relErr: e });
+  }); });
+  rec({ id: 'V11', title: 'Capacitor value, circular loop R = 50 mm, wire radius 0.5 mm, vs n/(w^2 L) with Rosa & Grover L',
+    criterion: 'relative error < 1%', verdict: worst < 0.01 ? 'PASS' : 'FAIL', summary: 'worst ' + (worst * 100).toFixed(3) + '%', rows: rows });
+})();
+
+// V12 — face exclusion zones respected (V9 arrays here; C2 arrays from tests/compare_ring_vs_free.js output).
+want('V12') && (function () {
+  var rows = [], ok = true;
+  v9Arrays().forEach(function (A) { rows.push({ array: A.name, wirePointsInZones: A.r.zoneViolations }); if (A.r.zoneViolations !== 0) ok = false; });
+  var c2 = path.join(root, 'validation', 'compare_ring_vs_free.json'), c2note = 'C2 arrays: not yet run';
+  if (fs.existsSync(c2)) {
+    var C = JSON.parse(fs.readFileSync(c2, 'utf8'));
+    C.rows.forEach(function (x) { ['free', 'ring'].forEach(function (arm) { rows.push({ array: 'C2 ' + x.config + ' ' + arm, wirePointsInZones: x[arm].zoneViolations }); if (x[arm].zoneViolations !== 0) ok = false; }); });
+    c2note = 'C2 arrays included (' + C.generated + ')';
+  }
+  rec({ id: 'V12', title: 'No wire point inside a face exclusion zone (V9 and C2 arrays)', criterion: 'zero wire points inside any zone',
+    verdict: !fs.existsSync(c2) ? 'NOT EVALUABLE' : ok ? 'PASS' : 'FAIL', summary: rows.map(function (x) { return x.array + ': ' + x.wirePointsInZones; }).join('; ') + ' — ' + c2note, rows: rows });
+})();
+
+// V13 — reproducibility: same configuration and seed solved twice.
+want('V13') && (function () {
+  var rows = [], ok = true;
+  [{ name: 'free fast N=16', extra: { layout: 'free' } }, { name: 'ring N=16', extra: { layout: 'ring' } }].forEach(function (c) {
+    var a = solve(16, V16_KNOT, c.extra), b = solve(16, V16_KNOT, c.extra), dc = 0, dt = 0, dk = 0;
+    a.centres.forEach(function (p, i) { dc = Math.max(dc, Math.abs(p[0] - b.centres[i][0]), Math.abs(p[1] - b.centres[i][1]), Math.abs(p[2] - b.centres[i][2])); });
+    a.theta.forEach(function (t, i) { dt = Math.max(dt, Math.abs(t - b.theta[i])); });
+    for (var i = 0; i < a.kMatrix.length; i++) dk = Math.max(dk, Math.abs(a.kMatrix[i] - b.kMatrix[i]));
+    var pass = dc === 0 && dt === 0 && dk === 0; if (!pass) ok = false;
+    rows.push({ config: c.name, maxCentreDiff: dc, maxThetaDiff: dt, maxKDiff: dk, pass: pass });
+  });
+  rec({ id: 'V13', title: 'Reproducibility: same configuration + seed gives identical layout and k matrix', criterion: 'all differences exactly 0',
+    verdict: ok ? 'PASS' : 'FAIL', summary: rows.map(function (x) { return x.config + (x.pass ? ' identical' : ' DIFFERS'); }).join('; '), rows: rows });
+})();
+
+// V14 — B1 implementation vs Magpylib (Tier 1). Exports identical thinned wires + points, runs tests/b1_crosscheck.py.
+want('V14') && (function () {
+  var F = KC.field, cases = [];
+  function thin(P) { var st = Math.max(1, Math.ceil(P.length / 200)); return P.filter(function (_, i) { return i % st === 0; }); }   // same as KC.field.prepWires
+  function segDist(p, W) {
+    var m = Infinity;
+    for (var i = 0; i < W.length; i++) {
+      var A = W[i], B = W[(i + 1) % W.length], ab = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], ap = [p[0] - A[0], p[1] - A[1], p[2] - A[2]];
+      var t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / (ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2] || 1)));
+      m = Math.min(m, Math.hypot(ap[0] - t * ab[0], ap[1] - t * ab[1], ap[2] - t * ab[2]));
+    }
+    return m;
+  }
+  var rnd = KC.layout.rng(20261020);
+  function addCase(name, wires, H) {
+    var W = wires.map(thin), pts = [];
+    // ~600 head-interior points (three slice planes), 300 near-wire points (5-20 mm away), 100 far points
+    ['axial', 'coronal', 'sagittal'].forEach(function (pl, k) { F.slicePoints(H, pl, [40, 0, 0][k], 30).pts.forEach(function (p) { if (p && pts.length < 600 * (k + 1) / 3) pts.push(p); }); });
+    for (var i = 0; i < 300; i++) {
+      var w = W[Math.floor(rnd() * W.length)], v = w[Math.floor(rnd() * w.length)], d = 5 + 15 * rnd(), u = [rnd() - 0.5, rnd() - 0.5, rnd() - 0.5], ul = Math.hypot(u[0], u[1], u[2]) || 1;
+      pts.push([v[0] + d * u[0] / ul, v[1] + d * u[1] / ul, v[2] + d * u[2] / ul]);
+    }
+    for (var j = 0; j < 100; j++) { var a = 2 * Math.PI * rnd(), z = 2 * rnd() - 1, r = 200 + 200 * rnd(), s = Math.sqrt(1 - z * z); pts.push([r * s * Math.cos(a), r * s * Math.sin(a), r * z]); }
+    var preps = W.map(function (w) { return I.prep(w); });
+    var ours = pts.map(function (p) { var bx = 0, by = 0, bz = 0; preps.forEach(function (Wp) { var b = F.vector(Wp, p[0], p[1], p[2]); bx += b[0]; by += b[1]; bz += b[2]; }); return Math.hypot(bx, by, bz); });
+    var dist = pts.map(function (p) { return Math.min.apply(null, W.map(function (w) { return segDist(p, w); })); });
+    cases.push({ name: name, wires: W, points: pts, ours_uT: ours, dist_mm: dist });
+  }
+  var H = helmetDefaults();
+  var flatTref = K.points({ p: 2, q: 3, beta: 0.8, size: 30, bloomMode: 'core', h: 0.8 }, 400).map(function (p) { return [p[0], p[1], p[2] + 60]; });
+  addCase('(a) one flat trefoil (z = 60 mm)', [flatTref], H);
+  var t25 = K.points({ p: 2, q: 5, beta: 1.5, size: 30, bloomMode: 'core', sharpness: 4, h: 1.0 }, 2000).map(function (p) { return [p[0], p[1], p[2] + 60]; });
+  addCase('(b) one T(2,5) element, beta 1.5, m 4 (z = 60 mm)', [t25], H);
+  var arr = solve(16, V16_KNOT, { layout: 'free' });
+  addCase('(c) solved 16-element array (free, fast, seed 1)', arr.wires, H);
+  fs.writeFileSync(path.join(root, 'validation', 'b1_crosscheck_input.json'), JSON.stringify({ generated: new Date().toISOString(), cases: cases }));
+  var py = process.env.KC_PYTHON || 'C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe', res = null, err = null;
+  try { require('child_process').execFileSync(py, [path.join(root, 'tests', 'b1_crosscheck.py')], { stdio: 'pipe' });
+    res = JSON.parse(fs.readFileSync(path.join(root, 'validation', 'b1_crosscheck_result.json'), 'utf8'));
+  } catch (e) { err = String(e.message || e).slice(0, 300); }
+  rec({ id: 'V14', title: 'B1 implementation vs independent library (Magpylib) on identical wires, ~1000 points per case',
+    criterion: 'relative difference < 0.5% at every point >= 10 mm from any wire', verdict: res ? res.verdict : 'NOT RUN',
+    summary: res ? res.cases.map(function (c) { return c.name + ': worst ' + (100 * c.worst_rel_diff_ge10mm).toFixed(4) + '% (' + c.n_criterion_points + ' pts)'; }).join('; ') + ' — Magpylib ' + res.magpylib_version : 'Python/Magpylib not available: ' + err,
+    rows: res ? res.cases : [], reference: 'Magpylib 6.0.0 current.Polyline (Ortner & Coliado Bandeira 2020, SoftwareX 11:100466, doi:10.1016/j.softx.2020.100466)' });
+})();
+
 // POST-HOC (added after run 1): V6's test, restricted to blooms at or above the physical floor
 // betaMinPhysical for this wire. Informational only; it does not change V6's verdict.
-(function () {
+want('PH2') && (function () {
   var c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
   K.catalogue().forEach(function (row) {
     var bmin = K.betaMinPhysical(row.p, 30, c, 'outward'), b0 = Math.ceil((bmin + 1e-9) * 200) / 200, fails = [];
@@ -183,7 +332,7 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 })();
 
 // POST-HOC (added after pre-registration, 2026-10-20): Rosa & Grover worked Example 1 (pp. 20–21).
-(function () {
+want('PH1') && (function () {
   var M = I.maxwellCoaxial(250, 250, 200), e = (M - 167.08562) / 167.08562;
   rec({ id: 'PH1', title: 'POST-HOC: Maxwell implementation vs Rosa & Grover Example 1 (A = a = 25 cm, d = 20 cm -> 167.08562 cm = nH)',
     criterion: 'post-hoc; not pre-registered (informational)', verdict: Math.abs(e) < 1e-4 ? 'AGREES' : 'DISAGREES',

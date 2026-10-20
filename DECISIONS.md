@@ -4,6 +4,29 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 — Design v1.6 development: failures found by the new checks (logged before the official run)
+Development runs of the pre-registered v1.6 checks (`KC_ONLY=…`; not official runs) found two real problems. Both were fixed, and the criteria were not changed.
+- **V14 FAILED (B1 vs Magpylib).** Worst relative difference at points ≥ 10 mm from the wires:
+  - (a) single trefoil: 0.29%;
+  - **(b) sharp T(2,5): 1.05%;**
+  - **(c) 16-element array: 0.60%.**
+  - **Cause:** the midpoint rule on wires thinned to 200 points.
+  - **Fix:** `core/field.js` now sums the exact closed-form field of each straight segment. After the fix: 0.0000% in all three cases.
+  - **What this means:** the v1.5 B1 view had errors of up to about 1% near the wires. Deeper in the head the error was smaller (not separately quantified).
+- **V9 FAILED (symmetry).** Pairs that include a midline element had k of equal size but **opposite sign** (difference 0.12).
+  - **Cause:** mirroring a loop point by point also reverses the direction its current circulates, so mirrored elements followed a different sign convention.
+  - **Fix:** mirrored elements run their points in reverse order, so every element circulates the same way as seen from outside the head.
+  - The V9 harness now compares twins in reversed point order. That is the same curve, as the criterion describes, and the criterion itself is unchanged.
+  - After the fix: wires agree to 4e-14 mm; k to 6e-16 (non-midline pairs) and 5.8e-4 (midline pairs, from the crossing-lift handedness).
+- **Other development changes before any C2 run, prompted by wires entering exclusion zones:**
+  - lambdaZone raised from 0.05 to 1;
+  - the coverage target excludes a buffer around each zone;
+  - zones are now the first priority in free-mode moves;
+  - "rescue" jumps for elements trapped between the eyes;
+  - footprint check denser and 10% wider;
+  - lowest ring elevation bound relaxed.
+- **Tuning was kept off the C2 configurations** where possible: 20 elements were used for development. One early ring test used 16 elements, which is also C2 configuration 1.
+
 ### 2026-10-20 — Validation run 6 (Design v1.5, point ceiling 102,400)
 - **Passed:**
   - V1, V2, V4, V5;

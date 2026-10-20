@@ -1,0 +1,37 @@
+{
+ "magpylib_version": "6.0.0",
+ "numpy_version": "2.5.4",
+ "cases": [
+  {
+   "name": "(a) one flat trefoil (z = 60 mm)",
+   "n_points": 1000,
+   "n_criterion_points": 768,
+   "worst_rel_diff_ge10mm": 1.3221767718074044e-10,
+   "median_rel_diff_ge10mm": 1.320326631497507e-10,
+   "worst_rel_diff_5to10mm_info": 1.3207746747156343e-10,
+   "n_5to10mm": 175,
+   "pass": true
+  },
+  {
+   "name": "(b) one T(2,5) element, beta 1.5, m 4 (z = 60 mm)",
+   "n_points": 1000,
+   "n_criterion_points": 751,
+   "worst_rel_diff_ge10mm": 1.323568648616966e-10,
+   "median_rel_diff_ge10mm": 1.3203259766664577e-10,
+   "worst_rel_diff_5to10mm_info": 1.320380617700657e-10,
+   "n_5to10mm": 182,
+   "pass": true
+  },
+  {
+   "name": "(c) solved 16-element array (free, fast, seed 1)",
+   "n_points": 1000,
+   "n_criterion_points": 771,
+   "worst_rel_diff_ge10mm": 1.320752794352514e-10,
+   "median_rel_diff_ge10mm": 1.320326402011295e-10,
+   "worst_rel_diff_5to10mm_info": 1.3203670536762594e-10,
+   "n_5to10mm": 134,
+   "pass": true
+  }
+ ],
+ "verdict": "PASS"
+}

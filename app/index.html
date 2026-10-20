@@ -101,22 +101,37 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
   <div class="slider"><div class="top"><span>In-plane rotation θ</span><b id="thetaV"></b></div>
     <input type="range" id="theta" min="0" max="360" step="1" value="0"></div>
 
+  <h2>Capacitor breaks</h2>
+  <label class="row">Breaks per element<input type="number" id="nBreaks" value="4" min="1" max="32" step="1"></label>
+  <label class="row"><span>Clearance from crossings (mm)<span class="hint">placeholder until capacitor size known</span></span><input type="number" id="capClear" value="5" min="0" step="0.5"></label>
+  <label class="row">Field strength <select id="B0"><option value="1.5">1.5 T</option><option value="3" selected>3 T</option><option value="7">7 T</option></select></label>
+
   <h2>Wire <small style="text-transform:none">(placeholder until spec)</small></h2>
   <label class="row">Diameter (mm)<input type="number" id="wd" value="1" step="0.05" min="0.05"></label>
   <label class="row">Insulation (mm)<input type="number" id="wt" value="0.25" step="0.05" min="0"></label>
   <label class="row">Min bend radius (mm)<input type="number" id="wb" value="2" step="0.5" min="0"></label>
 
-  <h2>Helmet <small style="text-transform:none">(placeholder dimensions)</small></h2>
+  <h2>Helmet and head <small style="text-transform:none">(placeholders)</small></h2>
   <label class="row">Semi-axis a, left-right (mm)<input type="number" id="ha" value="85"></label>
   <label class="row">Semi-axis b, back-front (mm)<input type="number" id="hb" value="105"></label>
   <label class="row">Semi-axis c, height (mm)<input type="number" id="hc" value="110"></label>
-  <label class="row">Lowest covered height (mm)<input type="number" id="hz" value="0"></label>
-  <label class="row">Face opening <select id="hf"><option value="1">yes</option><option value="0">no</option></select></label>
-  <label class="row">Face half-angle (°)<input type="number" id="hfa" value="40"></label>
-  <label class="row">Face opening top (mm)<input type="number" id="hft" value="60"></label>
+  <label class="row">Lowest covered height (mm)<input type="number" id="hz" value="-20"></label>
+  <label class="row"><span>Face exclusion zones<span class="hint">azimuth from front, elevation, half-widths (°)</span></span><span></span></label>
+  <div id="zoneEditor"></div>
+  <label class="row">Zone margin for wires (mm)<input type="number" id="zm" value="5" min="0" step="1"></label>
+  <label class="row">Crude face wedge (old) <select id="hf"><option value="0">no</option><option value="1">yes</option></select></label>
+  <label class="row">Face wedge half-angle (°)<input type="number" id="hfa" value="40"></label>
+  <label class="row">Face wedge top (mm)<input type="number" id="hft" value="60"></label>
 
   <h2>Array solver</h2>
   <label class="row">Number of elements N<input type="number" id="N" value="16" min="2" max="256"></label>
+  <label class="row"><span>Layout<span class="hint">rings = left–right symmetric</span></span>
+    <select id="layout"><option value="free">free</option><option value="ring">symmetric rings</option></select></label>
+  <label class="row"><span>Ring counts (top→bottom)<span class="hint">e.g. 1,6,9; blank = automatic from N</span></span><input type="text" id="ringCounts" value="" style="width:100%;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--field);color:var(--ink)"></label>
+  <label class="row">Ring size <select id="ringSize"><option value="ring">optimised per ring</option><option value="fixed">fixed</option></select></label>
+  <label class="row">Ring bloom <select id="ringBloom"><option value="fixed">fixed (β above)</option><option value="ring">optimised per ring</option></select></label>
+  <label class="row">Ring sharpness <select id="ringSharp"><option value="fixed">fixed (m above)</option><option value="ring">optimised per ring</option></select></label>
+  <label class="row"><span>Starts<span class="hint">multi-start: best of several seeds</span></span><input type="number" id="starts" value="1" min="1" max="32" step="1"></label>
   <label class="row"><span>Pairs to decouple<span class="hint">nearest ring = Design v1.1 default</span></span>
     <select id="target"><option value="ring1">nearest ring</option><option value="footprint">footprints overlap</option></select></label>
   <label class="row"><span>Rotation<span class="hint">in-plane, per element</span></span>
@@ -136,8 +151,10 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
   <div class="btns">
     <button id="exJSON">Design JSON</button><button id="exCSV">Wire paths CSV</button>
     <button id="exK">k matrix CSV</button><button id="exOBJ">Wires OBJ</button><button id="exSTL">Wires STL</button>
-    <button id="exSVG">Element SVG</button>
+    <button id="exSVG">Element SVG</button><button id="exPorts">Capacitor ports CSV</button>
   </div>
+  <h2>Load</h2>
+  <div class="btns"><button id="loadBtn">Load design JSON…</button><input type="file" id="loadFile" accept=".json,application/json" style="display:none"></div>
   <p class="note">Units: mm, nH. Coordinates: x left–right, y back–front, z up.</p>
 </aside>
 
@@ -235,7 +252,27 @@ function fillP() {
 }
 fillP();
 function wire() { return { d: +$('wd').value, tIns: +$('wt').value, minBend: +$('wb').value }; }
-function helmet() { return { a: +$('ha').value, b: +$('hb').value, c: +$('hc').value, zCut: +$('hz').value, face: $('hf').value === '1', faceHalfAngle: +$('hfa').value, faceTop: +$('hft').value }; }
+// Face exclusion zones (Design v1.6): editable table; defaults from core/surface.js (placeholders)
+var zones = JSON.parse(JSON.stringify(S.DEFAULTS.zones));
+function drawZoneEditor() {
+  var cell = 'style="width:100%;padding:2px 3px;border:1px solid var(--line);border-radius:4px;background:var(--field);color:var(--ink);font:inherit;font-size:12px"';
+  $('zoneEditor').innerHTML = '<table class="kv" style="font-size:12px"><tr><td>zone</td><td>az</td><td>el</td><td>w</td><td>h</td><td></td></tr>' +
+    zones.map(function (z, i) {
+      return '<tr><td><input data-z="' + i + '" data-k="name" value="' + z.name + '" ' + cell + '></td>' + ['az', 'el', 'w', 'hgt'].map(function (k) {
+        return '<td><input type="number" data-z="' + i + '" data-k="' + k + '" value="' + z[k] + '" ' + cell + '></td>'; }).join('') +
+        '<td><button data-del="' + i + '" style="padding:1px 6px">×</button></td></tr>';
+    }).join('') + '</table><div class="btns"><button id="zoneAdd">+ zone</button><button id="zoneReset">reset</button></div>';
+  $('zoneEditor').querySelectorAll('input').forEach(function (el) {
+    el.addEventListener('change', function () { var z = zones[+el.dataset.z]; z[el.dataset.k] = el.dataset.k === 'name' ? el.value : +el.value; view3d.helmet(helmet()); });
+  });
+  $('zoneEditor').querySelectorAll('button[data-del]').forEach(function (b) { b.onclick = function () { zones.splice(+b.dataset.del, 1); drawZoneEditor(); view3d.helmet(helmet()); }; });
+  $('zoneAdd').onclick = function () { zones.push({ name: 'zone', az: 90, el: 0, w: 10, hgt: 10 }); drawZoneEditor(); view3d.helmet(helmet()); };
+  $('zoneReset').onclick = function () { zones = JSON.parse(JSON.stringify(S.DEFAULTS.zones)); drawZoneEditor(); view3d.helmet(helmet()); };
+}
+function helmet() {
+  return { a: +$('ha').value, b: +$('hb').value, c: +$('hc').value, zCut: +$('hz').value, face: $('hf').value === '1', faceHalfAngle: +$('hfa').value,
+    faceTop: +$('hft').value, zones: JSON.parse(JSON.stringify(zones)), zoneMargin: +$('zm').value };
+}
 function elemPrm() { return { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, size: +$('size').value, bloomMode: $('bloomMode').value, bloomShape: $('bloomShape').value, sharpness: +$('sharp').value, theta: +$('theta').value * Math.PI / 180 }; }
 
 // ---------- tabs ----------
@@ -289,13 +326,18 @@ function elementHeader(prm, clear) {
     'Buildable bloom floor for this wire ≈ ' + floor.toFixed(3) + (prm.beta < floor ? ' — <b style="color:var(--bad)">below floor: strands would touch</b>' : ''));
   return true;
 }
-function drawElement(P, Rf, coreR, note) {
+function drawElement(P, Rf, coreR, note, breaks) {
   var cv = sizeCanvas($('elCanvas')), g = cv.g, sc = Math.min(cv.w, cv.h) * 0.45 / Rf;
   g.clearRect(0, 0, cv.w, cv.h);
   g.setLineDash([6, 5]); g.strokeStyle = css('--line'); g.lineWidth = 1.2;
   g.beginPath(); g.arc(cv.w / 2, cv.h / 2, Rf * sc, 0, 2 * Math.PI); g.stroke();
   g.setLineDash([2, 4]); g.beginPath(); g.arc(cv.w / 2, cv.h / 2, coreR * sc, 0, 2 * Math.PI); g.stroke(); g.setLineDash([]);
   drawKnot(g, P, cv.w / 2, cv.h / 2, sc, css('--wire'), 3);
+  if (breaks) breaks.at.forEach(function (b, i) {   // capacitor breaks: a short bar across the wire, numbered
+    var x = cv.w / 2 + b.p[0] * sc, y = cv.h / 2 - b.p[1] * sc, nx = -b.t[1], ny = -b.t[0];
+    g.strokeStyle = css('--accent'); g.lineWidth = 4; g.beginPath(); g.moveTo(x - 7 * nx, y - 7 * ny); g.lineTo(x + 7 * nx, y + 7 * ny); g.stroke();
+    g.fillStyle = css('--accent'); g.font = 'bold 11px Segoe UI'; g.fillText('C' + (i + 1), x + 9, y - 6);
+  });
   g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
   g.fillText(note || ('scale: ' + (10 * sc).toFixed(0) + ' px = 10 mm'), 10, cv.h - 10);
 }
@@ -312,7 +354,7 @@ function updateElement(preview) {
   if (elBusy && elWorker) { elWorker.terminate(); elWorker = null; }
   if (!elWorker) { elWorker = new Worker(workerURL); elWorker.onmessage = onElement; }
   elBusy = true; elPending = { id: ++elReq, prm: prm, w: w, clear: clear };
-  elWorker.postMessage({ cmd: 'element', id: elReq, prm: prm, wire: w });
+  elWorker.postMessage({ cmd: 'element', id: elReq, prm: prm, wire: w, nBreaks: Math.max(1, Math.round(+$('nBreaks').value)), capClear: +$('capClear').value, B0: +$('B0').value });
 }
 function onElement(e) {
   var d = e.data; elBusy = false;
@@ -320,8 +362,9 @@ function onElement(e) {
   if (d.type === 'error') { $('elTable').innerHTML = '<tr><td>Error</td><td>' + d.msg + '</td></tr>'; return; }
   var prm = elPending.prm, w = elPending.w, clear = elPending.clear, n = d.n;
   elRep = d.rep;
-  drawElement(elRep.points, elRep.footprintRadius, elRep.coreRadius);
+  drawElement(elRep.points, elRep.footprintRadius, elRep.coreRadius, null, d.breaks);
   $('elTable').style.opacity = 1;
+  var bk = d.breaks, cap = d.cap, longSeg = Math.max.apply(null, bk.segments);
   function f(ok, txt) { return '<span class="flag ' + (ok ? 'ok' : 'bad') + '">' + txt + '</span>'; }
   var rows = [
     ['Knot', elRep.name + ' T(' + prm.p + ',' + prm.q + ')'],
@@ -335,7 +378,12 @@ function onElement(e) {
     ['Lobe aspect ratio (length ÷ width at half length)', fmt(elRep.lobe.aspect, 2) + ' (' + fmt(elRep.lobe.length, 1) + ' / ' + fmt(elRep.lobe.width, 1) + ' mm)'],
     ['Bloom floor for wire', prm.p < 2 ? '—' : elRep.floorApplies ? fmt(elRep.betaMinPhysical, 3) : 'n/a for m > 1 (use clearance)'],
     ['Points used', n],
-    ['Self-inductance L (approx.)', fmt(d.L, 0) + ' nH']
+    ['Self-inductance L (approx.)', fmt(d.L, 0) + ' nH'],
+    ['Capacitor breaks', f(bk.ok, bk.n + ' placed; ' + fmt(bk.minDistToCrossing, 1) + ' mm min. from a crossing (need ' + fmt(+$('capClear').value, 1) + ')')],
+    ['Segment lengths (longest ÷ shortest)', fmt(Math.min.apply(null, bk.segments), 0) + '–' + fmt(longSeg, 0) + ' mm (' + fmt(bk.segRatio, 2) + ')'],
+    ['Larmor frequency', fmt(cap.fMHz, 2) + ' MHz at ' + $('B0').value + ' T'],
+    ['Capacitor value, first pass', fmt(cap.perCapPF, 2) + ' pF each (' + fmt(cap.totalPF, 2) + ' pF total in series)'],
+    ['Segment vs λ/10 (rule of thumb)', f(longSeg <= cap.maxSegmentMM, fmt(longSeg, 0) + ' mm vs ' + fmt(cap.maxSegmentMM, 0) + ' mm')]
   ];
   $('elTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
 }
@@ -346,7 +394,7 @@ function schedulePreview() {
   if (previewPending) return; previewPending = true;
   requestAnimationFrame(function () { previewPending = false; updateElement(true); });
 }
-['q', 'p', 'beta', 'sharp', 'bloomMode', 'bloomShape', 'size', 'theta', 'wd', 'wt', 'wb'].forEach(function (id) {
+['q', 'p', 'beta', 'sharp', 'bloomMode', 'bloomShape', 'size', 'theta', 'wd', 'wt', 'wb', 'nBreaks', 'capClear', 'B0'].forEach(function (id) {
   var isSlider = $(id).type === 'range';
   $(id).addEventListener('input', function () {
     if (id === 'q') fillP();
@@ -372,7 +420,9 @@ function workerMain() {
         // full adaptive point count (up to 25600) so the crossing check is trustworthy; self-L on <= 800 points
         var n = KC.knot.adaptiveN(m.prm), rep = KC.knot.report(m.prm, m.wire, n), st = Math.max(1, Math.ceil(n / 800));
         var Ps = rep.points.filter(function (_, i) { return i % st === 0; });
-        postMessage({ type: 'element', id: m.id, rep: rep, n: n, L: KC.ind.selfL(Ps, m.wire.d / 2) });
+        var Lel = KC.ind.selfL(Ps, m.wire.d / 2);
+        postMessage({ type: 'element', id: m.id, rep: rep, n: n, L: Lel, breaks: KC.knot.breaks(rep.points, m.nBreaks, m.capClear),
+          cap: KC.knot.capacitor(Lel, m.nBreaks, m.B0) });
       } else if (m.cmd === 'b1') {
         var W = KC.field.prepWires(m.wires, 200);
         var G = m.mode === 'surface' ? KC.field.surfacePoints(m.H, 96, 40) : KC.field.slicePoints(m.H, m.plane, m.offset, 110);
@@ -513,8 +563,19 @@ var view3d = (function () {
     var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
     helmetMesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }));
-    world.add(helmetMesh); render();
+    world.add(helmetMesh);
+    // placeholder head (helmet - 10 mm) with the face exclusion zones painted on it (Design v1.6)
+    if (headBase) { world.remove(headBase); headBase.geometry.dispose(); }
+    var G = KC.field.surfacePoints(H, 96, 40), hp = [], hc = [], hi = [], skin = new THREE.Color(0xd8c8bc), zc = new THREE.Color(0x7a2e5a);
+    G.pts.forEach(function (p) { hp.push(p[0], p[1], p[2]); var c = S.zoneHit(H, p, 0) >= 0 ? zc : skin; hc.push(c.r, c.g, c.b); });
+    for (var j3 = 0; j3 < G.nv; j3++) for (var i3 = 0; i3 < G.nu; i3++) { var a3 = j3 * (G.nu + 1) + i3, b3 = a3 + 1, c3 = a3 + G.nu + 1, d3 = c3 + 1; hi.push(a3, b3, d3, a3, d3, c3); }
+    var hg = new THREE.BufferGeometry(); hg.setAttribute('position', new THREE.Float32BufferAttribute(hp, 3));
+    hg.setAttribute('color', new THREE.Float32BufferAttribute(hc, 3)); hg.setIndex(hi); hg.computeVertexNormals();
+    headBase = new THREE.Mesh(hg, new THREE.MeshPhongMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+    headBase.visible = !headMesh; world.add(headBase);
+    render();
   }
+  var headBase = null;
   var colours = { ok: 0x2e9e5b, warn: 0xe0a030, bad: 0xd9473f, sel: 0x3b82f6 };
   function setWires(res, status) {
     wires.forEach(function (w) { world.remove(w); w.geometry.dispose(); }); wires = [];
@@ -545,6 +606,7 @@ var view3d = (function () {
       headMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
       world.add(headMesh);
     }
+    if (headBase) headBase.visible = !headMesh;
     render();
   }
   return { resize: resize, helmet: helmet, setWires: setWires, render: render, select: select, setHead: setHead };
@@ -554,7 +616,9 @@ var view3d = (function () {
 var arrRes = null, arrBusy = false;
 function arrCfg() {
   return { N: Math.max(2, Math.round(+$('N').value)), knot: { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, shape: $('bloomShape').value, sharpness: +$('sharp').value }, wire: wire(), helmet: helmet(),
-    opts: { target: $('target').value, rotation: $('rotation').value, theta0: +$('theta').value * Math.PI / 180, thresholdK: +$('thr').value, lambdaMax: +$('lamMax').value, seed: Math.round(+$('seed').value) } };
+    opts: { target: $('target').value, rotation: $('rotation').value, theta0: +$('theta').value * Math.PI / 180, thresholdK: +$('thr').value, lambdaMax: +$('lamMax').value, seed: Math.round(+$('seed').value),
+      layout: $('layout').value, starts: Math.max(1, Math.round(+$('starts').value)), ringSize: $('ringSize').value, ringBloom: $('ringBloom').value, ringSharp: $('ringSharp').value,
+      ringCounts: $('ringCounts').value.trim() ? $('ringCounts').value.split(/[ ,;]+/).map(Number).filter(function (x) { return x >= 1; }) : null } };
 }
 function setBusy(b) { arrBusy = b; $('runFast').disabled = $('runFull').disabled = b; $('cancel').disabled = !b; }
 function run(which) {
@@ -565,9 +629,11 @@ function run(which) {
   newWorker(function (e) {
     var d = e.data;
     if (d.type === 'progress') {
-      var p = d.p, frac = p.stage === 'table' ? 0.05 + 0.25 * p.sweep / p.of : p.stage === 'exact' ? 0.3 + 0.5 * p.sweep / p.of : 0.8 + 0.2 * p.sweep / p.of;
+      var p = d.p, frac = p.stage === 'table' || p.stage === 'rings' ? 0.05 + 0.25 * p.sweep / p.of : p.stage === 'exact' ? 0.3 + 0.5 * p.sweep / p.of : 0.8 + 0.2 * p.sweep / p.of;
+      if (p.starts > 1) frac = ((p.start - 1) + frac) / p.starts;
       $('bar').style.width = (100 * frac).toFixed(0) + '%';
-      $('status').textContent = (p.stage === 'table' ? 'Fast (table) search' : p.stage === 'exact' ? 'Exact search on helmet' : 'Final exact coupling report') +
+      $('status').textContent = (p.starts > 1 ? 'Start ' + p.start + '/' + p.starts + ': ' : '') +
+        (p.stage === 'table' ? 'Fast (table) search' : p.stage === 'rings' ? 'Ring layout search' : p.stage === 'exact' ? 'Exact search on helmet' : 'Final exact coupling report') +
         ' — step ' + p.sweep + (p.cost != null ? ', cost ' + p.cost.toExponential(2) + ', footprint ' + p.Rf.toFixed(1) + ' mm' : '');
     } else if (d.type === 'error') { setBusy(false); $('status').textContent = 'Error: ' + d.msg; }
     else if (d.type === 'result') { setBusy(false); $('bar').style.width = '100%'; arrRes = d.r; showArray(); $('status').textContent = 'Done in ' + d.r.seconds.toFixed(1) + ' s.'; }
@@ -577,7 +643,7 @@ $('runFast').onclick = function () { run('fast'); };
 $('runFull').onclick = function () { run('full'); };
 $('cancel').onclick = function () { if (worker) worker.terminate(); worker = null; setBusy(false); $('status').textContent = 'Cancelled.'; $('bar').style.width = '0'; };
 
-function targetOf(p) { return arrRes.target === 'ring1' ? p.ring1 : p.footprint; }
+function targetOf(p) { return arrRes.target === 'adjacent' ? p.adjacent : arrRes.target === 'ring1' ? p.ring1 : p.footprint; }
 function showArray() {
   var r = arrRes, N = r.N, thr = r.threshold, worst = new Array(N).fill(0);
   r.pairs.forEach(function (p) { if (targetOf(p)) { worst[p.i] = Math.max(worst[p.i], Math.abs(p.k)); worst[p.j] = Math.max(worst[p.j], Math.abs(p.k)); } });
@@ -587,20 +653,28 @@ function showArray() {
   function st(s) { return s.count + ' pairs · max ' + fmt(s.max, 4) + ' · median ' + fmt(s.median, 4) + ' · ' + s.above + ' ≥ thr'; }
   var rows = [
     ['Knot', K.name(r.knot.p, r.knot.q) + ' T(' + r.knot.p + ',' + r.knot.q + '), β = ' + r.knot.beta],
-    ['Elements N', N], ['Solver stages', r.config.stages.join(' + ')], ['Target / rotation / worst-pair weight', r.target + ' / ' + r.config.opts.rotation + ' / ' + r.config.opts.lambdaMax],
-    ['Footprint radius (solved)', fmt(r.Rf, 1) + ' mm'], ['Core radius', fmt(r.coreRadius, 1) + ' mm'],
-    ['Pair-null spacing (table)', fmt(r.tableZero, 3) + ' Rf'],
-    ['Coverage of region', fmt(100 * r.coverage, 1) + '%'],
-    ['Decoupled — nearest ring (Design v1.1 definition)', verdict(r.decoupledRing1)], ['  nearest-ring pairs', st(r.ring1)],
+    ['Elements N', N], ['Layout', r.mode === 'ring' ? 'symmetric rings (' + r.rings.map(function (g) { return g.n; }).join(' + ') + ')' : 'free'],
+    ['Solver stages', r.config.stages.join(' + ')], ['Target / rotation / worst-pair weight', r.target + ' / ' + r.config.opts.rotation + ' / ' + r.config.opts.lambdaMax],
+    ['Footprint radius (solved, mean)', fmt(r.Rf, 1) + ' mm'], ['Core radius', fmt(r.coreRadius, 1) + ' mm'],
+    r.tableZero ? ['Pair-null spacing (table)', fmt(r.tableZero, 3) + ' Rf'] : ['Pair-null spacing (flat estimate)', fmt(r.pairNullEstimate, 3) + ' Rf'],
+    ['Coverage of region (outside zones)', fmt(100 * r.coverage, 1) + '%'],
+    ['Wire points inside face zones', '<span class="flag ' + (r.zoneViolations === 0 ? 'ok' : 'bad') + '">' + r.zoneViolations + '</span> (' + r.zoneViolationsMargin + ' within the ' + (r.config.helmet.zoneMargin || 0) + ' mm margin)'],
+    ['Regularity (CV of neighbour spacing, lower = more even)', fmt(r.regularityCV, 3)],
+    ['Decoupled — adjacent pairs (Voronoi, v1.6)', verdict(r.decoupledAdjacent)], ['  adjacent pairs', st(r.adjacent)],
+    r.mode === 'ring' ? null : ['Decoupled — nearest ring (v1.1 definition)', verdict(r.decoupledRing1)], r.mode === 'ring' ? null : ['  nearest-ring pairs', st(r.ring1)],
     ['Decoupled — all overlapping footprints (v1.0 rule)', verdict(r.decoupledFootprint)], ['  footprint pairs', st(r.footprint)],
-    ['Beyond nearest ring (< 3.5 Rf)', st(r.next)],
+    r.mode === 'ring' ? null : ['Beyond nearest ring (< 3.5 Rf)', st(r.next)],
+    r.multistart && r.multistart.starts > 1 ? ['Multi-start: worst adjacent |k| per start', r.multistart.results.map(function (x) { return (x.seed === r.multistart.chosenSeed ? '<b>' : '') + fmt(x.worstAdjacent, 4) + (x.seed === r.multistart.chosenSeed ? '</b>' : ''); }).join(' · ')] : null,
+    r.mode === 'ring' ? ['Mirror-image (left-handed) elements', r.elements.filter(function (e) { return e.mirror; }).length + ' of ' + N + '; ' + r.elements.filter(function (e) { return e.midline; }).length + ' on the midline'] : null,
+    r.mode === 'ring' ? ['Rings (top→bottom): n · elevation · spacing · size · β · m · rotation', r.rings.map(function (g) {
+      return g.n + ' · ' + fmt(g.v * 180 / Math.PI, 0) + '° · ' + fmt(g.s * 180 / Math.PI, 0) + '° · ' + fmt(g.Rf, 0) + ' mm · ' + fmt(g.beta, 2) + ' · ' + fmt(g.m, 1) + ' · ' + fmt(g.th * 180 / Math.PI, 0) + '°'; }).join('<br>')] : null,
     ['Element wire length', fmt(r.element.wireLength, 0) + ' mm'],
     ['Element bend check', '<span class="flag ' + (r.element.bendOK ? 'ok' : 'bad') + '">' + fmt(r.element.minBendRadius, 2) + ' mm</span>'],
     ['Crossing lift feasible', verdict(r.liftFeasible)],
     ['Max wrap distortion (wire length)', fmt(100 * r.wrapDistortion.max, 2) + '%'],
     ['Self-inductance L (range)', fmt(Math.min.apply(null, r.L), 0) + '–' + fmt(Math.max.apply(null, r.L), 0) + ' nH']
   ];
-  $('arrTable').innerHTML = rows.map(function (x) { return '<tr><td>' + x[0] + '</td><td>' + x[1] + '</td></tr>'; }).join('');
+  $('arrTable').innerHTML = rows.filter(Boolean).map(function (x) { return '<tr><td>' + x[0] + '</td><td>' + x[1] + '</td></tr>'; }).join('');
   drawHeat(); showPairs(-1);
   b1Res = null; b1Sel = -1; if ($('b1mode').value !== 'off') b1Request();
 }
@@ -760,6 +834,48 @@ $('exSTL').onclick = function () {
   });
   out.push('endsolid knotted_wires'); download('knotted_array_wires_' + stamp() + '.stl', out.join('\n'));
 };
+// Capacitor ports for simulators (Design v1.6, WP5): breaks are placed on each element's flat curve (where crossings
+// are defined) and mapped to the same index/fraction on its wrapped wire.
+$('exPorts').onclick = function () {
+  if (!need()) return;
+  var nb = Math.max(1, Math.round(+$('nBreaks').value)), clr = +$('capClear').value, B0 = +$('B0').value;
+  var lines = ['# capacitor ports, mm; first-pass values (lumped, no parasitics) at ' + B0 + ' T; exploratory',
+    'element,break,x_mm,y_mm,z_mm,tx,ty,tz,cap_pF,placement_ok,handedness'];
+  arrRes.wires.forEach(function (Wp, e) {
+    var bk = K.breaks(arrRes.flats[e], nb, clr), cap = K.capacitor(arrRes.L[e], nb, B0), n = Wp.length;
+    var hand = arrRes.elements && arrRes.elements[e] && arrRes.elements[e].mirror ? 'mirror' : 'standard';
+    bk.at.forEach(function (b, k) {
+      var A = Wp[b.index], Bq = Wp[(b.index + 1) % n], t = [Bq[0] - A[0], Bq[1] - A[1], Bq[2] - A[2]], tl = Math.hypot(t[0], t[1], t[2]) || 1;
+      var p = [A[0] + b.f * t[0], A[1] + b.f * t[1], A[2] + b.f * t[2]];
+      lines.push([e, k + 1, p[0].toFixed(4), p[1].toFixed(4), p[2].toFixed(4), (t[0] / tl).toFixed(5), (t[1] / tl).toFixed(5), (t[2] / tl).toFixed(5), cap.perCapPF.toFixed(3), bk.ok, hand].join(','));
+    });
+  });
+  download('knotted_array_ports_' + stamp() + '.csv', lines.join('\n'), 'text/csv');
+};
+// Load a saved design JSON (WP4): restores the controls and the solved array; re-solving with the same settings and
+// seed reproduces it (V13).
+$('loadBtn').onclick = function () { $('loadFile').click(); };
+$('loadFile').addEventListener('change', function () {
+  var f = $('loadFile').files[0]; if (!f) return;
+  f.text().then(function (txt) {
+    var j = JSON.parse(txt), r = j.result, c = r.config, o = c.opts || {};
+    if (!r || !c) throw new Error('not a design file');
+    $('q').value = c.knot.q; fillP(); $('p').value = c.knot.p; $('beta').value = c.knot.beta;
+    if (c.knot.shape) $('bloomShape').value = c.knot.shape; if (c.knot.sharpness) $('sharp').value = c.knot.sharpness;
+    $('wd').value = c.wire.d; $('wt').value = c.wire.tIns; $('wb').value = c.wire.minBend;
+    var H = c.helmet; $('ha').value = H.a; $('hb').value = H.b; $('hc').value = H.c; $('hz').value = H.zCut; $('hf').value = H.face ? '1' : '0';
+    $('hfa').value = H.faceHalfAngle; $('hft').value = H.faceTop; if (H.zones) { zones = H.zones; drawZoneEditor(); } if (H.zoneMargin != null) $('zm').value = H.zoneMargin;
+    $('N').value = r.mode === 'ring' ? r.N : c.N; $('layout').value = o.layout || 'free'; $('starts').value = o.starts || 1; $('seed').value = o.seed;
+    $('target').value = o.target || 'ring1'; $('rotation').value = o.rotation || 'free'; $('thr').value = o.thresholdK; $('lamMax').value = o.lambdaMax;
+    $('ringCounts').value = o.ringCounts ? o.ringCounts.join(',') : ''; if (o.ringSize) $('ringSize').value = o.ringSize;
+    if (o.ringBloom) $('ringBloom').value = o.ringBloom; if (o.ringSharp) $('ringSharp').value = o.ringSharp;
+    r.kMatrix = Float64Array.from(r.kMatrix); arrRes = r;
+    updateElement(false); document.querySelector('.tabs button[data-tab=arr]').click(); showArray();
+    $('status').textContent = 'Loaded ' + f.name + (j.software ? ' (' + j.software + ')' : '') + '.';
+  }).catch(function (err) { $('status').textContent = 'Could not load: ' + err.message; });
+  $('loadFile').value = '';
+});
+
 $('exSVG').onclick = function () {
   if (!elRep) return;
   var P = elRep.points, Rf = elRep.footprintRadius, pad = 2, sz = 2 * (Rf + pad), n = P.length, segs = [];
@@ -775,7 +891,9 @@ $('exSVG').onclick = function () {
 
 window.addEventListener('resize', function () { if (elRep) scheduleElement(); drawPair(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { scheduleElement(); drawPair(); view3d.render(); });
-updateElement(); drawPair(); view3d.helmet(helmet());
+drawZoneEditor(); updateElement(); drawPair(); view3d.helmet(helmet());
+$("zm").addEventListener("change", function () { view3d.helmet(helmet()); });
+["hz", "ha", "hb", "hc"].forEach(function (id) { $(id).addEventListener("change", function () { view3d.helmet(helmet()); }); });
 </script>
 </body>
 </html>
