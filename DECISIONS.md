@@ -4,6 +4,22 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 — Design v1.5: quick B1 view
+- **Request (Reza):** "I just want a quick visualization that's reasonable. We will do simulations later."
+- **What was built:**
+  - quasi-static Biot–Savart field of the solved wires;
+  - a placeholder head surface (helmet − 10 mm) and axial, coronal or sagittal slices;
+  - elements combined as √Σ|B1ᵢ|², or a single element;
+  - colour in dB relative to the maximum shown.
+- **Check:** V8 pre-registered (git ff1a40e). Its closed form is DERIVED, not cited.
+- **Speed:** about 0.3 s for the surface view (16 elements).
+- **E-fields:** still excluded. A partial (inductive-only) E map would mislead. Recommendation: export the wire paths to a full-wave simulator.
+
+### 2026-10-20 — Validation run 5 (v1.4): V7 FAIL at 1 of 360 points
+- **Failing point:** T(2,5), m = 16, β = 1.5. The drawing showed 6 crossings instead of 5 at 25,600 points.
+- **Cause:** a duplicate hit at the 54° crossing, where the strands meet at a grazing angle. The count is exactly 5, in the right positions, at 51,200, 102,400 and 204,800 points.
+- **Fix:** point-count ceiling raised from 25,600 to 102,400. Criterion unchanged. Re-run as run 6.
+
 ### 2026-10-20 — Design v1.3: petal sharpness
 - **Request (Reza):** "Add a petal-sharpness control that narrows each lobe, with the same topology checks."
 - **Implementation:** outward lobe profile raised to a power m, r = R(1 + β((1 + cos qφ)/2)^m). Tips and base are unchanged; the lobes narrow.

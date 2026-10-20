@@ -21,16 +21,24 @@ This writes `validation/validation_report.html`. The app's header shows the late
 
 | Path | Contents |
 |---|---|
-| `Design.md` | Frozen design v1.1 (v1.0 pre-registered validation criteria V1–V6; v1.1 changed the neighbour definition only) |
+| `DEVELOPER_GUIDE.md` | **Start here if you want to extend the tool:** architecture, how to add knot families, rules |
+| `CLAUDE.md` | Instructions for AI coding assistants working on this project |
+| `docs/REQUEST_LOG.md` | The owner's design requests, quoted, and what each produced |
+| `docs/research_integrity/` | The research-integrity rules this project follows (Reza Farivar's framework, DRAFT v1.0) |
+| `sources/` | Archived primary sources for verified citations |
+| `NOTICE.txt` | Copyright, sharing terms, status |
+| `Design.md` | Frozen design v1.5. The changelog records every version: v1.0 pre-registered V1–V6; V7 and V8 were added before they ran |
 | `DECISIONS.md` | Dated decision log, including validation failures and open questions for Reza |
 | `PARAMETERS.md` | Every parameter with its origin tag (LIT / CONV / JUDG / TUNED / DERIVED) |
 | `core/` | Geometry and EM package: `knot.js`, `inductance.js`, `surface.js`, `layout.js`, `optimise.js` |
 | `app/index.html` | Browser UI: Element, Pair explorer, Array on helmet |
 | `tests/run.js` | Pre-registered validation checks plus labelled post-hoc checks |
+| `tests/compare_worstpair.js` | Pre-registered solver comparison |
+| `tools/serve.js`, `tools/build_dist.js` | Local server; builds `dist/` (a flat, hostable copy of the app) |
 | `validation/` | Generated validation reports |
 | `vendor/` | Three.js 0.149.0 (MIT licence, `vendor/three-LICENSE.txt`) |
 
-## Validation status (run 2, 2026-10-20)
+## Validation status (latest completed: run 5, 2026-10-20, Design v1.4–1.5)
 
 | Check | Verdict |
 |---|---|
@@ -39,7 +47,11 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | V3 Coplanar-circle null spacing | NOT EVALUABLE (reference unverified; computed 0.760 × diameter) |
 | V4 Convergence | PASS |
 | V5 Symmetry | PASS |
-| V6 Topology across bloom | **FAIL** at β = 0.02 only (below the physical floor for the placeholder wire; see DECISIONS.md) |
+| V6 Topology across bloom (β 0.02–3.0) | **FAIL** only below the wire-dependent bloom floor (β = 0.02, 0.05). It is a physical limit, shown in the app |
+| V7 Topology across petal sharpness | **FAIL** at 1 of 360 points. It was a point-count artefact: correct from 51,200 points. Ceiling raised; re-run 6 in progress |
+| V8 B1 on-axis loop field | Pre-registered. Preview: 0.005% error. Official verdict in run 6 |
+
+Every failing run is kept in the git history; see DECISIONS.md.
 
 **B1 quick look (Array tab):** shows the quasi-static Biot–Savart field of the solved wires.
 - **Views:** on a placeholder head surface, or as an axial, coronal or sagittal slice.

@@ -111,6 +111,20 @@ tr:nth-child(even) td { background: var(--panel); }
 <td>knot, app</td>
 </tr>
 <tr>
+<td>Petal sharpness m</td>
+<td>1 (range 1–16)</td>
+<td>JUDG</td>
+<td>Design v1.3 (Reza 2026-10-20). Profile exponent; 1 = v1.2 shape. Range upper bound is judgement: bends tighten quickly beyond about 10</td>
+<td>knot, app</td>
+</tr>
+<tr>
+<td>Lobe aspect-ratio definition</td>
+<td>length ÷ width at half length</td>
+<td>DERIVED</td>
+<td>Claude’s definition; formula in <code>core/knot.js</code> <code>lobeAspect</code></td>
+<td>knot, app</td>
+</tr>
+<tr>
 <td>Bloom range β</td>
 <td>0.02–3.0 outward, 0.02–0.9 symmetric (UI allows 0.005–3)</td>
 <td>JUDG</td>
@@ -144,6 +158,55 @@ tr:nth-child(even) td { background: var(--panel); }
 <td>JUDG</td>
 <td>Reza 2026-10-20: rotation as a decoupling lever</td>
 <td><code>core/optimise.js</code></td>
+</tr>
+</tbody>
+</table>
+<h2>B1 quick look (Design v1.5)</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Tag</th>
+<th>Rationale / source</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Head surface</td>
+<td>helmet semi-axes − 10 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Stand-in for a head; replace with a real head model when simulating</td>
+<td><code>core/field.js</code></td>
+</tr>
+<tr>
+<td>B1 units factor</td>
+<td>100 µT/A per (1/mm)</td>
+<td>DERIVED</td>
+<td>μ0/4π with mm units; header of <code>core/field.js</code>; checked by V8</td>
+<td><code>core/field.js</code></td>
+</tr>
+<tr>
+<td>Wire thinning for B1</td>
+<td>≤ 200 points per element</td>
+<td>JUDG</td>
+<td>Speed. Field points are ≥ 10 mm from wires, so the midpoint rule is adequate (not separately tested)</td>
+<td><code>core/field.js</code></td>
+</tr>
+<tr>
+<td>Colour scale</td>
+<td>−30 to 0 dB relative to the maximum shown, viridis</td>
+<td>CONV</td>
+<td>Viridis is a standard perceptually uniform colour map</td>
+<td>app</td>
+</tr>
+<tr>
+<td>Array combination</td>
+<td>√Σ|B1ᵢ|² (1 A per element)</td>
+<td>CONV</td>
+<td>Common quick stand-in for combined array sensitivity; ignores noise correlation</td>
+<td>app</td>
 </tr>
 </tbody>
 </table>

@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Knotted-Loop Array Designer — Design v1.2</title><style>
+<title>Knotted-Loop Array Designer — Design v1.5</title><style>
 :root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
 * { box-sizing: border-box; }
 body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
@@ -31,7 +31,7 @@ tr:nth-child(even) td { background: var(--panel); }
   a { color: var(--navy); }
 }
 </style></head><body><h1>Knotted-Loop Receive Array Designer — Design Document</h1>
-<p><strong>Status:</strong> FROZEN v1.2 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 change to §5 and v1.2 change to §3 requested and approved by Reza 2026-10-20, see §12) · <strong>Date:</strong> 2026-10-20 · <strong>Owner:</strong> Reza Farivar · <strong>Drafted with:</strong> Claude (Anthropic), AI-assisted</p>
+<p><strong>Status:</strong> FROZEN v1.5 (v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · <strong>Date:</strong> 2026-10-20 · <strong>Owner:</strong> Reza Farivar · <strong>Drafted with:</strong> Claude (Anthropic), AI-assisted</p>
 <blockquote>
 <p><strong>Freezing rule.</strong> Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.</p>
 </blockquote>
@@ -326,6 +326,18 @@ subject to wire-clearance constraints
 <td>Internal</td>
 <td>Crossing count and over/under pattern unchanged across β ∈ [β_min, β_max]; minimum self-clearance ≥ d_w + 2·t_i</td>
 </tr>
+<tr>
+<td>V8 <em>(added v1.5, pre-registered before running)</em></td>
+<td>B1 (Biot–Savart) field of a circular loop on its axis</td>
+<td>Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in <code>core/field.js</code>)</td>
+<td>Relative error &lt; 0.5% at z = 0, 10, 20, 40, 80 mm for R = 50 mm, 400 points</td>
+</tr>
+<tr>
+<td>V7 <em>(added v1.3, pre-registered before running)</em></td>
+<td>Topology preserved under petal sharpness</td>
+<td>Internal</td>
+<td>Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i</td>
+</tr>
 </tbody>
 </table>
 <p>If a check fails, the app shows a banner and every EM output is labelled “UNVALIDATED”.</p>
@@ -414,6 +426,45 @@ subject to wire-clearance constraints
 </table>
 <h2>12. Changelog</h2>
 <ul>
+<li><strong>2026-10-20, v1.5 (requested by Reza): quick B1 visualisation.</strong>
+<ul>
+<li><strong>Request (Reza):</strong> “I just want a quick visualization that’s reasonable. We will do simulations later.”</li>
+<li><strong>What it shows:</strong> the quasi-static magnetic field per unit current (Biot–Savart) of the solved wires, either per element or combined as root-sum-of-squares √Σ|B1ᵢ|².</li>
+<li><strong>Where:</strong> on a placeholder head ellipsoid (helmet semi-axes minus 10 mm) and on axial, coronal or sagittal slices.</li>
+<li><strong>What it ignores:</strong> wave effects and tissue, which matter at 3T and 7T. Maps are labelled exploratory, for comparing coverage and depth fall-off between designs only.</li>
+<li><strong>Scope:</strong> this narrows the §1 and §8 exclusion of B1 maps. <strong>E-fields remain excluded.</strong></li>
+<li><strong>New check:</strong> V8 (§7), pre-registered.</li>
+</ul>
+</li>
+<li><strong>2026-10-20, v1.4: sharpness redefined after V7 FAILED (run 4, git 2188ab0).</strong>
+<ul>
+<li><strong>Why v1.3 failed:</strong> its power-law profile ((1+cos qφ)/2)^m added paired crossings to the flat drawing.</li>
+<li><strong>New definition:</strong> sharpness warps the lobe angle, ψ = qφ + a·sin(qφ) with a = 1 − 1/m. The same ψ drives both radius and lift, r = R(1 + β(1 + cos ψ)/2) and z = h·sin ψ.</li>
+<li><strong>Why this keeps the diagram:</strong> ψ is monotone in φ, so every crossing condition has the same number of solutions as at m = 1. The drawing therefore keeps exactly q(p−1) crossings with the same over/under pattern. This is Claude’s argument; V7 tests it.</li>
+<li><strong>Numerical fix, same commit:</strong>
+<ul>
+<li>crossing and clearance searches use a spatial grid (checked identical to brute force: 0 of 108 crossing-count mismatches, 0 clearance difference);</li>
+<li>the point-count rule requires a stable count across two doublings, max 25,600 points;</li>
+<li>reason: one doubling stopped on a spurious count.</li>
+</ul>
+</li>
+<li><strong>V7 criterion and grid unchanged;</strong> re-run on v1.4.</li>
+</ul>
+</li>
+<li><strong>2026-10-20, v1.3 (requested by Reza): petal sharpness.</strong>
+<ul>
+<li><strong>Request (Reza):</strong> “Add a petal-sharpness control that narrows each lobe, with the same topology checks.”</li>
+<li><strong>§3.1 outward shape becomes</strong> r = R(1 + β·((1 + cos qφ)/2)^m), with sharpness m ≥ 1.
+<ul>
+<li>m = 1 is exactly the v1.2 shape. Larger m narrows each lobe while keeping its tip and base radius fixed.</li>
+<li>Range 1–16 (JUDG). It does not apply to the symmetric v1.0 shape.</li>
+</ul>
+</li>
+<li><strong>Lobe aspect ratio</strong> (length ÷ width at half length) is now reported.</li>
+<li><strong>The bloom-floor formula assumes m = 1.</strong> For m &gt; 1, buildability is judged by the clearance check alone.</li>
+<li><strong>New check V7 (§7):</strong> pre-registered and committed before it was run.</li>
+</ul>
+</li>
 <li><strong>2026-10-20, v1.2 (requested by Reza): bloom extends the lobes instead of pinching.</strong>
 <ul>
 <li><strong>Request (Reza):</strong> “currently, ‘bloom’ is just pinching a portion of the loop. I want ‘bloom’ to make the lobes more extended, such that each lobe’s aspect ratio would increase as I increase ‘bloom’.”</li>

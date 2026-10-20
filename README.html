@@ -58,8 +58,32 @@ tr:nth-child(even) td { background: var(--panel); }
 </thead>
 <tbody>
 <tr>
+<td><code>DEVELOPER_GUIDE.md</code></td>
+<td><strong>Start here if you want to extend the tool:</strong> architecture, how to add knot families, rules</td>
+</tr>
+<tr>
+<td><code>CLAUDE.md</code></td>
+<td>Instructions for AI coding assistants working on this project</td>
+</tr>
+<tr>
+<td><code>docs/REQUEST_LOG.md</code></td>
+<td>The owner’s design requests, quoted, and what each produced</td>
+</tr>
+<tr>
+<td><code>docs/research_integrity/</code></td>
+<td>The research-integrity rules this project follows (Reza Farivar’s framework, DRAFT v1.0)</td>
+</tr>
+<tr>
+<td><code>sources/</code></td>
+<td>Archived primary sources for verified citations</td>
+</tr>
+<tr>
+<td><code>NOTICE.txt</code></td>
+<td>Copyright, sharing terms, status</td>
+</tr>
+<tr>
 <td><code>Design.md</code></td>
-<td>Frozen design v1.1 (v1.0 pre-registered validation criteria V1–V6; v1.1 changed the neighbour definition only)</td>
+<td>Frozen design v1.5. The changelog records every version: v1.0 pre-registered V1–V6; V7 and V8 were added before they ran</td>
 </tr>
 <tr>
 <td><code>DECISIONS.md</code></td>
@@ -82,6 +106,14 @@ tr:nth-child(even) td { background: var(--panel); }
 <td>Pre-registered validation checks plus labelled post-hoc checks</td>
 </tr>
 <tr>
+<td><code>tests/compare_worstpair.js</code></td>
+<td>Pre-registered solver comparison</td>
+</tr>
+<tr>
+<td><code>tools/serve.js</code>, <code>tools/build_dist.js</code></td>
+<td>Local server; builds <code>dist/</code> (a flat, hostable copy of the app)</td>
+</tr>
+<tr>
 <td><code>validation/</code></td>
 <td>Generated validation reports</td>
 </tr>
@@ -91,7 +123,7 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 </tbody>
 </table>
-<h2>Validation status (run 2, 2026-10-20)</h2>
+<h2>Validation status (latest completed: run 5, 2026-10-20, Design v1.4–1.5)</h2>
 <table>
 <thead>
 <tr>
@@ -121,11 +153,27 @@ tr:nth-child(even) td { background: var(--panel); }
 <td>PASS</td>
 </tr>
 <tr>
-<td>V6 Topology across bloom</td>
-<td><strong>FAIL</strong> at β = 0.02 only (below the physical floor for the placeholder wire; see DECISIONS.md)</td>
+<td>V6 Topology across bloom (β 0.02–3.0)</td>
+<td><strong>FAIL</strong> only below the wire-dependent bloom floor (β = 0.02, 0.05). It is a physical limit, shown in the app</td>
+</tr>
+<tr>
+<td>V7 Topology across petal sharpness</td>
+<td><strong>FAIL</strong> at 1 of 360 points. It was a point-count artefact: correct from 51,200 points. Ceiling raised; re-run 6 in progress</td>
+</tr>
+<tr>
+<td>V8 B1 on-axis loop field</td>
+<td>Pre-registered. Preview: 0.005% error. Official verdict in run 6</td>
 </tr>
 </tbody>
 </table>
+<p>Every failing run is kept in the git history; see DECISIONS.md.</p>
+<p><strong>B1 quick look (Array tab):</strong> shows the quasi-static Biot–Savart field of the solved wires.</p>
+<ul>
+<li><strong>Views:</strong> on a placeholder head surface, or as an axial, coronal or sagittal slice.</li>
+<li><strong>Elements:</strong> combined as root-sum-of-squares, or a single element (click its wire).</li>
+<li><strong>Use it for:</strong> comparing coverage and depth fall-off between designs. It is not an absolute sensitivity prediction, because tissue and wave effects are not modelled.</li>
+<li><strong>E-fields are not shown:</strong> this model can’t produce them reliably. Use a full-wave simulator with the exported wire paths.</li>
+</ul>
 <p><strong>Solver comparison (pre-registered):</strong> <code>validation/compare_worstpair.html</code>. The worst-pair term is on by default. It lowers the worst pair but raises the typical (median) coupling; set “Worst-pair weight” to 0 to turn it off.</p>
 <h2>References</h2>
 <ul>

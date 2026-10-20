@@ -33,6 +33,68 @@ tr:nth-child(even) td { background: var(--panel); }
 </style></head><body><h1>Decision Log — Knotted Coil Designer</h1>
 <p>Dated entries: what was decided, why, who decided it, and what the alternatives were. Newest first.</p>
 <hr>
+<h3>2026-10-20 — Design v1.5: quick B1 view</h3>
+<ul>
+<li><strong>Request (Reza):</strong> “I just want a quick visualization that’s reasonable. We will do simulations later.”</li>
+<li><strong>What was built:</strong>
+<ul>
+<li>quasi-static Biot–Savart field of the solved wires;</li>
+<li>a placeholder head surface (helmet − 10 mm) and axial, coronal or sagittal slices;</li>
+<li>elements combined as √Σ|B1ᵢ|², or a single element;</li>
+<li>colour in dB relative to the maximum shown.</li>
+</ul>
+</li>
+<li><strong>Check:</strong> V8 pre-registered (git ff1a40e). Its closed form is DERIVED, not cited.</li>
+<li><strong>Speed:</strong> about 0.3 s for the surface view (16 elements).</li>
+<li><strong>E-fields:</strong> still excluded. A partial (inductive-only) E map would mislead. Recommendation: export the wire paths to a full-wave simulator.</li>
+</ul>
+<h3>2026-10-20 — Validation run 5 (v1.4): V7 FAIL at 1 of 360 points</h3>
+<ul>
+<li><strong>Failing point:</strong> T(2,5), m = 16, β = 1.5. The drawing showed 6 crossings instead of 5 at 25,600 points.</li>
+<li><strong>Cause:</strong> a duplicate hit at the 54° crossing, where the strands meet at a grazing angle. The count is exactly 5, in the right positions, at 51,200, 102,400 and 204,800 points.</li>
+<li><strong>Fix:</strong> point-count ceiling raised from 25,600 to 102,400. Criterion unchanged. Re-run as run 6.</li>
+</ul>
+<h3>2026-10-20 — Design v1.3: petal sharpness</h3>
+<ul>
+<li><strong>Request (Reza):</strong> “Add a petal-sharpness control that narrows each lobe, with the same topology checks.”</li>
+<li><strong>Implementation:</strong> outward lobe profile raised to a power m, r = R(1 + β((1 + cos qφ)/2)^m). Tips and base are unchanged; the lobes narrow.</li>
+<li><strong>Range:</strong> 1–16. Not applied to the symmetric v1.0 shape.</li>
+<li><strong>Lobe aspect ratio:</strong> length ÷ width at half length is now reported.
+<ul>
+<li>Example, cinquefoil at β = 1.5: 0.68 (m = 1), 1.31 (m = 4), 2.05 (m = 10).</li>
+</ul>
+</li>
+<li><strong>Topology check V7:</strong> pre-registered in Design §7 (git 30d6fa1) before it was run.</li>
+<li><strong>V7 RESULT (validation run 4): FAIL.</strong>
+<ul>
+<li><strong>Passed across the whole grid:</strong> the trefoil T(2,3).</li>
+<li><strong>Failed at m ≥ 12:</strong> T(2,5) and T(2,7).</li>
+<li><strong>Failed from m ≈ 3–6:</strong> the 3- and 5-winding knots.</li>
+<li><strong>Mechanism:</strong> extra crossings in the flat drawing, in pairs (e.g. 10 instead of 8). The power law flattens the base between petals, so neighbouring strands run almost on top of each other and cross back and forth.</li>
+<li><strong>Knot type:</strong> Claude argues it is probably unchanged, because the 3D curve still lies on an embedded torus. <strong>Not verified computationally.</strong> The diagram is still not clean: it has extra wire crossings and long stacked runs.</li>
+<li><strong>Response:</strong> v1.4 replaces the power law with an angle warp.</li>
+</ul>
+</li>
+<li><strong>v1.4 (git 7d7b6bf):</strong> sharpness warps the lobe angle, ψ = qφ + (1 − 1/m)·sin(qφ), and the same ψ drives both radius and lift.
+<ul>
+<li>Claude’s argument: crossings stay exactly q(p−1), with the same pattern.</li>
+<li>Probes showed residual mismatches only at m = 16, β = 0.1. They were confirmed as discretisation artefacts: they vanish at 2,000 points for T(3,2) and 16,000 for T(5,6).</li>
+<li><strong>Numerical changes:</strong>
+<ul>
+<li>a grid-accelerated crossing and clearance search (identical to brute force on 108 crossing cases and 6 clearance cases);</li>
+<li>a point-count rule requiring stability over two doublings (max 25,600 points).</li>
+</ul>
+</li>
+<li><strong>Trade-offs seen in probes (not validated):</strong>
+<ul>
+<li>Aspect ratio gains are larger for 2-winding knots (T(2,5) at β = 1.5: 0.68 → 1.25 from m = 1 to 16) than for 3–5-winding knots (T(3,4): 0.36 → 0.66).</li>
+<li>The crossing lift needed grows with m, up to about 9.8 mm for T(5,6) at m = 16. That is likely impractical.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>Bend radius:</strong> tightens with m, e.g. 3.9 mm at m = 10 for that cinquefoil. The app flags this against the wire’s minimum bend radius.</li>
+</ul>
 <h3>2026-10-20 — Design v1.2: bloom extends lobes (outward shape)</h3>
 <ul>
 <li><strong>Request (Reza):</strong> bloom should lengthen the lobes, with aspect ratio rising with bloom, rather than pinch part of the loop.</li>

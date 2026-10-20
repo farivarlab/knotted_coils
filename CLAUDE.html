@@ -1,0 +1,76 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Instructions for AI Assistants</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Instructions for AI assistants working on this project</h1>
+<p>Read these first: <code>DEVELOPER_GUIDE.md</code>, <code>Design.md</code> (frozen spec + changelog), <code>DECISIONS.md</code>, <code>PARAMETERS.md</code>, and <code>docs/REQUEST_LOG.md</code>.</p>
+<h2>Hard rules</h2>
+<ul>
+<li><strong>Design.md is frozen.</strong> Any change to geometry, the EM model or validation criteria needs:
+<ul>
+<li>the owner’s explicit approval;</li>
+<li>a version bump;</li>
+<li>a dated changelog entry: who asked (quoted), why, and what it affects.</li>
+</ul>
+</li>
+<li><strong>Pre-register before testing.</strong>
+<ul>
+<li>Write the pass criterion into Design.md §7 or a protocol file, and commit it before running.</li>
+<li>Apply it mechanically and report failures as failures; keep failing runs in git history.</li>
+<li>Never edit a criterion after seeing results. Log test-harness fixes as such, and keep the criterion unchanged.</li>
+</ul>
+</li>
+<li><strong>Never fabricate</strong> values, citations or results.
+<ul>
+<li>Cite only sources whose primary text you have read; archive them in <code>sources/</code>.</li>
+<li>Otherwise label the source UNVERIFIED.</li>
+<li>Formulas you derive yourself are tagged DERIVED, never LIT.</li>
+</ul>
+</li>
+<li><strong>Tag every parameter</strong> inline (<code>// JUDG: …</code>, <code>// DERIVED: …</code>, <code>// LIT: …</code>, <code>// CONV: …</code>, <code>// TUNED: …</code>, plus <code>PLACEHOLDER</code> where relevant) and add a row to <code>PARAMETERS.md</code>.</li>
+<li><strong>Provenance header</strong> at the top of every source file (AI-assisted authorship; accountable person: Reza Farivar).</li>
+<li><strong>Label all EM output exploratory.</strong> It is a quasi-static thin-wire model: coupling and B1 only. Do not add E-field maps; direct users to full-wave simulation.</li>
+<li><strong>Surface your own mistakes immediately</strong> and log them in DECISIONS.md, for example the unimplemented cost term found at v1.1.</li>
+</ul>
+<h2>Code conventions</h2>
+<ul>
+<li>Plain JavaScript; no build step; no new dependencies without approval. Three.js is vendored and pinned.</li>
+<li>Every <code>core/*.js</code> uses the factory wrapper (see any core file). Workers are built from <code>KC_FACTORIES</code>, so keep modules self-contained and keep the load order.</li>
+<li>Units: mm, nH, µT/A, radians.</li>
+<li>Keep heavy maths off the page thread: use the worker commands in <code>app/index.html</code>.</li>
+<li>Comments explain <em>why</em>, at the density of the surrounding code.</li>
+</ul>
+<h2>Deliverables</h2>
+<ul>
+<li>Every Markdown document gets an <code>.html</code> rendering, and a <code>.pdf</code> where tooling allows.</li>
+<li>Define jargon on first use in anything written for the owner. His background is vision science and neuroscience, not software or RF engineering.</li>
+</ul>
+</body></html>

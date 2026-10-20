@@ -1,0 +1,137 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Request Log</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Request Log — how this design came about</h1>
+<p>Reza Farivar’s instructions during the build session of 2026-10-20, quoted, with what each one produced. All of this was built in one session with Claude Code. The git history has the exact commits.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Reza’s instruction (quoted)</th>
+<th>What it produced</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>“help me build a package that generates knotted loop geometries with parameters that could shape the knotted loops … Ultimately, I want to build arrays of knotted loops, where each serves as a receiver loop in an MRI phased array. I want to be able to also ‘bloom’ the knots … Before you do it, tell me the design you understand here and then we’ll freeze it in a Design.md file”</td>
+<td>Design proposal: torus knots, bloom, arrays, exports, scope boundary (geometry only)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>“by ‘bloom into a loop’ I mean with the topological overlap, not an actual loop.”</td>
+<td>Bloom collapses strands onto one loop-like footprint while keeping crossings</td>
+</tr>
+<tr>
+<td>3</td>
+<td>“can you also implement a feature that automatically calculates the optimal overlap between the coils for minimal mutual inductance, given the geometry? … our knots are pretty much flat, while respecting the topology”</td>
+<td>Neumann-based automatic decoupling; flat knots with crossing lift</td>
+</tr>
+<tr>
+<td>4</td>
+<td>“I’d like to be able to put as many loops as I want, and the software decouples them given the bloom” · “Substrate is not PCB. We’ll be using wire loops” · “I’d like to try up to 8 lobes” · “target array: helmet” · “new folder”</td>
+<td>Unlimited N; wire loops; lobe catalogue 1–8; helmet former; <code>knotted_coils/</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>“Freeze Design.md as v1.0 with the proposed defaults; I’ll send wire and helmet specs separately. Start building.”</td>
+<td>Design v1.0 frozen (git 39a4e83, which pre-registers V1–V6); core, solver, validation, app</td>
+</tr>
+<tr>
+<td>6</td>
+<td>“we should be able to rotate the coils in-plane to help with decoupling. I think that should be one of the parameters”</td>
+<td>Rotation exposed: free / locked / fixed</td>
+</tr>
+<tr>
+<td>7</td>
+<td>“Would I be able to visualize the e-fields in the UI via a toggle?”</td>
+<td>Assessment: a quasi-static model gives only part of E. Deferred</td>
+</tr>
+<tr>
+<td>8</td>
+<td>“Make nearest-ring the default definition of decoupled (log it as a Design v1.1 change), and keep reporting the footprint verdict too.”</td>
+<td>Design v1.1. Disclosed that the worst-pair cost term had not been implemented</td>
+</tr>
+<tr>
+<td>9</td>
+<td>“Implement the worst-pair term as a smooth stand-in (soft-max or sum of k^4), compare against the current solver on the same seeds, and report both.”</td>
+<td>k⁴ term; pre-registered 35-run paired comparison; adopted by rule; trade-off documented</td>
+</tr>
+<tr>
+<td>10</td>
+<td>“can I use the UI?” · “it seems frozen” · “why is it so clunky if I change a feature of the lobe?”</td>
+<td>Local server; element checks moved to a worker; hidden-canvas freeze and slider bug fixed</td>
+</tr>
+<tr>
+<td>11</td>
+<td>“currently, ‘bloom’ is just pinching a portion of the loop. I want ‘bloom’ to make the lobes more extended, such that each lobe’s aspect ratio would increase as I increase ‘bloom’.”</td>
+<td>Design v1.2: lobes extend outward from a fixed base circle</td>
+</tr>
+<tr>
+<td>12</td>
+<td>“Add a petal-sharpness control that narrows each lobe, with the same topology checks.”</td>
+<td>Design v1.3 (power law). V7 FAILED → v1.4 (angle warp)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>“can you plot the decoupling graph in the ‘Pair explorer’ tab in dB?”</td>
+<td>dB view, 20·log₁₀|k|, labelled “not bench S21”</td>
+</tr>
+<tr>
+<td>14</td>
+<td>“is there a fast and effective way to visualize the e-fields of a solved array?” · “how do I visualize the B1 field?” · “I just want a quick visualization that’s reasonable. We will do simulations later”</td>
+<td>Design v1.5: quick B1 view (Biot–Savart; head surface and slices). E-fields left to full-wave simulation</td>
+</tr>
+<tr>
+<td>15</td>
+<td>“package the whole thing so I can share it” · “include all the instructions you gathered here (the design files, etc.) so that others can expand on the work”</td>
+<td>This package: developer guide, request log, project CLAUDE.md, integrity rules, sources</td>
+</tr>
+</tbody>
+</table>
+<h2>Standing instructions that shaped the work</h2>
+<p>These come from Reza’s workspace instructions (his global <code>CLAUDE.md</code>). The ones relevant to this project:</p>
+<ul>
+<li>Render a styled <code>.html</code>, and a <code>.pdf</code> where possible, alongside every Markdown file.</li>
+<li>Define jargon on first use; Reza’s background is vision science and neuroscience, not software or engineering.</li>
+<li>Follow the research-integrity framework (copied in <code>docs/research_integrity/</code>):
+<ul>
+<li>never fabricate;</li>
+<li>cite only verified sources;</li>
+<li>tag parameter origins;</li>
+<li>pre-register checks and report failures;</li>
+<li>label unvalidated results exploratory;</li>
+<li>attribute AI-written code.</li>
+</ul>
+</li>
+</ul>
+</body></html>

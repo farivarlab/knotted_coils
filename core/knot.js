@@ -252,18 +252,18 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   };
 
   // Enough points to resolve every crossing: start at 100*p*q*ceil(m) (at least 400) and double until the
-  // crossing count is the same across TWO doublings (n, 2n, 4n); max 25600. History: validation run 1 showed
+  // crossing count is the same across TWO doublings (n, 2n, 4n); max 102400. History: validation run 1 showed
   // 300 points missing a T(2,5) crossing; run 5 showed a one-doubling rule stopping on a spurious count
-  // (T(5,6), sharpness 16, needed 16000 points).
+  // (T(5,6), sharpness 16, needed 16000 points); run 5 showed 25600 too few for T(2,5) at m = 16 (needs 51200).
   knot.adaptiveN = function (prm, h) {
     var n = Math.max(400, 100 * prm.p * prm.q * Math.ceil(prm.sharpness || 1)), hist = [];
-    while (n <= 25600) {
+    while (n <= 102400) {
       hist.push(knot.crossings(knot.points(Object.assign({}, prm, { h: h || 1 }), n)).list.length);
       var L = hist.length;
       if (L >= 3 && hist[L - 1] === hist[L - 2] && hist[L - 2] === hist[L - 3]) return n / 4;
       n *= 2;
     }
-    return 25600;
+    return 102400;
   };
 
   // Everything a user needs to judge one element: geometry + fabrication checks.

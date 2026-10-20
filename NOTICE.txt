@@ -1,0 +1,15 @@
+Knotted Coil Designer
+Copyright (c) 2026 Reza Farivar, McGill University. All rights reserved.
+
+Shared for research evaluation only. Please do not redistribute, modify for other uses, or disclose
+outside the intended recipients without permission from Reza Farivar (reza.farivar@mcgill.ca).
+A licence has not yet been chosen.
+
+STATUS: exploratory research software. All electromagnetic outputs (coupling coefficients, B1 maps) are
+quasi-static geometric estimates (thin-wire, low-frequency model; no capacitors, tissue or wave effects).
+Confirm any design with full-wave electromagnetic simulation or bench measurement before building.
+
+AI USE: written with Claude Code (Anthropic AI coding assistant) under the direction of Reza Farivar, who is
+accountable for it. See README "Provenance and AI-use statement".
+
+THIRD-PARTY: three.js 0.149.0 (c) three.js authors, MIT licence — vendor/three-LICENSE.txt.

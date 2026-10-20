@@ -1,0 +1,209 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Developer Guide</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Developer Guide — Knotted Coil Designer</h1>
+<p>This guide is for anyone extending the tool. Read it together with:</p>
+<ul>
+<li><code>Design.md</code>, the frozen specification and its changelog;</li>
+<li><code>DECISIONS.md</code>, why things are the way they are;</li>
+<li><code>docs/REQUEST_LOG.md</code>, what was asked for and when.</li>
+</ul>
+<h2>1. What the tool does, in one paragraph</h2>
+<p>It designs MRI receive phased arrays made of <strong>flat knotted wire loops</strong> (torus knots T(p,q) drawn as rosettes) on a helmet. The pieces are:</p>
+<ul>
+<li><strong>Element shape:</strong> knot type, bloom (lobe length), petal sharpness (lobe narrowness), rotation, wire.</li>
+<li><strong>Electromagnetics:</strong> a quasi-static thin-wire model. It gives mutual and self-inductance (Neumann formula), the coupling coefficient k, and the B1 field (Biot–Savart).</li>
+<li><strong>Solver:</strong> arranges N elements on the helmet so neighbouring elements are geometrically decoupled (k ≈ 0) while covering the region.</li>
+<li><strong>Front end:</strong> a single browser page with no build step, plus Node.js tests.</li>
+</ul>
+<h2>2. Repository map</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>core/knot.js</code></td>
+<td>Element geometry: <code>points</code>, crossings and over/under pattern, lift solver, clearance, bend radius, lobe aspect ratio, bloom floor, adaptive point count</td>
+</tr>
+<tr>
+<td><code>core/inductance.js</code></td>
+<td>Neumann mutual inductance (with near-field refinement), self-inductance, Maxwell coaxial closed form, elliptic integrals</td>
+</tr>
+<tr>
+<td><code>core/surface.js</code></td>
+<td>Helmet ellipsoid, coverage region, local frames, wrapping a flat element onto the surface</td>
+</tr>
+<tr>
+<td><code>core/layout.js</code></td>
+<td>Seeded random numbers; initial even spread of N centres (farthest-point sampling + Lloyd)</td>
+</tr>
+<tr>
+<td><code>core/optimise.js</code></td>
+<td>Decoupling solver: stage 1 lookup table, stage 2 exact; pair scan; final report</td>
+</tr>
+<tr>
+<td><code>core/field.js</code></td>
+<td>Biot–Savart B1; head surface and slice sampling</td>
+</tr>
+<tr>
+<td><code>app/index.html</code></td>
+<td>The whole UI: Element, Pair explorer, Array on helmet, exports. Heavy maths runs in Web Workers</td>
+</tr>
+<tr>
+<td><code>tests/run.js</code></td>
+<td>Validation checks V1–V8 (pre-registered) plus labelled post-hoc checks. Writes <code>validation/</code></td>
+</tr>
+<tr>
+<td><code>tests/compare_worstpair.js</code></td>
+<td>Pre-registered paired solver comparison (protocol in <code>validation/</code>)</td>
+</tr>
+<tr>
+<td><code>tools/serve.js</code></td>
+<td>Tiny local web server: <code>node tools/serve.js</code> → <a href="http://localhost:8765/app/index.html">http://localhost:8765/app/index.html</a></td>
+</tr>
+<tr>
+<td><code>tools/build_dist.js</code></td>
+<td>Builds <code>dist/</code>, a flat copy of the app for hosting or sending</td>
+</tr>
+<tr>
+<td><code>vendor/</code></td>
+<td>Three.js 0.149.0 (MIT), pinned and stored locally so the app works offline</td>
+</tr>
+<tr>
+<td><code>docs/</code></td>
+<td>Request log; copies of the research-integrity rules this project follows</td>
+</tr>
+<tr>
+<td><code>sources/</code></td>
+<td>Archived primary sources for VERIFIED citations</td>
+</tr>
+</tbody>
+</table>
+<h2>3. How the code is organised</h2>
+<ul>
+<li><strong>Plain JavaScript, no build step, no dependencies</strong> apart from the vendored Three.js.</li>
+<li><strong>Module pattern:</strong> every <code>core/*.js</code> file wraps itself in a factory that
+<ul>
+<li>attaches to a global <code>KC</code> namespace (<code>KC.knot</code>, <code>KC.ind</code>, <code>KC.surface</code>, <code>KC.layout</code>, <code>KC.opt</code>, <code>KC.field</code>);</li>
+<li>pushes the factory onto <code>KC_FACTORIES</code>;</li>
+<li>exports <code>KC</code> for Node.</li>
+</ul>
+</li>
+<li><strong>Same code in Node and the browser.</strong> The app builds its Web Worker by concatenating <code>KC_FACTORIES[i].toString()</code> into a Blob, so the worker runs exactly the same code. <strong>Load order matters:</strong> knot, inductance, surface, layout, optimise, field.</li>
+<li><strong>Units:</strong> mm, nH, µT/A, radians internally (degrees only in the UI).
+<ul>
+<li>Coordinates: x is left–right, y is back–front, z is up.</li>
+</ul>
+</li>
+<li><strong>The element formula</strong> (Design §3.1, v1.4):
+<ul>
+<li>ψ = qφ + a·sin(qφ), with a = 1 − 1/m (sharpness m);</li>
+<li>r = R(1 + β(1 + cos ψ)/2);</li>
+<li>x = r·cos(pφ + θ), y = r·sin(pφ + θ), z = h·sin ψ.</li>
+<li>The v1.0 “symmetric” shape (r = R(1 + β cos qφ)) is still selectable.</li>
+</ul>
+</li>
+</ul>
+<h2>4. Common extensions — where to start</h2>
+<table>
+<thead>
+<tr>
+<th>You want to…</th>
+<th>Do this</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Add a knot family</strong> (Lissajous, Fourier)</td>
+<td>Add a generator next to <code>knot.points</code> that returns the same <code>[[x,y,z],…]</code> format, with a z-lift that encodes over/under. Everything downstream (crossings, lift, inductance, solver, B1) works on point lists. Add a V-check: crossing count and pattern equal the family’s known diagram</td>
+</tr>
+<tr>
+<td><strong>Use a real helmet former</strong></td>
+<td>Replace the ellipsoid in <code>core/surface.js</code>: <code>normal</code>, <code>snap</code>, <code>alongNormal</code>, <code>inCoverage</code>, <code>samples</code>, <code>coveredArea</code>, <code>point</code>. An STL importer would need nearest-point projection and normals</td>
+</tr>
+<tr>
+<td><strong>Mix element types in one array</strong></td>
+<td><code>optimise.js</code> assumes one shared element shape (one lookup table, one self-inductance). Store per-element shape parameters; build one table per distinct pair of shapes</td>
+</tr>
+<tr>
+<td><strong>Improve the solver</strong></td>
+<td>It is a transparent accept-if-better local search and is <strong>strongly seed-sensitive</strong> (DECISIONS.md). Cheapest gain: multi-seed restarts, keeping the best. Any change → pre-register a paired comparison like <code>validation/COMPARE_worstpair_PROTOCOL.md</code></td>
+</tr>
+<tr>
+<td><strong>Better field maps</strong></td>
+<td>Export wire paths (CSV, OBJ/STL) to a full-wave solver: openEMS (free), CST, HFSS, Sim4Life. Don’t add E-field maps to this quasi-static model (DECISIONS.md explains why)</td>
+</tr>
+<tr>
+<td><strong>Add an export</strong></td>
+<td><code>app/index.html</code>, “exports” section. <code>arrRes</code> holds the solved array (<code>wires</code>, <code>centres</code>, <code>theta</code>, <code>kMatrix</code>, <code>pairs</code>, <code>config</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Rules this project follows (please keep them)</h2>
+<p>These come from the research-integrity framework in <code>docs/research_integrity/</code>:</p>
+<ul>
+<li><strong>Freeze, then change by changelog.</strong> <code>Design.md</code> is frozen. Any change to geometry, the EM model or validation criteria gets a version bump and a dated changelog entry saying who asked, why, and what it affects.</li>
+<li><strong>Pre-register checks.</strong> Write the pass criterion into <code>Design.md</code> §7 (or a protocol file) and <strong>commit before running</strong>. Report failures as failures: the git history keeps every failing run, e.g. runs 1, 4 and 5. Never edit a criterion after seeing results. Fixes to the test harness are logged as such.</li>
+<li><strong>Tag every parameter’s origin</strong> (LIT / CONV / JUDG / TUNED / DERIVED, with PLACEHOLDER where relevant), inline in the code <em>and</em> in <code>PARAMETERS.md</code>.</li>
+<li><strong>Cite only VERIFIED sources.</strong> Read the primary text and archive it in <code>sources/</code>. Label anything else UNVERIFIED.</li>
+<li><strong>Provenance header</strong> on every source file (AI-assisted authorship, accountable person).</li>
+<li><strong>Label results exploratory</strong> unless validated to the tier the claim needs. Every coupling and B1 output says so.</li>
+<li><strong>Decision log:</strong> dated entries in <code>DECISIONS.md</code>, including mistakes and how they were found.</li>
+</ul>
+<h2>6. Run, test, build</h2>
+<pre><code class="language-bash">node tools/serve.js
+</code></pre>
+<p>Then open <a href="http://localhost:8765/app/index.html">http://localhost:8765/app/index.html</a>. Double-clicking <code>app/index.html</code> may also work, but this hasn’t been tested.</p>
+<pre><code class="language-bash">node tests/run.js
+</code></pre>
+<p>Validation suite, about 5–15 minutes. Writes <code>validation/validation_report.{html,json}</code> and <code>validation_status.js</code>, which drives the app’s header banner.</p>
+<pre><code class="language-bash">node tests/compare_worstpair.js
+</code></pre>
+<p>Re-runs the pre-registered worst-pair comparison, about 3–5 minutes.</p>
+<pre><code class="language-bash">node tools/build_dist.js
+</code></pre>
+<p>Builds <code>dist/</code>, a flat copy of the app for hosting.</p>
+<h2>7. Known limitations and open items (as of 2026-10-20)</h2>
+<ul>
+<li><strong>Quasi-static thin-wire model only.</strong> No capacitors, tissue, wave effects or preamplifier decoupling.</li>
+<li><strong>Placeholders:</strong> wire spec and helmet dimensions (PARAMETERS.md).</li>
+<li><strong>V3:</strong> cannot be evaluated until Roemer et al. 1990 is read (paywalled).</li>
+<li><strong>V6:</strong> fails below the wire-dependent bloom floor. It is a known physical limit, shown in the UI.</li>
+<li><strong>Solver:</strong> seed-sensitive. No 32-element test array met |k| &lt; 0.01 for all nearest pairs.</li>
+<li><strong>Very sharp petals</strong> (high m, 3–5 windings) need crossing lifts of several mm.</li>
+<li><strong>Untested:</strong> opening the app from <code>file://</code> (double-click). The local server is tested.</li>
+</ul>
+</body></html>
