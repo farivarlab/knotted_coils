@@ -233,7 +233,8 @@ want('V11') && (function () {
     worst = Math.max(worst, Math.abs(e)); rows.push({ breaks: nb, B0: B0, ours_pF: ours, closedForm_pF: ref, relErr: e });
   }); });
   rec({ id: 'V11', title: 'Capacitor value, circular loop R = 50 mm, wire radius 0.5 mm, vs n/(w^2 L) with Rosa & Grover L',
-    criterion: 'relative error < 1%', verdict: worst < 0.01 ? 'PASS' : 'FAIL', summary: 'worst ' + (worst * 100).toFixed(3) + '%', rows: rows });
+    criterion: 'relative error < 1%', verdict: worst < 0.01 ? 'PASS' : 'FAIL', summary: 'worst ' + (worst * 100).toFixed(3) + '%', rows: rows,
+    note: 'Audit A3: this is a CONSISTENCY check - the closed form uses the same C = n/(w^2 L) expression as the code, so V11 can only fail if V2 (inductance) fails.' });
 })();
 
 // V12 — face exclusion zones respected (V9 arrays here; C2 arrays from tests/compare_ring_vs_free.js output).
@@ -380,6 +381,17 @@ want('PH2') && (function () {
   rec({ id: 'PH2', title: 'POST-HOC: V6 test from the physical bloom floor (outward shape: c / (R sin(pi/p))) upward',
     criterion: 'post-hoc; not pre-registered (informational)', verdict: allOK ? 'AGREES' : 'DISAGREES',
     summary: rows.map(function (r) { return r.knot + ' from ' + r.testedFrom + (r.failsAt.length ? ' FAILS ' + r.failsAt : ''); }).join('; '), rows: rows });
+})();
+
+// POST-HOC (added after audit A8, 2026-10-20): the DIRECTION of the B1 vector, not only its magnitude. A counter-clockwise
+// loop in the xy-plane (seen from +z) must give +z field on its axis; and a straight current along +x gives -y field at a
+// point displaced +z above it (right-hand rule).
+want('PH3') && (function () {
+  var W = I.prep(I.circle(50, 400)), b = KC.field.vector(W, 0, 0, 10);
+  var seg = I.prep([[-500, 0, 0], [500, 0, 0], [500, 0, -1000], [-500, 0, -1000]]), b2 = KC.field.vector(seg, 0, 0, 10);
+  var ok = b[2] > 0 && Math.abs(b[0]) < 1e-9 * Math.abs(b[2]) && b2[1] < 0;
+  rec({ id: 'PH3', title: 'POST-HOC: B1 vector direction (right-hand rule) on two cases', criterion: 'post-hoc; informational',
+    verdict: ok ? 'AGREES' : 'DISAGREES', summary: 'loop axis Bz ' + b[2].toFixed(3) + ' uT/A; wire +x at +z: By ' + b2[1].toFixed(3) + ' uT/A' });
 })();
 
 // POST-HOC (added after pre-registration, 2026-10-20): Rosa & Grover worked Example 1 (pp. 20–21).

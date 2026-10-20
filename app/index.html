@@ -380,7 +380,7 @@ function onElement(e) {
     ['Core radius R', fmt(elRep.coreRadius, 1) + ' mm'], ['Footprint radius', fmt(elRep.footprintRadius, 1) + ' mm'],
     ['Wire length', fmt(elRep.wireLength, 0) + ' mm'],
     ['Crossing lift h', fmt(elRep.h, 2) + ' mm'],
-    ['Min self-clearance (need)', f(elRep.liftFeasible && elRep.minClearance >= clear - 1e-6, fmt(elRep.minClearance, 2) + ' (' + fmt(clear, 2) + ') mm')],
+    ['Min self-clearance (need)', f(elRep.liftFeasible && elRep.minClearance >= clear - 1e-6, (elRep.minClearanceIsLowerBound ? '≥ ' : '') + fmt(elRep.minClearance, 2) + ' (' + fmt(clear, 2) + ') mm')],
     ['Tightest bend (limit)', f(elRep.bendOK, fmt(elRep.minBendRadius, 2) + ' (' + fmt(w.minBend, 1) + ') mm')],
     ['Lobe aspect ratio (length ÷ width at half length)', fmt(elRep.lobe.aspect, 2) + ' (' + fmt(elRep.lobe.length, 1) + ' / ' + fmt(elRep.lobe.width, 1) + ' mm)'],
     ['Bloom floor for wire', prm.p < 2 ? '—' : elRep.floorApplies ? fmt(elRep.betaMinPhysical, 3) : 'n/a for m > 1 (use clearance)'],
@@ -778,7 +778,7 @@ function showPairs(sel) {
   $('selTitle').textContent = sel < 0 ? 'Worst target pairs' : 'Element ' + sel + ': couplings within 3.5 Rf (click empty space to clear)';
   $('pairList').innerHTML = '<tr><td>pair</td><td>distance / Rf · kind · k</td></tr>' + list.slice(0, 15).map(function (p) {
     var bad = Math.abs(p.k) >= arrRes.threshold && targetOf(p);
-    return '<tr><td>' + p.i + '–' + p.j + '</td><td>' + fmt(p.dOverRf, 2) + ' · ' + (p.ring1 ? 'nearest ring' : p.footprint ? 'footprint' : 'next') + ' · <span class="flag ' + (bad ? 'bad' : 'ok') + '">' + p.k.toFixed(4) + '</span></td></tr>';
+    return '<tr><td>' + p.i + '–' + p.j + '</td><td>' + fmt(p.dOverRf, 2) + ' · ' + (arrRes.mode === 'ring' && p.adjacent ? 'adjacent' : p.ring1 ? 'nearest ring' : p.footprint ? 'footprint' : 'next') + ' · <span class="flag ' + (bad ? 'bad' : 'ok') + '">' + p.k.toFixed(4) + '</span></td></tr>';
   }).join('');
 }
 

@@ -18,9 +18,9 @@ METHOD (Design.md §3.1, v1.2):
   (symmetric additionally needs beta < 1).
   Units: millimetres throughout.
 
-MATLAB EQUIVALENT:
-  phi = 2*pi*(0:n-1)/n; r = R*(1+beta*cos(q*phi));
-  P = [r.*cos(p*phi+theta); r.*sin(p*phi+theta); h*sin(q*phi)]';
+MATLAB EQUIVALENT (outward shape with sharpness m, v1.4+; audit A9):
+  phi = 2*pi*(0:n-1)/n; a = 1 - 1/m; psi = q*phi + a*sin(q*phi); r = R*(1 + beta*(1+cos(psi))/2);
+  P = [r.*cos(p*phi+theta); r.*sin(p*phi+theta); h*sin(psi)]';   % mirror: P(:,2) = -P(:,2), then reverse order
 
 VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in validation report.
 */
@@ -110,33 +110,61 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   // are skipped, because adjacent points on the same strand are trivially close.
   // With `cap` (mm), only distances below cap are searched for (spatial grid, fast for large n); the result is
   // min(true clearance, cap). Without cap: exact all-pairs search.
+  // Distances are SEGMENT-to-segment (closest points of the two straight pieces), not point-to-point: audit A1 found
+  // that point-to-point overestimated clearance on coarse polylines, so the lift solver under-lifted knots with p >= 3
+  // (T(3,4): 0.757 mm true clearance where 1.5 mm was required).
+  knot.segSegDist = function (p1, q1, p2, q2) {
+    // closest distance between segments p1q1 and p2q2 (standard clamped closest-point construction)
+    var d1 = [q1[0] - p1[0], q1[1] - p1[1], q1[2] - p1[2]], d2 = [q2[0] - p2[0], q2[1] - p2[1], q2[2] - p2[2]];
+    var r = [p1[0] - p2[0], p1[1] - p2[1], p1[2] - p2[2]];
+    var a = d1[0] * d1[0] + d1[1] * d1[1] + d1[2] * d1[2], e = d2[0] * d2[0] + d2[1] * d2[1] + d2[2] * d2[2];
+    var f = d2[0] * r[0] + d2[1] * r[1] + d2[2] * r[2], s, t;
+    if (a <= 1e-24 && e <= 1e-24) { s = 0; t = 0; }
+    else if (a <= 1e-24) { s = 0; t = Math.max(0, Math.min(1, f / e)); }
+    else {
+      var c = d1[0] * r[0] + d1[1] * r[1] + d1[2] * r[2];
+      if (e <= 1e-24) { t = 0; s = Math.max(0, Math.min(1, -c / a)); }
+      else {
+        var b = d1[0] * d2[0] + d1[1] * d2[1] + d1[2] * d2[2], den = a * e - b * b;
+        s = den > 1e-24 ? Math.max(0, Math.min(1, (b * f - c * e) / den)) : 0;
+        t = (b * s + f) / e;
+        if (t < 0) { t = 0; s = Math.max(0, Math.min(1, -c / a)); }
+        else if (t > 1) { t = 1; s = Math.max(0, Math.min(1, (b - c) / a)); }
+      }
+    }
+    var dx = r[0] + d1[0] * s - d2[0] * t, dy = r[1] + d1[1] * s - d2[1] * t, dz = r[2] + d1[2] * s - d2[2] * t;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  };
   knot.minSelfClearance = function (P, excludeArc, cap) {
-    var n = P.length, s = new Float64Array(n + 1);
+    var n = P.length, s = new Float64Array(n + 1), maxSeg = 0;
     for (var i = 0; i < n; i++) {
-      var a = P[i], b = P[(i + 1) % n];
-      s[i + 1] = s[i] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+      var a = P[i], b = P[(i + 1) % n], L = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+      s[i + 1] = s[i] + L; if (L > maxSeg) maxSeg = L;
     }
     var total = s[n], best = cap || Infinity, where = null;
-    function test(i2, j) {
-      var arc = Math.abs(s[j] - s[i2]); arc = Math.min(arc, total - arc);
+    function test(i2, j) {                       // segments i2 and j, measured between their mid-arc positions
+      var arc = Math.abs((s[j] + s[j + 1]) - (s[i2] + s[i2 + 1])) / 2; arc = Math.min(arc, total - arc);
       if (arc < excludeArc) return;
-      var d = Math.hypot(P[i2][0] - P[j][0], P[i2][1] - P[j][1], P[i2][2] - P[j][2]);
+      var d = knot.segSegDist(P[i2], P[(i2 + 1) % n], P[j], P[(j + 1) % n]);
       if (d < best) { best = d; where = [i2, j]; }
     }
     if (!cap) {
       for (var i2 = 0; i2 < n; i2++) for (var j = i2 + 1; j < n; j++) test(i2, j);
       return { clearance: best, at: where };
     }
-    var grid = new Map(), key = function (x, y, z) { return x + ',' + y + ',' + z; };
+    // grid on segment midpoints; two segments closer than `cap` have midpoints closer than cap + maxSeg
+    var cell = cap + maxSeg, grid = new Map(), key = function (x, y, z) { return x + ',' + y + ',' + z; }, M = [];
     for (var k = 0; k < n; k++) {
-      var g = key(Math.floor(P[k][0] / cap), Math.floor(P[k][1] / cap), Math.floor(P[k][2] / cap));
+      var A = P[k], B = P[(k + 1) % n], m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2];
+      M.push(m);
+      var g = key(Math.floor(m[0] / cell), Math.floor(m[1] / cell), Math.floor(m[2] / cell));
       if (!grid.has(g)) grid.set(g, []); grid.get(g).push(k);
     }
     for (var k2 = 0; k2 < n; k2++) {
-      var gx = Math.floor(P[k2][0] / cap), gy = Math.floor(P[k2][1] / cap), gz = Math.floor(P[k2][2] / cap);
+      var gx = Math.floor(M[k2][0] / cell), gy = Math.floor(M[k2][1] / cell), gz = Math.floor(M[k2][2] / cell);
       for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) for (var dz = -1; dz <= 1; dz++) {
-        var cell = grid.get(key(gx + dx, gy + dy, gz + dz)); if (!cell) continue;
-        for (var t = 0; t < cell.length; t++) if (cell[t] > k2) test(k2, cell[t]);
+        var cl = grid.get(key(gx + dx, gy + dy, gz + dz)); if (!cl) continue;
+        for (var t = 0; t < cl.length; t++) if (cl[t] > k2) test(k2, cl[t]);
       }
     }
     return { clearance: best, at: where };
@@ -268,6 +296,8 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       hist.push(knot.crossings(knot.points(Object.assign({}, prm, { h: h || 1 }), n)).list.length);
       var L = hist.length;
       if (L >= 3 && hist[L - 1] === hist[L - 2] && hist[L - 2] === hist[L - 3]) return n / 4;
+      // audit A5: if the next doubling would pass the cap, accept two equal counts instead of jumping to the cap
+      if (n * 2 > 102400 && L >= 2 && hist[L - 1] === hist[L - 2]) return n / 2;
       n *= 2;
     }
     return 102400;
@@ -343,7 +373,9 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
     var bend = knot.minBendRadius(P);
     return {
       name: knot.name(prm.p, prm.q), coreRadius: knot.coreRadius(prm), footprintRadius: knot.footprintRadius(prm),
-      h: lift.h, liftFeasible: lift.feasible, minClearance: lift.clearance, requiredClearance: clear,
+      // audit A4: solveLift searches only up to 2 x the required clearance, so a value at that cap is a lower bound
+      h: lift.h, liftFeasible: lift.feasible, minClearance: lift.clearance, minClearanceIsLowerBound: lift.clearance >= 2 * clear - 1e-9,
+      requiredClearance: clear,
       wireLength: knot.wireLength(P), crossings: cr.list.length, expectedCrossings: knot.expectedCrossings(prm.p, prm.q),
       pattern: cr.pattern, minBendRadius: bend, bendOK: bend >= wire.minBend, points: P, n: n,
       betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear, prm.bloomShape),

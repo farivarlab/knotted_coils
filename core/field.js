@@ -20,8 +20,9 @@ METHOD:
   B = (mu0/4pi) 2 pi R^2 / (R^2+z^2)^(3/2) = mu0 R^2 / (2 (R^2+z^2)^(3/2)).            [DERIVED, Claude]
   Head: placeholder ellipsoid = helmet semi-axes minus 10 mm (JUDG PLACEHOLDER).
 
-MATLAB EQUIVALENT:
-  dl = diff([P;P(1,:)]); m = P + dl/2; d = r - m; B = 100 * sum(cross(dl, d, 2) ./ vecnorm(d,2,2).^3);
+MATLAB EQUIVALENT (exact finite segments; audit A9):
+  A = P - r; Bp = circshift(P,-1) - r; la = vecnorm(A,2,2); lb = vecnorm(Bp,2,2);
+  B = 100 * sum(cross(A, Bp, 2) .* (la+lb) ./ (la.*lb.*(la.*lb + dot(A,Bp,2))));
 
 VALIDATED BY: tests/run.js V8.
 */

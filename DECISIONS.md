@@ -26,6 +26,26 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
   - D9: single `core/phantom.js`;
   - D10: app version 0.3.0;
   - D14: PARAMETERS rows.
+- **Audit A (core) fixes:**
+  - **A1 (high):** clearance is now segment-to-segment. On the auditor's repro, T(3,4): the lift from 200 points is now 0.868 mm, true clearance 1.503 mm (was 0.436 → 0.757 mm, under the 1.5 mm required). The report re-checks every final element shape (`liftFeasibleFinal`).
+    - Tonight's simulation cases (all p = 2) were unaffected, because their crossings fall on sampled points.
+    - **Arrays of p ≥ 3 knots designed before this fix may have had too little crossing lift.**
+  - **A3:** V11 labelled a consistency check (circular with respect to V2). Its verdict is unchanged.
+  - **A4:** the capped clearance is shown as "≥".
+  - **A5:** the point-count rule accepts two equal counts at the ceiling.
+  - **A8:** post-hoc PH3 checks the B1 vector direction (AGREES).
+  - **A9:** comments updated.
+  - **A2 (documented, not changed):** with zCut = −20 mm the mouth zone sits below the covered region, so it is inert, and V12 is vacuous for it. It becomes active if zCut is lowered. Whether coverage should reach the lower face is Reza's call.
+  - **A6 (documented):** self-inductance is about 0.4–0.6% low at 300 points (within V2's 2%).
+  - **A7 (open, low):** the radial-snap fallback in wrapping is not flagged.
+- **Audit B (optimiser) fixes:**
+  - **B1:** in ring mode `ring1` and `decoupledRing1` are null; adjacent pairs are labelled "adjacent".
+  - **B2/B5/B6:** every distinct final element shape is re-checked; the panel shows the worst; `elements[]` carries `h`; `liftFeasible` comes from the final shapes.
+  - **B3:** comment corrected.
+  - **B4:** a warning when ringCounts don't sum to N.
+  - **B7, B10:** noted, not changed.
+  - **B9 (interpretation of C2):** the free arm was best-of-4 on the primary metric, the ring arm a single start. That was pre-registered, but it favours free. C2's "ring fails" should be read with this in mind.
+  - **B8:** documentation, see the docs pass.
 - **More fixes:** listed below as they are made.
 - **D16:** the hashes `39ae3d4`/`ccfb5f5` in `docs/research_integrity/VALIDATION_PROTOCOL.md` belong to the Lab_3d repository. The path is shown there, and the file is a copy of Reza's framework, so it is left unchanged.
 

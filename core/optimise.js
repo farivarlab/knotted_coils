@@ -424,9 +424,11 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
       }
       kM[a * N + b] = kM[b * N + a] = k;
       // ring1: nearest ring (v1.1 rule, free mode only); footprint: footprints overlap (v1.0); adjacent: Voronoi (v1.6)
-      var r1 = ctx.tableZero ? dn < o.ring1 * ctx.tableZero : false;
-      pairs.push({ i: a, j: b, dOverRf: dn, k: k, ring1: r1, footprint: d < E[a].Rf + E[b].Rf, adjacent: adj.has(a + ',' + b),
-        kind: r1 ? 'ring1' : dn < 3.5 ? 'next' : 'far' });
+      // audit B1: in ring mode there is no table (no v1.1 'ring1' rule): ring1 = null and 'next' means non-adjacent
+      var r1 = ctx.tableZero ? dn < o.ring1 * ctx.tableZero : null, isAdj = adj.has(a + ',' + b);
+      var near = ctx.mode === 'ring' ? isAdj : r1;
+      pairs.push({ i: a, j: b, dOverRf: dn, k: k, ring1: r1, footprint: d < E[a].Rf + E[b].Rf, adjacent: isAdj,
+        kind: near ? (ctx.mode === 'ring' ? 'adjacent' : 'ring1') : dn < 3.5 ? 'next' : 'far' });
     }
     function stats(sel) {
       var v = pairs.filter(sel).map(function (p) { return Math.abs(p.k); }).sort(function (x, y) { return x - y; });
@@ -442,19 +444,29 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var zoneIn = el.map(function (Q) { return S.zonePoints(ctx.H, Q.points, 0); });
     var zoneMargin = el.map(function (Q) { return S.zonePoints(ctx.H, Q.points, ctx.H.zoneMargin || 0); });
     var e0 = E[0];
-    var planarRep = K.report({ p: ctx.kp.p, q: ctx.kp.q, beta: e0.beta, size: e0.Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape, sharpness: e0.m }, ctx.wire, 400);
+    // audit B2/B5/B6/A1: re-check every distinct final element shape (lift, clearance, bends) at its own adaptive
+    // resolution; the panel shows the worst shape, and liftFeasible comes from these final checks
+    var shapes = {}, shapeReps = [];
+    E.forEach(function (x) { var key = x.Rf.toFixed(3) + '|' + x.beta.toFixed(4) + '|' + x.m.toFixed(3); if (!shapes[key]) shapes[key] = x; });
+    Object.keys(shapes).forEach(function (key) {
+      var x = shapes[key], rp = K.report({ p: ctx.kp.p, q: ctx.kp.q, beta: x.beta, size: x.Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape, sharpness: x.m }, ctx.wire);
+      rp.points = undefined; rp.shape = { Rf: x.Rf, beta: x.beta, m: x.m, ring: x.ring }; shapeReps.push(rp);
+    });
+    var planarRep = shapeReps.reduce(function (w, rp) { return !w || rp.minBendRadius < w.minBendRadius || !rp.liftFeasible ? rp : w; }, null);
+    var finalLiftOK = shapeReps.every(function (rp) { return rp.liftFeasible && rp.minClearance >= rp.requiredClearance - 1e-9; });
     var distortion = el.map(function (Q) { return K.wireLength(Q.points) / K.wireLength(Q.flat) - 1; });
     var fp = stats(function (p) { return p.footprint; }), r1s = stats(function (p) { return p.ring1; }), ad = stats(function (p) { return p.adjacent; });
     var Rmean = E.reduce(function (s, x) { return s + x.Rf; }, 0) / N;
     return {
       N: N, knot: ctx.kp, mode: ctx.mode, Rf: Rmean, coreRadius: Rmean / (1 + e0.beta), centres: st.C.map(function (p) { return p.slice(); }),
       theta: E.map(function (x) { return x.theta; }),
-      elements: E.map(function (x) { return { Rf: x.Rf, beta: x.beta, m: x.m, theta: x.theta, mirror: x.mirror, ring: x.ring, midline: !!x.midline, twin: x.twin }; }),
+      elements: E.map(function (x) { return { Rf: x.Rf, beta: x.beta, m: x.m, theta: x.theta, h: x.h, mirror: x.mirror, ring: x.ring, midline: !!x.midline, twin: x.twin }; }),
+      elementShapes: shapeReps, liftFeasibleFinal: finalLiftOK,
       kMatrix: kM, pairs: pairs, target: ctx.mode === 'ring' ? 'adjacent' : o.target,
       footprint: fp, ring1: r1s, adjacent: ad, next: stats(function (p) { return p.kind === 'next'; }), far: stats(function (p) { return p.kind === 'far'; }),
       threshold: o.thresholdK,
       decoupledFootprint: fp.count > 0 && fp.above === 0,   // v1.0 rule
-      decoupledRing1: r1s.count > 0 && r1s.above === 0,     // v1.1 rule (free mode)
+      decoupledRing1: ctx.mode === 'ring' ? null : r1s.count > 0 && r1s.above === 0,   // v1.1 rule (free mode only)
       decoupledAdjacent: ad.count > 0 && ad.above === 0,    // v1.6 Voronoi adjacency
       regularityCV: sd / mean, nnDistances: nn,
       zoneViolations: zoneIn.reduce(function (s, x) { return s + x; }, 0), zoneViolationsMargin: zoneMargin.reduce(function (s, x) { return s + x; }, 0),
@@ -474,13 +486,14 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var r = O.report(ctx, onProgress);
     r.config = { N: cfg.N, knot: cfg.knot, wire: cfg.wire, helmet: cfg.helmet, opts: ctx.o, stages: which === 'fast' ? ['table'] : ['table', 'exact'] };
     r.seconds = (Date.now() - t0) / 1000;
-    r.h = ctx.h; r.liftFeasible = ctx.liftFeasible; r.tableZero = ctx.tableZero;
+    r.h = ctx.h; r.liftFeasible = r.liftFeasibleFinal; r.tableZero = ctx.tableZero;
     return r;
   }
 
   // ---------- Ring mode (Design v1.6, WP1/WP2) ----------
   // Automatic ring allocation: K rings between the lowest covered elevation and near the top; counts proportional to
-  // the ring's free circumference; a top ring of 1-2 elements becomes a single cap element at the back midline.
+  // the ring's free circumference; a top ring with exactly 1 element is placed as a cap (high on the back midline).
+  // (audit B3: an earlier comment said 1-2; the code has always treated only n = 1 as a cap.)
   function ringAzimuthFree(H, v, Rf) {
     // largest alpha (from the back, -y) such that every azimuth in [-alpha, alpha] at elevation v keeps a footprint-sized
     // margin from all zones: returns pi when the ring is unobstructed.
@@ -511,6 +524,9 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
       raw.map(function (x, i) { return [x - Math.floor(x), i]; }).sort(function (x, y) { return y[0] - x[0]; }).slice(0, rem).forEach(function (t) { counts[t[1]]++; });
       counts = counts.map(function (n) { return Math.max(1, n); });
     }
+    var countWarning = null;
+    if (o.ringCounts && o.ringCounts.length && counts.reduce(function (s2, x) { return s2 + x; }, 0) !== N)   // audit B4
+      countWarning = 'ringCounts sum to ' + counts.reduce(function (s2, x) { return s2 + x; }, 0) + ', not N = ' + N + '; the ring counts were used';
     Kr = counts.length;
     var rings = counts.map(function (n, k) {
       var v = Kr === 1 ? (vLow + vTop) / 2 : (n === 1 && k === 0 ? 1.45 : vTop - k * (vTop - vLow) / (Kr - 1));
@@ -521,7 +537,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     });
     var ctx = { cfg: cfg, o: o, H: H, kp: kp, wire: w, c: c, a: w.d / 2, samples: samples, area: area, spacing: spacing,
       tableZero: null, pairNullEstimate: zn, mode: 'ring', rings: rings, vLow: vLow, liftCache: {}, liftFeasible: true,
-      covSamples: covFilter(H, samples, o.covBuffer * Rf0) };
+      covSamples: covFilter(H, samples, o.covBuffer * Rf0), countWarning: countWarning };
     if (o.startIndex > 0) {                                                     // other starts: perturb ring parameters
       var rnd = Lay.rng(o.seed * 7919 + 13);
       rings.forEach(function (r) { r.th += (rnd() - 0.5) * 2 * Math.PI / kp.q; r.v = Math.max(vLow, Math.min(1.5, r.v + (rnd() - 0.5) * 0.1)); });
@@ -621,7 +637,8 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     O.ringOptimise(ctx, onProgress);
     var r = O.report(ctx, onProgress);
     r.config = { N: ctx.ringElems.length, knot: cfg.knot, wire: cfg.wire, helmet: cfg.helmet, opts: ctx.o, stages: ['rings'] };
-    r.seconds = (Date.now() - t0) / 1000; r.liftFeasible = ctx.liftFeasible; r.tableZero = null; r.pairNullEstimate = ctx.pairNullEstimate;
+    r.seconds = (Date.now() - t0) / 1000; r.liftFeasible = r.liftFeasibleFinal; r.tableZero = null; r.pairNullEstimate = ctx.pairNullEstimate;
+    if (ctx.countWarning) r.warning = ctx.countWarning;
     r.h = ctx.ringElems[0].h;
     return r;
   }
