@@ -46,6 +46,21 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
   - **B7, B10:** noted, not changed.
   - **B9 (interpretation of C2):** the free arm was best-of-4 on the primary metric, the ring arm a single start. That was pre-registered, but it favours free. C2's "ring fails" should be read with this in mind.
   - **B8:** documentation, see the docs pass.
+- **Audit C (full-wave) fixes:**
+  - **C1:** the quasi-static B1 map is evaluated on the plane where openEMS actually stores its dump (half a cell off).
+  - **C3:** a footprint-restricted V18 metric and the worst-point location, information only; the registered verdict is unchanged.
+  - **C5:** `cosim.py` refuses incomplete or stale openEMS outputs.
+  - **C6:** roots must have a small residual, and the reference is the first-pass value.
+  - **C2:** recorded. The official loop run repeats the thin-curve run: V15 = −10.3%, FAIL. V15b is the transfer test of the correction.
+  - **C7:** gap parasitics are absorbed into a_eff; the gap fraction differs between loop and trefoil. Stated as a V15b limitation.
+  - **C8, C9:** noted.
+  - **All official co-simulations are re-run with the final `cosim.py` after the queue**, so every verdict comes from one code version. FDTD outputs are unchanged.
+- **Official loop with the final code:** V15 −10.3% (FAIL); **V16 1.0011 > 1.001 (FAIL on this case**, a 0.1% passivity excess); V17 −48.6 dB (pass).
+- **Docs and app:**
+  - Design §5.1, §5.2, §6, §6b and §10 corrected (see changelog);
+  - the §7 "UNVALIDATED" label is implemented in the app;
+  - README, REQUEST_LOG (#20, #21), DESIGN_HISTORY, PROPOSAL status, NOTICE and DEVELOPER_GUIDE brought up to v1.7;
+  - D11 load validation; D13 tab roles.
 - **More fixes:** listed below as they are made.
 - **D16:** the hashes `39ae3d4`/`ccfb5f5` in `docs/research_integrity/VALIDATION_PROTOCOL.md` belong to the Lab_3d repository. The path is shown there, and the file is a copy of Reza's framework, so it is left unchanged.
 

@@ -60,7 +60,7 @@
   ]
  },
  "warning_air": "In air the loop resistance is copper only (0.688 ohm); FDTD noise in Re(Z) can dominate, so the air Cm/Lm values have low precision (audit M15).",
- "git": "932fb39",
+ "git": "c8e77e5",
  "git_dirty_code": true,
  "openems_meta": {
   "git": "932fb39",

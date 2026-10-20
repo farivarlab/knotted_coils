@@ -163,10 +163,10 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 </aside>
 
 <main>
-  <div class="tabs" role="tablist">
-    <button class="on" data-tab="el">Element</button>
-    <button data-tab="pair">Pair explorer</button>
-    <button data-tab="arr">Array on helmet</button>
+  <div class="tabs" role="tablist" aria-label="Views">
+    <button class="on" data-tab="el" role="tab" aria-selected="true">Element</button>
+    <button data-tab="pair" role="tab" aria-selected="false">Pair explorer</button>
+    <button data-tab="arr" role="tab" aria-selected="false">Array on helmet</button>
   </div>
 
   <section class="panel on" id="tab-el">
@@ -246,6 +246,13 @@ function fmt(x, d) { return (x == null || !isFinite(x)) ? '—' : Number(x).toFi
   b.innerHTML = (bad.length ? 'Validation: ' + bad.map(function (r) { return r.id + ' ' + r.verdict; }).join(', ') : 'Validation: all pre-registered checks pass') +
     ' · <a href="../validation/validation_report.html" target="_blank">report</a>';
   b.title = V.results.map(function (r) { return r.id + ': ' + r.verdict + ' — ' + r.summary; }).join('\n');
+  // Design §7: while any pre-registered check is not passing, every EM output is labelled UNVALIDATED (implemented
+  // 2026-10-20 after audit D3; the label lists the failing checks).
+  if (bad.length) {
+    var tag = 'UNVALIDATED (' + bad.map(function (r) { return r.id; }).join(', ') + ' not passing) — ';
+    document.querySelectorAll('.exploratory').forEach(function (el) { el.insertAdjacentHTML('afterbegin', '<b>' + tag + '</b>'); });
+    var em = document.querySelector('header .banner:not(#valBanner)'); if (em) em.textContent = 'UNVALIDATED — ' + em.textContent;
+  }
 })();
 
 // ---------- controls ----------
@@ -285,7 +292,7 @@ function elemPrm() { return { p: +$('p').value, q: +$('q').value, beta: +$('beta
 // ---------- tabs ----------
 document.querySelectorAll('.tabs button').forEach(function (b) {
   b.onclick = function () {
-    document.querySelectorAll('.tabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    document.querySelectorAll('.tabs button').forEach(function (x) { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
     document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === 'tab-' + b.dataset.tab); });
     if (b.dataset.tab === 'arr') { view3d.resize(); }
     if (b.dataset.tab === 'pair') drawPair();
@@ -923,8 +930,10 @@ $('loadBtn').onclick = function () { $('loadFile').click(); };
 $('loadFile').addEventListener('change', function () {
   var f = $('loadFile').files[0]; if (!f) return;
   f.text().then(function (txt) {
-    var j = JSON.parse(txt), r = j.result, c = r.config, o = c.opts || {};
-    if (!r || !c) throw new Error('not a design file');
+    // audit D11: validate the file before touching any control
+    var j = JSON.parse(txt), r = j && j.result, c = r && r.config;
+    if (!r || !c || !c.knot || !c.wire || !c.helmet || !r.wires || !r.kMatrix) throw new Error('not a Knotted Coil Designer design file');
+    var o = c.opts || {};
     $('q').value = c.knot.q; fillP(); $('p').value = c.knot.p; $('beta').value = c.knot.beta;
     if (c.knot.shape) $('bloomShape').value = c.knot.shape; if (c.knot.sharpness) $('sharp').value = c.knot.sharpness;
     $('wd').value = c.wire.d; $('wt').value = c.wire.tIns; $('wb').value = c.wire.minBend;

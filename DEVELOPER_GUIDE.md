@@ -24,7 +24,7 @@ It designs MRI receive phased arrays made of **flat knotted wire loops** (torus 
 | `core/optimise.js` | Decoupling solver: stage 1 lookup table, stage 2 exact; pair scan; final report |
 | `core/field.js` | Biot–Savart B1; head surface and slice sampling |
 | `app/index.html` | The whole UI: Element, Pair explorer, Array on helmet, exports. Heavy maths runs in Web Workers |
-| `tests/run.js` | Validation checks V1–V8 (pre-registered) plus labelled post-hoc checks. Writes `validation/` |
+| `tests/run.js` | Validation checks V1–V20 (pre-registered; V15–V20 read from `sim/out/*/cosim.json`) plus labelled post-hoc checks. Writes `validation/` |
 | `tests/compare_worstpair.js` | Pre-registered paired solver comparison (protocol in `validation/`) |
 | `tests/compare_ring_vs_free.js` | Pre-registered comparison C2: ring vs free layouts (v1.6). Run before `tests/run.js`, because V12 reads its arrays |
 | `tests/b1_crosscheck.py` | V14: our B1 against Magpylib 6.0.0 on identical wires. Needs a Python environment with `magpylib==6.0.0`; set `KC_PYTHON` to its python.exe (default `C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe`) |
@@ -123,7 +123,7 @@ Builds `dist/`, a flat copy of the app for hosting.
 
 ## 7. Known limitations and open items (as of 2026-10-20)
 
-- **Quasi-static thin-wire model only.** No capacitors, tissue, wave effects or preamplifier decoupling.
+- **The design tool is quasi-static.** The v1.7 full-wave path (`sim/`) adds capacitors, tissue, wave effects and preamplifier decoupling, but only for small cases, and is unvalidated against measurement.
 - **Placeholders:** wire spec and helmet dimensions (PARAMETERS.md).
 - **V3:** cannot be evaluated until Roemer et al. 1990 is read (paywalled).
 - **V6:** fails below the wire-dependent bloom floor. It is a known physical limit, shown in the UI.

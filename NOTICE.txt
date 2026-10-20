@@ -5,8 +5,10 @@ Shared for research evaluation only. Please do not redistribute, modify for othe
 outside the intended recipients without permission from Reza Farivar (reza.farivar@mcgill.ca).
 A licence has not yet been chosen.
 
-STATUS: exploratory research software. All electromagnetic outputs (coupling coefficients, B1 maps) are
-quasi-static geometric estimates (thin-wire, low-frequency model; no capacitors, tissue or wave effects).
+STATUS: exploratory research software. The design tool's electromagnetic outputs (coupling coefficients, B1 maps) are
+quasi-static geometric estimates (thin-wire, low-frequency model; no capacitors, tissue or wave effects). The v1.7
+full-wave co-simulation (sim/) adds capacitors, a placeholder head phantom and wave effects, but is unvalidated against
+measurement.
 Confirm any design with full-wave electromagnetic simulation or bench measurement before building.
 
 AI USE: written with Claude Code (Anthropic AI coding assistant) under the direction of Reza Farivar, who is

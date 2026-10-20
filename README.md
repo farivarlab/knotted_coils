@@ -27,7 +27,10 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | `docs/research_integrity/` | The research-integrity rules this project follows (Reza Farivar's framework, DRAFT v1.0) |
 | `sources/` | Archived primary sources for verified citations |
 | `NOTICE.txt` | Copyright, sharing terms, status |
-| `Design.md` | Frozen design v1.5. The changelog records every version: v1.0 pre-registered V1–V6; V7 and V8 were added before they ran |
+| `Design.md` | Frozen design v1.7. The changelog records every version; checks V1–V20 were each pre-registered before their code ran |
+| `DESIGN_HISTORY.md` | One-page history of every version, trigger, check and outcome |
+| `sim/` | Full-wave capacitor co-simulation (Python + openEMS), v1.7 |
+| `docs/AUDIT_*.md` | The night-of-2026-10-20 audit: brainstorm, independent review, four area audits |
 | `DECISIONS.md` | Dated decision log, including validation failures and open questions for Reza |
 | `PARAMETERS.md` | Every parameter with its origin tag (LIT / CONV / JUDG / TUNED / DERIVED) |
 | `core/` | Geometry and EM package: `knot.js`, `inductance.js`, `surface.js`, `layout.js`, `optimise.js` |
@@ -52,6 +55,14 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | V8 B1 on-axis loop field | PASS (worst error 0.005%) |
 
 Every failing run is kept in the git history; see DECISIONS.md.
+
+**New in v1.7 (full-wave capacitor co-simulation):**
+- Python scripts run openEMS (FDTD) with ports in every capacitor break and a three-layer head phantom.
+- A circuit co-simulation then chooses tuning capacitors and a matching network with preamp decoupling.
+- It reports how the capacitors change coupling (S21, mutual inductance) and B1, compared with the quasi-static model.
+- Workflow: DEVELOPER_GUIDE "v1.7".
+- Every result is **exploratory**: one solver (plus a mariepy cross-check), placeholder phantom and component values, no bench data.
+- The current validation verdicts are shown in the app banner and in `validation/validation_report.html`. Failures are listed there, including V15 (raw FDTD loop resonance −10%, explained by the thin-wire effective radius and handled by the V15b correction).
 
 **New in v1.6:**
 - **Head and face zones:** a head model with editable eye and mouth exclusion zones. No wire is allowed inside them.

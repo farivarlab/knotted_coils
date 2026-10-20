@@ -1,6 +1,6 @@
 # Proposal: Knotted Coil Designer, next updates (v1.6 → v2)
 
-**Status:** DRAFT for Reza's decision pass, 2026-10-20. Nothing here is built yet. Approved items become Design.md changes, each with pre-registered checks, following the usual rules.
+**Status:** DRAFT for Reza's decision pass, 2026-10-20. *Update (night of 2026-10-20): Reza approved it ('let's do the major update'). WP1–WP5, WP11 and WP12 tier 1 were built as Design v1.6, and capacitor co-simulation as v1.7; see DESIGN_HISTORY.md. This file is kept as the historical proposal.* Approved items become Design.md changes, each with pre-registered checks, following the usual rules.
 
 **Why these updates:**
 - Reza's feedback: arrays should be **symmetric about the head**; placement "still doesn't look great"; **bloom and loop size** should be controllable in the array.

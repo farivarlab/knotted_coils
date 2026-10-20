@@ -88,6 +88,7 @@ class Net:
                          for el in case['elements']]
         self.a = a
         self.Ct = list(case['firstPassCap_pF'])
+        self.Ct_first = [c * 1e-12 for c in case['firstPassCap_pF']]
         self.Ct = [c * 1e-12 for c in self.Ct]
         self.Cm, self.Lm = [None] * self.E, [None] * self.E
         # thin-wire correction (V15b): openEMS's thin curves behave as wires of radius a_eff (set by the grid, calibrated
@@ -134,12 +135,14 @@ class Net:
         for i in range(len(grid) - 1):
             if np.sign(vals[i]) != np.sign(vals[i + 1]) and np.isfinite(vals[i]) and np.isfinite(vals[i + 1]):
                 r = brentq(g, grid[i], grid[i + 1])
+                if abs(g(r)) > 1e-6 * max(1.0, np.sqrt(Z0 * abs(self.zc_feed(Z, e, w, 10 ** r).real))):   # audit C6: reject poles
+                    continue
                 z = self.zc_feed(Z, e, w, 10 ** r)
                 if z.imag > 0 and z.real > 0:                     # inductive branch with positive loss: physical match
                     roots.append(r)
         if not roots:
             return False
-        ref = np.log10(self.Ct[e])
+        ref = np.log10(self.Ct_first[e])                          # audit C6: nearest the FIRST-pass value, as documented
         r = min(roots, key=lambda x: abs(x - ref))               # the solution nearest the first-pass value
         self.Ct[e] = 10 ** r
         X = self.zc_feed(Z, e, w, self.Ct[e]).imag
@@ -208,6 +211,12 @@ def b1_quasistatic(wire_mm, X, Y, Zc):
 def main(name):
     out = os.path.join(ROOT, 'sim', 'out', name)
     meta = json.load(open(os.path.join(out, 'openems_meta.json')))
+    # audit C5: refuse to post-process an openEMS output that is incomplete or older than its run record
+    npz = os.path.join(out, 'openems.npz')
+    nports_meta = len(meta.get('ports') or [])
+    nruns = len([r for r in meta.get('runs', []) if isinstance(r.get('port'), int)])
+    if nruns != nports_meta or os.path.getmtime(npz) + 5 < os.path.getmtime(os.path.join(out, 'openems_meta.json')) - 60:
+        raise SystemExit('STALE or incomplete openEMS output for %s (runs %d, ports %d)' % (name, nruns, nports_meta))
     case = json.load(open(meta.get('case_file') or os.path.join(ROOT, 'sim', 'cases', name + '.json')))
     D = np.load(os.path.join(out, 'openems.npz'))
     freq, S = D['freq'], D['S']
@@ -321,7 +330,9 @@ def main(name):
         g1, g2 = np.meshgrid(lines[ax_keep[0]], lines[ax_keep[1]], indexing='ij')
         XYZ = [None] * 3
         XYZ[ax_keep[0]], XYZ[ax_keep[1]] = g1, g2
-        XYZ[pl['axis']] = np.full(g1.shape, pl['pos'])
+        # audit C1: openEMS stores the H dump on its dual grid, half a cell from the nominal plane; evaluate the
+        # quasi-static map (and the head mask) on the plane where the dump actually is
+        XYZ[pl['axis']] = np.full(g1.shape, float(np.asarray(lines[pl['axis']]).ravel()[0]))
         X, Y, Zc_ = XYZ
         if ph:
             a, b, c = ph['axes']
@@ -355,6 +366,14 @@ def main(name):
                         break
                 rec['breakdown_depth_mm'] = bd
                 rec['n_points_within_20mm'] = int(near.sum())
+                # audit C3 (information only; the registered V18 verdict is unchanged): the same comparison restricted to
+                # where the coil actually acts (full-wave map >= 10% of its maximum), plus the worst point's location
+                foot = near & (fw_n >= 0.1)
+                if foot.any():
+                    rec['info_footprint_max_rel_diff_within_20mm'] = float(rel[foot].max())
+                    iw = np.unravel_index(np.argmax(np.where(near, rel, -1)), rel.shape)
+                    rec['info_worst_point_mm'] = [float(X[iw]), float(Y[iw]), float(Zc_[iw])]
+                    rec['info_worst_point_fullwave_norm'] = float(fw_n[iw])
                 # audit M7 (information only; the registered V18 verdict above is unchanged): normalise both maps by
                 # their median over 20-40 mm depth instead of the single in-plane maximum
                 mid = inside & (depth >= 20) & (depth <= 40)

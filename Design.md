@@ -123,11 +123,11 @@ minimise   Σ_(i,j neighbours) k_ij²   +   λ_cov · (uncovered area)   +   λ_
 subject to wire-clearance constraints
 ```
 
-**Neighbours (v1.1):** the *nearest ring* — pairs whose centres are closer than 1.35 × the pair-null spacing (the spacing at which two flat elements have k = 0). In a hexagonal layout the second ring sits at about 1.73 × that spacing, so it is excluded. *(v1.0 defined neighbours as pairs whose footprints overlap or touch, d < 2 Rf. Knots null only at heavy overlap, about 1.14 Rf for a trefoil at β = 0.4, so under the v1.0 rule second-ring pairs also counted as neighbours and could not be nulled at the same time. The v1.0 rule stays selectable, and its verdict is always reported alongside.)* The max term is there so one bad pair can't hide behind a good average. **Not yet implemented — see §12, v1.1.**
+**Neighbours (v1.1):** the *nearest ring* — pairs whose centres are closer than 1.35 × the pair-null spacing (the spacing at which two flat elements have k = 0). In a hexagonal layout the second ring sits at about 1.73 × that spacing, so it is excluded. *(v1.0 defined neighbours as pairs whose footprints overlap or touch, d < 2 Rf. Knots null only at heavy overlap, about 1.14 Rf for a trefoil at β = 0.4, so under the v1.0 rule second-ring pairs also counted as neighbours and could not be nulled at the same time. The v1.0 rule stays selectable, and its verdict is always reported alongside.)* The max term is there so one bad pair can't hide behind a good average. It was implemented after v1.1 as a smooth λ_max·k⁴/thr² term (v1.1 addendum, §12).
 
 ### 5.2 Solver strategy (two stages, so it stays interactive)
 
-1. **Flat lookup stage.** For the chosen (p, q, β, wire), precompute k between two coplanar elements as a function of centre distance d and both rotations, k(d, θ₁, θ₂). Elements of the same type share the table. The initial layout is a near-uniform spread of N centres over the region (a spherical spiral). The optimiser then adjusts positions, rotations and R using the table, which takes milliseconds per evaluation.
+1. **Flat lookup stage.** For the chosen (p, q, β, wire), precompute k between two coplanar elements as a function of centre distance d and both rotations, k(d, θ₁, θ₂). Elements of the same type share the table. The initial layout is a near-uniform spread of N centres over the region (farthest-point sampling followed by 20 Lloyd relaxation steps; `core/layout.js`). The optimiser then adjusts positions, rotations and R using the table, which takes milliseconds per evaluation.
 2. **Full 3D refinement.** Starting from stage 1, recompute k with the exact Neumann integral on the curved, projected wire paths and refine locally. This runs in a background worker so the page stays responsive.
 
 ### 5.3 What "decoupled" can and cannot mean
@@ -141,7 +141,7 @@ subject to wire-clearance constraints
 
 ## 6. EM model
 
-- **Mutual inductance:** the Neumann double integral, computed numerically over polyline wire paths. The default is 400 points per element, adaptive by convergence (§7, V4).
+- **Mutual inductance:** the Neumann double integral, computed numerically over polyline wire paths. Points per element: 300 in the final report (V4 checks convergence there), 160 during the exact search stage, 128 in the lookup table, 96 in ring-mode search.
 - **Self-inductance:** Neumann with a finite-wire-radius correction, so the formula does not blow up where the wire meets itself. The method will be the standard thin-wire approach, with the reference verified before implementation.
 - **Singular points:** where wires of different elements cross, the true 3D separation (lift plus wire radius) is used, never zero. The sensitivity of k to the lift value is reported.
 
@@ -158,7 +158,7 @@ subject to wire-clearance constraints
    - phantom choice.
 2. **Full-wave solve** (`sim/run_openems.py`, openEMS 0.37.0 Python, FDTD).
    - **Model contents:**
-     - wires as `AddWire` primitives with their real radius;
+     - wires as thin PEC curves (`AddCurve`) on the grid. `AddWire` with the real radius disconnected on coarse grids; the real radius enters through the thin-wire correction (V15b);
      - a 50 Ω lumped port in every break gap, aligned to the mesh axis closest to the wire tangent;
      - a three-layer ellipsoidal head phantom (skin, skull, brain) shaped like our head model.
    - **Runs:** one per port (that port excited, all others 50 Ω), giving the multiport S-matrix over a band around f0 and frequency-domain H-field planes at f0.
@@ -180,7 +180,7 @@ subject to wire-clearance constraints
      - the coupling that remains with preamp decoupling;
      - effective mutual inductance M_eff = Im(Z_ij)/ω between element feed gaps with the tuning capacitors in place, compared with our quasi-static M.
    - **B1⁻ per element:** fields from the port runs, superposed with the network solution (reciprocity: the element's receiver port is driven, the others are preamp-terminated). Compared with our quasi-static uniform-current B1 on the same planes.
-5. **Report:** `sim/out/<case>/report.html`. The app can load the results JSON (capacitor table, S21 matrix).
+5. **Outputs:** `sim/out/<case>/cosim.json`, plus PNG plots (S-parameters, B1 maps). The validation runner (`tests/run.js`) aggregates the V15–V20 verdicts. The app can load `cosim.json` (capacitor table, S21, coupling, B1 metrics).
 
 **Phantom tissue properties:**
 - **7T (298 MHz):** values from openEMS's bundled `phantom_head_298MHz.h5`, which openEMS attributes to the IT'IS database (Gabriel model): brain εr 52.7, σ 0.95 S/m; skull 11.4, 0.29; skin 38.9, 0.84. **Secondary source; not independently verified.**
@@ -245,13 +245,15 @@ knotted_coils/
     layout.js      initial placement, neighbour detection
     optimise.js    two-stage decoupling solver
   app/index.html   browser UI (3D view via Three.js, a pinned copy stored locally so it works offline)
-  tests/           Node.js unit tests + validation checks V1–V6
+  core/field.js    exact-segment Biot–Savart B1; core/phantom.js  head phantom constants (v1.7)
+  sim/             full-wave pipeline (Python/openEMS): run_openems.py, cosim.py, v20_mariepy.py, run_queue.sh
+  tests/           validation suite V1–V20 + comparisons; export_case.js; b1_crosscheck.py
   validation/      generated validation reports
   PARAMETERS.md    parameter registry with origin tags
   Design.md / .html / .pdf
 ```
 
-- The app opens straight from OneDrive by double-clicking `index.html`, with no server and no install. The optimiser runs in a background worker created from inline code.
+- The app is designed to open from OneDrive by double-clicking `index.html`. That is **untested**; serving it with `node tools/serve.js` is tested. Heavy maths runs in background workers created from inline code.
 - Every source file carries an AI-authorship header, as required by the research-integrity framework.
 
 ## 11. Open decisions (to settle before freezing)
@@ -268,6 +270,14 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20 (night), v1.7 audit corrections (documentation only; no design change).** Fixed after the independent audit (`docs/AUDIT_REPORT_*.md`):
+  - §5.1: the λ_max term *is* implemented.
+  - §5.2: initial layout method described correctly.
+  - §6: point counts.
+  - §6b: thin curves plus thin-wire correction (not `AddWire`); outputs are `cosim.json` and PNGs.
+  - §10: architecture.
+  - The double-click launch is untested.
+  - The §7 promise that every EM output is labelled "UNVALIDATED" when a check fails is now **implemented** in the app.
 - **2026-10-20 (evening), v1.7 (Reza: "implement the full capacitance modelling, including choosing the capacitors and also evaluating the effect of the capacitor in the decoupling and the B1 field"; earlier: head-loaded values, Python not MATLAB).**
   - **New:** §6b pipeline: openEMS full-wave model with ports at the capacitor breaks; Python circuit co-simulation that chooses C_t, C_m and L_m with preamp decoupling; evaluation of capacitor effects on coupling and B1.
   - **Checks V15–V20** pre-registered before their code.
