@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.6 (v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.7 (v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -145,6 +145,50 @@ subject to wire-clearance constraints
 - **Self-inductance:** Neumann with a finite-wire-radius correction, so the formula does not blow up where the wire meets itself. The method will be the standard thin-wire approach, with the reference verified before implementation.
 - **Singular points:** where wires of different elements cross, the true 3D separation (lift plus wire radius) is used, never zero. The sensitivity of k to the lift value is reported.
 
+## 6b. Full-wave capacitor co-simulation (v1.7)
+
+**Purpose (Reza):** choose capacitor values for a **head-loaded** coil, and measure how the capacitors change **decoupling** and **B1**. Python only, no MATLAB.
+
+**Pipeline**
+1. **Case export** (`tests/export_case.js`, or the app's "Export simulation case"). A JSON file with:
+   - wire polylines in world mm;
+   - wire radius;
+   - capacitor breaks from `KC.knot.breaks` (position, tangent; the first break per element is the **feed**);
+   - B0 and Larmor frequency;
+   - phantom choice.
+2. **Full-wave solve** (`sim/run_openems.py`, openEMS 0.37.0 Python, FDTD).
+   - **Model contents:**
+     - wires as `AddWire` primitives with their real radius;
+     - a 50 Ω lumped port in every break gap, aligned to the mesh axis closest to the wire tangent;
+     - a three-layer ellipsoidal head phantom (skin, skull, brain) shaped like our head model.
+   - **Runs:** one per port (that port excited, all others 50 Ω), giving the multiport S-matrix over a band around f0 and frequency-domain H-field planes at f0.
+3. **Circuit co-simulation** (`sim/cosim.py`, numpy/scipy). The capacitors are applied to the solved port matrix; no re-simulation is needed.
+   - **Tuning:** every non-feed break gets the same tuning capacitor C_t (per element).
+   - **Feed network:** a shunt C_m across the feed gap, then a series inductor L_m to the receiver.
+   - **Matching and preamp decoupling, solved together:** the feed-gap impedance Z_c = R + jX of the loop (all other gaps terminated) must satisfy **X = √(50·R)**. That fixes C_t by a 1-D root search, then **C_m = 1/(ωX)** and **L_m = X/ω**. With this choice the network matches 50 Ω, and **L_m resonates with C_m**, so a low-impedance preamp presents a high impedance in the loop (preamp decoupling). Derivation in `sim/cosim.py` (DERIVED, Claude).
+   - **Arrays:** elements are tuned in turn, the others terminated by their preamp-decoupling networks; repeat 3 passes.
+   - **Losses:**
+     - copper skin-effect wire resistance, σ_Cu = 5.8e7 S/m (CONV, standard handbook value; not cited);
+     - capacitor ESR from Q_C = 1000 (JUDG PLACEHOLDER);
+     - inductor Q_L = 100 (JUDG PLACEHOLDER);
+     - preamp input impedance 2 Ω (JUDG PLACEHOLDER).
+4. **Evaluation (the "effect of the capacitors")**
+   - **Capacitor values** (C_t, C_m, L_m), loaded and unloaded, per element and per field strength.
+   - **S11** of each tuned element.
+   - **Coupling:**
+     - S21 between receiver ports with 50 Ω terminations (what a bench would measure);
+     - the coupling that remains with preamp decoupling;
+     - effective mutual inductance M_eff = Im(Z_ij)/ω between element feed gaps with the tuning capacitors in place, compared with our quasi-static M.
+   - **B1⁻ per element:** fields from the port runs, superposed with the network solution (reciprocity: the element's receiver port is driven, the others are preamp-terminated). Compared with our quasi-static uniform-current B1 on the same planes.
+5. **Report:** `sim/out/<case>/report.html`. The app can load the results JSON (capacitor table, S21 matrix).
+
+**Phantom tissue properties:**
+- **7T (298 MHz):** values from openEMS's bundled `phantom_head_298MHz.h5`, which openEMS attributes to the IT'IS database (Gabriel model): brain εr 52.7, σ 0.95 S/m; skull 11.4, 0.29; skin 38.9, 0.84. **Secondary source; not independently verified.**
+- **3T (128 MHz):** an **approximation**. openEMS's 128 MHz *body* phantom values are mapped onto the head layers ("Tissue" → brain 62.8 / 0.66, bone → skull 12.5 / 0.13, skin 46.8 / 0.58). Verified 128 MHz head tissue values are an open item.
+- **Layers:** skin 4 mm, skull 7 mm (JUDG PLACEHOLDER), inside the head ellipsoid (helmet − 10 mm).
+
+**Scope tonight:** a circular loop (validation), a single trefoil element (air and head, 3T and 7T), and a trefoil pair in the head at 3T across 3 spacings. Full arrays are expensive in FDTD (one run per port) and are left for later, via mariepy if it proves usable, or long openEMS runs.
+
 ## 7. Validation plan (pre-registered)
 
 Each check runs automatically in the test suite and appears in a validation report. **Pass criteria are fixed now.**
@@ -163,6 +207,12 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V12 *(v1.6, pre-registered)* | Face exclusion zones respected | Internal | Arrays from every V9 and C2 configuration: zero final-report wire points inside any exclusion zone (zone boundary itself, margin excluded) |
 | V13 *(v1.6, pre-registered)* | Reproducibility | Internal | The same configuration and seed solved twice (free fast; ring) gives identical centres, rotations and k matrix (difference = 0) |
 | V14 *(v1.6, pre-registered)* | B1 implementation, Tier 1 | Independent library: Magpylib 6.x `current.Polyline` (Ortner & Coliado Bandeira 2020, SoftwareX 11:100466; licence and API verified 2026-10-20) | Three cases, the identical thinned wire paths the app uses, about 1,000 points each:<br>(a) one flat trefoil;<br>(b) one T(2,5) element at β = 1.5, m = 4;<br>(c) a solved 16-element array.<br>\|B_ours − B_magpylib\| / \|B_magpylib\| < 0.5% at every point ≥ 10 mm from any wire (the head gap). Points 5–10 mm away are reported for information only |
+| V15 *(v1.7, pre-registered)* | Full-wave model sanity: resonance | Prediction from our validated L (V2) and first-pass C | Circular loop R = 40 mm, wire radius 0.5 mm, 4 breaks, in air. Capacitors from `KC.knot.capacitor(L_ours, 4, 3 T)` applied to the openEMS port matrix give a resonance within ±5% of 127.73 MHz |
+| V16 *(v1.7, pre-registered)* | Extracted S-matrix is physical | Internal | Every openEMS case, every frequency in the band: largest singular value of S ≤ 1.001 (passive), and \|S_ij − S_ji\| ≤ 0.02 (reciprocal) |
+| V17 *(v1.7, pre-registered)* | Co-simulation achieves tuning and matching | Internal | Every tuned element in every case: \|S11(f0)\| ≤ −20 dB; all chosen C_t, C_m, L_m are positive and finite |
+| V18 *(v1.7, pre-registered)* | B1 Tier 2: is the quasi-static map valid near the surface? | openEMS full-wave with capacitors and phantom (exploratory; one solver) | Single trefoil, head-loaded, per field strength: normalised \|B1⁻\| (each map scaled to its own maximum in the plane) agrees with the quasi-static map within 20% at every phantom point within 20 mm of the head surface, on the axial and coronal planes. **Classification:** PASS = the quasi-static map is valid near the surface for that case. The depth at which disagreement first exceeds 20% is reported either way |
+| V19 *(v1.7, pre-registered)* | Does the quasi-static null survive capacitors and load? | openEMS + co-simulation | Trefoil pair, head-loaded at 3T, centre spacings {d₀ − 4, d₀, d₀ + 4} mm, where d₀ is the quasi-static null (Pair explorer, rotations 0/0). PASS if \|S21(f0)\| with 50 Ω terminations ≤ −15 dB at d₀, **and** the smallest \|S21\| of the three is at d₀ (null bracketed) |
+| V20 *(v1.7, pre-registered)* | Second solver | mariepy (MARIE port; immature) | Single trefoil, head-loaded: capacitor values within 10% of openEMS's. NOT EVALUABLE if mariepy cannot be installed or run on this machine |
 | V8 *(added v1.5, pre-registered before running)* | B1 (Biot–Savart) field of a circular loop on its axis | Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in `core/field.js`) | Relative error < 0.5% at z = 0, 10, 20, 40, 80 mm for R = 50 mm, 400 points |
 | V7 *(added v1.3, pre-registered before running)* | Topology preserved under petal sharpness | Internal | Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i |
 
@@ -216,6 +266,15 @@ knotted_coils/
 | D7 | Mixed knots in one array | No for v1 (all elements the same knot); yes for v2 |
 
 ## 12. Changelog
+
+- **2026-10-20 (evening), v1.7 (Reza: "implement the full capacitance modelling, including choosing the capacitors and also evaluating the effect of the capacitor in the decoupling and the B1 field"; earlier: head-loaded values, Python not MATLAB).**
+  - **New:** §6b pipeline: openEMS full-wave model with ports at the capacitor breaks; Python circuit co-simulation that chooses C_t, C_m and L_m with preamp decoupling; evaluation of capacitor effects on coupling and B1.
+  - **Checks V15–V20** pre-registered before their code.
+  - **Defaults taken because Reza was unavailable** (logged in DECISIONS.md):
+    - both 3T and 7T;
+    - matching = shunt-C, series-L with preamp decoupling;
+    - installing openEMS 0.37.0 (Windows package and its Python 3.14 wheels) and mariepy, outside OneDrive.
+  - **Results from earlier versions** (v1.6 official: C2 → free stays default; V7–V14 PASS) are in DESIGN_HISTORY.md.
 
 - **2026-10-20, v1.6 (Reza: "Okay, let's do the major update!" — approving `docs/PROPOSAL_v2.md` with its proposed defaults).**
   - **Field strength:** Reza did not choose one, so capacitor values are selectable (1.5 / 3 / 7 T), default 3T.
