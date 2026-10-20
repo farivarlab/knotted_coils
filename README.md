@@ -38,7 +38,7 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | `validation/` | Generated validation reports |
 | `vendor/` | Three.js 0.149.0 (MIT licence, `vendor/three-LICENSE.txt`) |
 
-## Validation status (latest completed: run 5, 2026-10-20, Design v1.4–1.5)
+## Validation status (run 6, 2026-10-20, Design v1.5)
 
 | Check | Verdict |
 |---|---|
@@ -48,8 +48,8 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | V4 Convergence | PASS |
 | V5 Symmetry | PASS |
 | V6 Topology across bloom (β 0.02–3.0) | **FAIL** only below the wire-dependent bloom floor (β = 0.02, 0.05). It is a physical limit, shown in the app |
-| V7 Topology across petal sharpness | **FAIL** at 1 of 360 points. It was a point-count artefact: correct from 51,200 points. Ceiling raised; re-run 6 in progress |
-| V8 B1 on-axis loop field | Pre-registered. Preview: 0.005% error. Official verdict in run 6 |
+| V7 Topology across petal sharpness | PASS (all 360 points). Earlier failures are kept on record: run 4 failed under the v1.3 definition, and run 5 failed at 1 of 360 points from a point-count artefact |
+| V8 B1 on-axis loop field | PASS (worst error 0.005%) |
 
 Every failing run is kept in the git history; see DECISIONS.md.
 

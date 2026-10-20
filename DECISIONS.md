@@ -4,6 +4,15 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 — Validation run 6 (Design v1.5, point ceiling 102,400)
+- **Passed:**
+  - V1, V2, V4, V5;
+  - **V7, all 360 points** (v1.4 warp sharpness);
+  - **V8**, worst error 0.0051%.
+- **V3:** NOT EVALUABLE (reference unverified).
+- **V6:** FAIL only below the physical bloom floor (β = 0.02, 0.05). This is a known limit, shown in the app.
+- **Earlier V7 failures stay on record:** run 4 (v1.3) and run 5 (resolution).
+
 ### 2026-10-20 — Design v1.5: quick B1 view
 - **Request (Reza):** "I just want a quick visualization that's reasonable. We will do simulations later."
 - **What was built:**

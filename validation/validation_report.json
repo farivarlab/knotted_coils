@@ -1,6 +1,6 @@
 {
- "generated": "2026-10-20T19:51:56.686Z",
- "git": "ff1a40e",
+ "generated": "2026-10-20T20:10:36.599Z",
+ "git": "c405dbe",
  "wire": {
   "d": 1,
   "tIns": 0.25,
@@ -354,8 +354,8 @@
    "id": "V7",
    "title": "Topology and clearance across petal sharpness m = 1–16 x bloom 0.1–3.0 (catalogue knots, core R = 30 mm, placeholder wire)",
    "criterion": "crossing count = q(p-1); pattern equal to m=1, beta=0.4; lift solvable with clearance >= d_w + 2 t_i",
-   "verdict": "FAIL",
-   "summary": "cinquefoil T(2,5) fails at m=16/b=1.5",
+   "verdict": "PASS",
+   "summary": "all knots pass at all 45 (m, beta) points",
    "rows": [
     {
      "knot": "unknot (2-turn) T(2,1)",
@@ -367,7 +367,7 @@
      "knot": "trefoil T(3,2)",
      "pass": true,
      "fails": [],
-     "minBendRadius_info": 30.003204166404654
+     "minBendRadius_info": 30.00320420514439
     },
     {
      "knot": "trefoil T(2,3)",
@@ -383,24 +383,15 @@
     },
     {
      "knot": "cinquefoil T(2,5)",
-     "pass": false,
-     "fails": [
-      {
-       "m": 16,
-       "beta": 1.5,
-       "crossings": 6,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000154480102
-      }
-     ],
+     "pass": true,
+     "fails": [],
      "minBendRadius_info": 3.611754690870217
     },
     {
      "knot": "T(5,6) T(5,6)",
      "pass": true,
      "fails": [],
-     "minBendRadius_info": 20.009279539585176
+     "minBendRadius_info": 20.009106697467402
     },
     {
      "knot": "T(2,7) = 7_1 T(2,7)",
@@ -416,6 +407,46 @@
     }
    ],
    "note": "Tightest bend radius per knot is shown for information only (not part of the criterion)."
+  },
+  {
+   "id": "V8",
+   "title": "B1 (Biot–Savart) on the axis of a circular loop, R = 50 mm, 400 points, vs closed form",
+   "criterion": "relative error < 0.5% at z = 0, 10, 20, 40, 80 mm",
+   "verdict": "PASS",
+   "summary": "worst 0.0051%",
+   "rows": [
+    {
+     "z_mm": 0,
+     "numeric_uT_per_A": 12.567016602763701,
+     "closedForm_uT_per_A": 12.566370614359172,
+     "relErr": 0.00005140612388037506
+    },
+    {
+     "z_mm": 10,
+     "numeric_uT_per_A": 11.848970938155405,
+     "closedForm_uT_per_A": 11.848404026933501,
+     "relErr": 0.000047847053545400025
+    },
+    {
+     "z_mm": 20,
+     "numeric_uT_per_A": 10.058649199017946,
+     "closedForm_uT_per_A": 10.058260521084454,
+     "relErr": 0.00003864265920303634
+    },
+    {
+     "z_mm": 40,
+     "numeric_uT_per_A": 5.983437165365943,
+     "closedForm_uT_per_A": 5.983345646740566,
+     "relErr": 0.00001529556050744994
+    },
+    {
+     "z_mm": 80,
+     "numeric_uT_per_A": 1.8708040216387938,
+     "closedForm_uT_per_A": 1.870832332948728,
+     "relErr": -0.00001513300226619956
+    }
+   ],
+   "reference": "Closed form DERIVED from Biot–Savart (core/field.js header); not a literature value"
   },
   {
    "id": "PH2",
