@@ -1,0 +1,611 @@
+<!doctype html>
+<!-- Provenance: written with Claude Code (Anthropic AI coding assistant) under the direction of
+     Reza Farivar (McGill University), who is accountable for it. See README 'Provenance and AI-use statement'. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knotted Coil Designer</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #1a2238; --muted: #5b647a; --line: #d9dee8; --accent: #0e7c8b;
+  --accent-ink: #ffffff; --ok: #0a7a3b; --warn: #a15c00; --bad: #b3261e; --wire: #c0335a; --halo: #ffffff;
+  --chip: #eef2f7; --field: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --panel: #1b2029; --ink: #e6e9ef; --muted: #9aa3b5; --line: #2e3542; --accent: #3bb8c7;
+    --accent-ink: #0d1117; --ok: #4cc27f; --warn: #e3a447; --bad: #ef6b62; --wire: #ff7aa0; --halo: #1b2029;
+    --chip: #252b36; --field: #12151c;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --panel: #1b2029; --ink: #e6e9ef; --muted: #9aa3b5; --line: #2e3542; --accent: #3bb8c7;
+  --accent-ink: #0d1117; --ok: #4cc27f; --warn: #e3a447; --bad: #ef6b62; --wire: #ff7aa0; --halo: #1b2029;
+  --chip: #252b36; --field: #12151c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { font-size: 17px; margin: 0; }
+.banner { font-size: 12.5px; padding: 4px 10px; border-radius: 6px; background: var(--chip); }
+.banner.warn { color: var(--warn); } .banner.ok { color: var(--ok); }
+.banner a { color: inherit; }
+.layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 52px); }
+aside { border-right: 1px solid var(--line); background: var(--panel); padding: 8px 14px 24px; overflow-y: auto; max-height: calc(100vh - 52px); }
+aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; }
+label.row { display: grid; grid-template-columns: 1fr 128px; align-items: center; gap: 6px; margin: 5px 0; font-size: 13px; }
+label.row span.hint { display: block; font-size: 11px; color: var(--muted); }
+input[type=number], select { width: 100%; padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--field); color: var(--ink); font: inherit; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider { margin: 6px 0; font-size: 13px; }
+.slider .top { display: flex; justify-content: space-between; }
+.slider small { color: var(--muted); }
+button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+main { padding: 12px 16px 24px; min-width: 0; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.tabs button { border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 8px 14px; color: var(--muted); }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.panel { display: none; } .panel.on { display: block; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr); gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; }
+.card h3 { margin: 0 0 8px; font-size: 14px; }
+canvas.view { width: 100%; display: block; border-radius: 6px; background: var(--panel); }
+table.kv { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.kv td { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.kv td:first-child { color: var(--muted); }
+table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.flag { font-weight: 600; } .flag.ok { color: var(--ok); } .flag.warn { color: var(--warn); } .flag.bad { color: var(--bad); }
+.note { font-size: 12px; color: var(--muted); margin: 6px 0; }
+.exploratory { font-size: 12px; padding: 6px 10px; border-left: 3px solid var(--warn); background: var(--chip); margin: 0 0 10px; }
+.progress { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; margin: 6px 0; }
+.progress div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+#status { font-size: 12px; color: var(--muted); min-height: 1.3em; }
+#three { width: 100%; height: 520px; border-radius: 6px; overflow: hidden; touch-action: none; cursor: grab; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+#heat { image-rendering: pixelated; max-width: 360px; }
+#tip { position: fixed; pointer-events: none; background: var(--panel); border: 1px solid var(--line); padding: 3px 7px; border-radius: 4px; font-size: 12px; display: none; z-index: 10; }
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  aside { max-height: none; border-right: none; border-bottom: 1px solid var(--line); }
+  .grid2 { grid-template-columns: 1fr; }
+  #three { height: 380px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Knotted Coil Designer</h1>
+  <span id="valBanner" class="banner">Validation status: not loaded</span>
+  <span class="banner">All EM outputs: quasi-static geometric estimates, exploratory</span>
+</header>
+<div class="layout">
+<aside>
+  <h2>Element (knot)</h2>
+  <label class="row">Lobes q <select id="q"></select></label>
+  <label class="row">Windings p <select id="p"></select></label>
+  <div class="note" id="knotName"></div>
+  <div class="slider"><div class="top"><span>Bloom β</span><b id="betaV"></b></div>
+    <input type="range" id="beta" min="0.005" max="0.95" step="0.005" value="0.4">
+    <small id="betaFloor"></small></div>
+  <label class="row">Bloom mode <select id="bloomMode"><option value="core">constant core R</option><option value="extent">constant footprint</option></select></label>
+  <label class="row"><span id="sizeLabel">Core radius R (mm)</span><input type="number" id="size" value="30" min="2" step="1"></label>
+  <div class="slider"><div class="top"><span>In-plane rotation θ</span><b id="thetaV"></b></div>
+    <input type="range" id="theta" min="0" max="360" step="1" value="0"></div>
+
+  <h2>Wire <small style="text-transform:none">(placeholder until spec)</small></h2>
+  <label class="row">Diameter (mm)<input type="number" id="wd" value="1" step="0.05" min="0.05"></label>
+  <label class="row">Insulation (mm)<input type="number" id="wt" value="0.25" step="0.05" min="0"></label>
+  <label class="row">Min bend radius (mm)<input type="number" id="wb" value="2" step="0.5" min="0"></label>
+
+  <h2>Helmet <small style="text-transform:none">(placeholder dimensions)</small></h2>
+  <label class="row">Semi-axis a, left-right (mm)<input type="number" id="ha" value="85"></label>
+  <label class="row">Semi-axis b, back-front (mm)<input type="number" id="hb" value="105"></label>
+  <label class="row">Semi-axis c, height (mm)<input type="number" id="hc" value="110"></label>
+  <label class="row">Lowest covered height (mm)<input type="number" id="hz" value="0"></label>
+  <label class="row">Face opening <select id="hf"><option value="1">yes</option><option value="0">no</option></select></label>
+  <label class="row">Face half-angle (°)<input type="number" id="hfa" value="40"></label>
+  <label class="row">Face opening top (mm)<input type="number" id="hft" value="60"></label>
+
+  <h2>Array solver</h2>
+  <label class="row">Number of elements N<input type="number" id="N" value="16" min="2" max="256"></label>
+  <label class="row"><span>Pairs to decouple<span class="hint">footprint = Design.md definition</span></span>
+    <select id="target"><option value="footprint">footprints overlap</option><option value="ring1">nearest ring</option></select></label>
+  <label class="row"><span>Rotation<span class="hint">in-plane, per element</span></span>
+    <select id="rotation"><option value="free">free per element</option><option value="locked">one shared angle</option><option value="fixed">fixed at θ</option></select></label>
+  <label class="row">Threshold |k|<input type="number" id="thr" value="0.01" step="0.001" min="0"></label>
+  <label class="row">Random seed<input type="number" id="seed" value="1" step="1"></label>
+  <div class="btns">
+    <button class="primary" id="runFast">Fast solve</button>
+    <button id="runFull">Full solve (exact)</button>
+    <button id="cancel" disabled>Cancel</button>
+  </div>
+  <div class="progress"><div id="bar"></div></div>
+  <div id="status"></div>
+
+  <h2>Export</h2>
+  <div class="btns">
+    <button id="exJSON">Design JSON</button><button id="exCSV">Wire paths CSV</button>
+    <button id="exK">k matrix CSV</button><button id="exOBJ">Wires OBJ</button><button id="exSTL">Wires STL</button>
+    <button id="exSVG">Element SVG</button>
+  </div>
+  <p class="note">Units: mm, nH. Coordinates: x left–right, y back–front, z up.</p>
+</aside>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button class="on" data-tab="el">Element</button>
+    <button data-tab="pair">Pair explorer</button>
+    <button data-tab="arr">Array on helmet</button>
+  </div>
+
+  <section class="panel on" id="tab-el">
+    <div class="grid2">
+      <div class="card"><h3>Flat element (top view)</h3><canvas id="elCanvas" class="view" height="520"></canvas>
+        <div class="legend"><span>Gaps show where the wire passes under. Dashed: footprint radius. Dotted: core radius.</span></div></div>
+      <div class="card"><h3>Geometry and fabrication checks</h3><table class="kv" id="elTable"></table>
+        <p class="note">Lift h = how far the wire rises at crossings, solved so the wire never comes closer to itself than diameter + 2 × insulation.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-pair">
+    <div class="exploratory">Two flat elements side by side. Coupling k = M / √(L₁L₂) as their centres move apart. Zeros = geometric decoupling spacings.</div>
+    <div class="grid2">
+      <div class="card"><h3>k vs centre distance</h3><canvas id="pairCanvas" class="view" height="380"></canvas>
+        <canvas id="pairDraw" class="view" height="240" style="margin-top:10px"></canvas></div>
+      <div class="card"><h3>Set-up</h3>
+        <div class="slider"><div class="top"><span>Rotation, element 1</span><b id="a1V"></b></div><input type="range" id="a1" min="0" max="360" step="1" value="0"></div>
+        <div class="slider"><div class="top"><span>Rotation, element 2</span><b id="a2V"></b></div><input type="range" id="a2" min="0" max="360" step="1" value="0"></div>
+        <p class="note">Rotations are measured from the line joining the two centres. The pattern repeats every 360°/q.</p>
+        <div class="btns"><button class="primary" id="pairRun">Compute</button></div>
+        <table class="kv" id="pairTable"></table>
+        <p class="note">Slope = how fast k changes per mm of spacing at the zero. Shallow zeros tolerate placement error.</p></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-arr">
+    <div class="exploratory" id="arrLabel">Geometric decoupling estimate (quasi-static filament model), EXPLORATORY. Confirm with full-wave simulation or bench S21 before building.</div>
+    <div class="grid2">
+      <div class="card"><h3>Array (drag to rotate, wheel to zoom, click a wire to select)</h3><div id="three"></div>
+        <div class="legend"><span><i style="background:#2e9e5b"></i>all target pairs |k| &lt; threshold</span><span><i style="background:#e0a030"></i>worst &lt; 3× threshold</span><span><i style="background:#d9473f"></i>worse</span><span><i style="background:#3b82f6"></i>selected</span></div></div>
+      <div class="card"><h3>Result</h3><table class="kv" id="arrTable"><tr><td>No solution yet</td><td>Press Fast solve</td></tr></table>
+        <h3 style="margin-top:14px">Coupling matrix k<sub>ij</sub></h3>
+        <canvas id="heat" width="360" height="360"></canvas>
+        <div class="legend"><span><i style="background:#3b6fd9"></i>negative</span><span><i style="background:#d9473f"></i>positive</span><span>saturates at |k| = 0.05</span></div>
+        <h3 style="margin-top:14px" id="selTitle">Worst target pairs</h3><table class="kv" id="pairList"></table></div>
+    </div>
+  </section>
+</main>
+</div>
+<div id="tip"></div>
+
+<script src="../vendor/three-0.149.0.min.js"></script>
+<script src="../core/knot.js"></script>
+<script src="../core/inductance.js"></script>
+<script src="../core/surface.js"></script>
+<script src="../core/layout.js"></script>
+<script src="../core/optimise.js"></script>
+<script src="../validation/validation_status.js" onerror="window.KC_VALIDATION=null"></script>
+<script>
+'use strict';
+var APP_VERSION = '0.1.0';
+var K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
+function $(id) { return document.getElementById(id); }
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function fmt(x, d) { return (x == null || !isFinite(x)) ? '—' : Number(x).toFixed(d == null ? 2 : d); }
+
+// ---------- validation banner ----------
+(function () {
+  var V = window.KC_VALIDATION, b = $('valBanner');
+  if (!V) { b.textContent = 'Validation not run (node tests/run.js)'; b.className = 'banner warn'; return; }
+  var bad = V.results.filter(function (r) { return /^V/.test(r.id) && r.verdict !== 'PASS'; });
+  b.className = 'banner ' + (bad.length ? 'warn' : 'ok');
+  b.innerHTML = (bad.length ? 'Validation: ' + bad.map(function (r) { return r.id + ' ' + r.verdict; }).join(', ') : 'Validation: all pre-registered checks pass') +
+    ' · <a href="../validation/validation_report.html" target="_blank">report</a>';
+  b.title = V.results.map(function (r) { return r.id + ': ' + r.verdict + ' — ' + r.summary; }).join('\n');
+})();
+
+// ---------- controls ----------
+for (var qq = 1; qq <= 8; qq++) $('q').add(new Option(qq + (qq === 1 ? ' lobe' : ' lobes'), qq));
+$('q').value = 3;
+function fillP() {
+  var q = +$('q').value, cur = +$('p').value, sel = $('p'); sel.innerHTML = '';
+  for (var p = 1; p <= 8; p++) if (K.gcd(p, q) === 1) sel.add(new Option(p + (p === 1 ? ' (control, no knot)' : ''), p));
+  var def = 2; while (K.gcd(def, q) !== 1) def++;
+  sel.value = (cur && K.gcd(cur, q) === 1 && cur > 1) ? cur : def;
+}
+fillP();
+function wire() { return { d: +$('wd').value, tIns: +$('wt').value, minBend: +$('wb').value }; }
+function helmet() { return { a: +$('ha').value, b: +$('hb').value, c: +$('hc').value, zCut: +$('hz').value, face: $('hf').value === '1', faceHalfAngle: +$('hfa').value, faceTop: +$('hft').value }; }
+function elemPrm() { return { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, size: +$('size').value, bloomMode: $('bloomMode').value, theta: +$('theta').value * Math.PI / 180 }; }
+
+// ---------- tabs ----------
+document.querySelectorAll('.tabs button').forEach(function (b) {
+  b.onclick = function () {
+    document.querySelectorAll('.tabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.id === 'tab-' + b.dataset.tab); });
+    if (b.dataset.tab === 'arr') { view3d.resize(); }
+    if (b.dataset.tab === 'pair') drawPair();
+  };
+});
+
+// ---------- element view ----------
+var elRep = null;
+function sizeCanvas(cv) {
+  var r = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute('height');
+  cv.width = Math.round(w * r); cv.height = Math.round(h * r); cv.style.height = h + 'px';
+  var g = cv.getContext('2d'); g.setTransform(r, 0, 0, r, 0, 0); return { g: g, w: w, h: h };
+}
+// Knot diagram: draw the whole wire, then at each crossing redraw a short stretch of the OVER strand
+// with a background-coloured halo, so the under strand shows a gap.
+function drawKnot(g, P, cx, cy, sc, colour, width) {
+  var n = P.length;
+  function path(i0, i1) {
+    g.beginPath();
+    for (var i = i0; i <= i1; i++) { var p = P[((i % n) + n) % n]; if (i === i0) g.moveTo(cx + p[0] * sc, cy - p[1] * sc); else g.lineTo(cx + p[0] * sc, cy - p[1] * sc); }
+  }
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  path(0, n); g.strokeStyle = colour; g.lineWidth = width; g.stroke();
+  var segPx = K.wireLength(P) / n * sc, m = Math.ceil((4 * width + 8) / Math.max(segPx, 1e-6)) + 1;
+  K.crossings(P).list.forEach(function (c) {
+    var k = c.overIsI ? c.i : c.j;
+    path(k - m, k + m + 1); g.strokeStyle = css('--halo'); g.lineWidth = width + 6; g.stroke();
+    path(k - m - 1, k + m + 2); g.strokeStyle = colour; g.lineWidth = width; g.stroke();
+  });
+}
+function updateElement() {
+  var prm = elemPrm(), w = wire(), clear = w.d + 2 * w.tIns;
+  $('betaV').textContent = prm.beta.toFixed(3);
+  $('thetaV').textContent = Math.round(prm.theta * 180 / Math.PI) + '°';
+  $('sizeLabel').textContent = prm.bloomMode === 'extent' ? 'Footprint radius (mm)' : 'Core radius R (mm)';
+  $('knotName').textContent = K.name(prm.p, prm.q) + ' — ' + K.expectedCrossings(prm.p, prm.q) + ' crossings';
+  var floor = K.betaMinPhysical(prm.p, K.coreRadius(prm), clear);
+  $('betaFloor').innerHTML = prm.p < 2 ? 'No crossings: no bloom floor.' :
+    'Buildable bloom floor for this wire ≈ ' + floor.toFixed(3) + (prm.beta < floor ? ' — <b style="color:var(--bad)">below floor: strands would touch</b>' : '');
+  var n = Math.min(K.adaptiveN(prm), 1600);
+  elRep = K.report(prm, w, n);
+  var cv = sizeCanvas($('elCanvas')), g = cv.g, Rf = elRep.footprintRadius, sc = Math.min(cv.w, cv.h) * 0.45 / Rf;
+  g.clearRect(0, 0, cv.w, cv.h);
+  g.setLineDash([6, 5]); g.strokeStyle = css('--line'); g.lineWidth = 1.2;
+  g.beginPath(); g.arc(cv.w / 2, cv.h / 2, Rf * sc, 0, 2 * Math.PI); g.stroke();
+  g.setLineDash([2, 4]); g.beginPath(); g.arc(cv.w / 2, cv.h / 2, elRep.coreRadius * sc, 0, 2 * Math.PI); g.stroke(); g.setLineDash([]);
+  drawKnot(g, elRep.points, cv.w / 2, cv.h / 2, sc, css('--wire'), 3);
+  g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
+  g.fillText('scale: ' + (10 * sc).toFixed(0) + ' px = 10 mm', 10, cv.h - 10);
+  function f(ok, txt) { return '<span class="flag ' + (ok ? 'ok' : 'bad') + '">' + txt + '</span>'; }
+  var rows = [
+    ['Knot', elRep.name + ' T(' + prm.p + ',' + prm.q + ')'],
+    ['Crossings (expected)', f(elRep.crossings === elRep.expectedCrossings, elRep.crossings + ' (' + elRep.expectedCrossings + ')')],
+    ['Over/under pattern', '<code>' + (elRep.pattern || '—') + '</code>'],
+    ['Core radius R', fmt(elRep.coreRadius, 1) + ' mm'], ['Footprint radius', fmt(elRep.footprintRadius, 1) + ' mm'],
+    ['Wire length', fmt(elRep.wireLength, 0) + ' mm'],
+    ['Crossing lift h', fmt(elRep.h, 2) + ' mm'],
+    ['Min self-clearance (need)', f(elRep.liftFeasible && elRep.minClearance >= clear - 1e-6, fmt(elRep.minClearance, 2) + ' (' + fmt(clear, 2) + ') mm')],
+    ['Tightest bend (limit)', f(elRep.bendOK, fmt(elRep.minBendRadius, 2) + ' (' + fmt(w.minBend, 1) + ') mm')],
+    ['Bloom floor for wire', prm.p < 2 ? '—' : fmt(elRep.betaMinPhysical, 3)],
+    ['Points used', n]
+  ];
+  try {
+    var L = I.selfL(elRep.points, w.d / 2);
+    rows.push(['Self-inductance L (approx.)', fmt(L, 0) + ' nH']);
+  } catch (e) {}
+  $('elTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
+}
+var elTimer = null;
+function scheduleElement() { clearTimeout(elTimer); elTimer = setTimeout(updateElement, 60); }
+['q', 'p', 'beta', 'bloomMode', 'size', 'theta', 'wd', 'wt', 'wb'].forEach(function (id) {
+  $(id).addEventListener('input', function () { if (id === 'q') fillP(); scheduleElement(); pairStale(); });
+});
+
+// ---------- worker (all heavy maths off the page thread) ----------
+function workerMain() {
+  self.onmessage = function (e) {
+    var m = e.data;
+    try {
+      if (m.cmd === 'run') {
+        var last = 0;
+        var r = KC.opt.run(m.cfg, function (p) { var t = Date.now(); if (t - last > 120) { last = t; postMessage({ type: 'progress', p: p }); } }, m.which);
+        postMessage({ type: 'result', r: r });
+      } else if (m.cmd === 'pair') {
+        postMessage({ type: 'pair', r: KC.opt.pairScan(m.kp, m.Rf, m.wire, m.a1, m.a2) });
+      }
+    } catch (err) { postMessage({ type: 'error', msg: String(err && err.stack || err) }); }
+  };
+}
+var workerURL = URL.createObjectURL(new Blob(['var KC = {};\n' + KC_FACTORIES.map(function (f) { return '(' + f.toString() + ')(KC);'; }).join('\n') +
+  '\n(' + workerMain.toString() + ')();'], { type: 'text/javascript' }));
+var worker = null;
+function newWorker(onMsg) { if (worker) worker.terminate(); worker = new Worker(workerURL); worker.onmessage = onMsg; return worker; }
+
+// ---------- pair explorer ----------
+var pairRes = null, pairBusy = false;
+function pairStale() { pairRes = null; $('pairTable').innerHTML = '<tr><td>Settings changed</td><td>press Compute</td></tr>'; drawPair(); }
+['a1', 'a2'].forEach(function (id) { $(id).addEventListener('input', function () { $(id + 'V').textContent = $(id).value + '°'; pairStale(); }); });
+$('a1V').textContent = '0°'; $('a2V').textContent = '0°';
+$('pairRun').onclick = function () {
+  if (pairBusy || arrBusy) return;
+  var prm = elemPrm(), Rf = K.footprintRadius(prm);
+  pairBusy = true; $('pairRun').disabled = true; $('pairTable').innerHTML = '<tr><td>Computing…</td><td></td></tr>';
+  newWorker(function (e) {
+    pairBusy = false; $('pairRun').disabled = false;
+    if (e.data.type === 'error') { $('pairTable').innerHTML = '<tr><td>Error</td><td>' + e.data.msg + '</td></tr>'; return; }
+    pairRes = e.data.r; pairRes.Rf = Rf; pairRes.prm = prm; pairRes.a1 = +$('a1').value * Math.PI / 180; pairRes.a2 = +$('a2').value * Math.PI / 180;
+    var rows = [['Self-inductance L', fmt(pairRes.L, 0) + ' nH'], ['Footprint radius', fmt(Rf, 1) + ' mm'], ['Zero-coupling spacings found', pairRes.zeros.length]];
+    pairRes.zeros.forEach(function (z, i) {
+      rows.push(['Zero ' + (i + 1), fmt(z.d, 1) + ' mm = ' + fmt(z.dOverRf, 3) + ' Rf']);
+      rows.push(['  slope dk/dd', z.slopePerMm.toExponential(2) + ' /mm']);
+    });
+    $('pairTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
+    drawPair();
+  }).postMessage({ cmd: 'pair', kp: { p: prm.p, q: prm.q, beta: prm.beta }, Rf: Rf, wire: wire(), a1: +$('a1').value * Math.PI / 180, a2: +$('a2').value * Math.PI / 180 });
+};
+function drawPair() {
+  var cv = sizeCanvas($('pairCanvas')), g = cv.g, W = cv.w, H = cv.h, m = { l: 56, r: 12, t: 12, b: 36 };
+  g.clearRect(0, 0, W, H);
+  var thr = +$('thr').value, prm = elemPrm(), Rf = K.footprintRadius(prm);
+  var dmin = 0.5, dmax = 2.6, kmin = -0.1, kmax = 0.3;
+  if (pairRes) { var ks = pairRes.k; kmin = Math.min(-0.02, Math.min.apply(null, ks)); kmax = Math.max(0.02, Math.max.apply(null, ks)); }
+  function X(dn) { return m.l + (dn - dmin) / (dmax - dmin) * (W - m.l - m.r); }
+  function Y(k) { return m.t + (kmax - k) / (kmax - kmin) * (H - m.t - m.b); }
+  g.fillStyle = css('--chip'); g.fillRect(m.l, Y(thr), W - m.l - m.r, Y(-thr) - Y(thr));
+  g.strokeStyle = css('--line'); g.lineWidth = 1; g.beginPath(); g.moveTo(m.l, Y(0)); g.lineTo(W - m.r, Y(0)); g.stroke();
+  g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
+  for (var t = 0.5; t <= 2.51; t += 0.5) { g.fillText(t.toFixed(1), X(t) - 8, H - m.b + 16); g.beginPath(); g.moveTo(X(t), H - m.b); g.lineTo(X(t), H - m.b + 4); g.stroke(); }
+  g.fillText('centre distance / footprint radius', W / 2 - 90, H - 4);
+  [kmin, 0, kmax].forEach(function (k) { g.fillText(k.toFixed(2), 6, Y(k) + 4); });
+  g.save(); g.translate(14, H / 2); g.rotate(-Math.PI / 2); g.restore();
+  if (!pairRes) { g.fillText('Press Compute to scan k for these two elements.', m.l + 10, m.t + 20); }
+  else {
+    g.strokeStyle = css('--accent'); g.lineWidth = 2; g.beginPath();
+    pairRes.d.forEach(function (d, i) { var x = X(d / pairRes.Rf), y = Y(pairRes.k[i]); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.stroke();
+    pairRes.zeros.forEach(function (z) { g.fillStyle = css('--bad'); g.beginPath(); g.arc(X(z.dOverRf), Y(0), 5, 0, 7); g.fill(); });
+  }
+  // the two elements drawn at the first zero (or at 1.5 Rf)
+  var cv2 = sizeCanvas($('pairDraw')), g2 = cv2.g; g2.clearRect(0, 0, cv2.w, cv2.h);
+  var d = pairRes && pairRes.zeros.length ? pairRes.zeros[0].d : 1.5 * Rf;
+  var sc = Math.min(cv2.w / (2 * Rf + d), cv2.h / (2 * Rf)) * 0.9, cx = cv2.w / 2 - d * sc / 2, cy = cv2.h / 2;
+  var a1 = +$('a1').value * Math.PI / 180, a2 = +$('a2').value * Math.PI / 180;
+  var base = Object.assign({}, prm, { bloomMode: 'extent', size: Rf, h: 0.75 });
+  drawKnot(g2, K.points(Object.assign({}, base, { theta: a1 }), 600), cx, cy, sc, css('--wire'), 2);
+  drawKnot(g2, K.points(Object.assign({}, base, { theta: a2 }), 600), cx + d * sc, cy, sc, css('--accent'), 2);
+  g2.fillStyle = css('--muted'); g2.font = '12px Segoe UI';
+  g2.fillText(pairRes && pairRes.zeros.length ? 'At first zero: ' + fmt(d, 1) + ' mm apart' : 'Preview at 1.5 Rf', 8, 16);
+}
+
+// ---------- 3D view ----------
+var view3d = (function () {
+  var host = $('three'), renderer = new THREE.WebGLRenderer({ antialias: true }), scene = new THREE.Scene();
+  host.appendChild(renderer.domElement);
+  var camera = new THREE.PerspectiveCamera(35, 1, 1, 5000), world = new THREE.Group();
+  world.rotation.x = -Math.PI / 2;   // our z (up) -> three.js y (up)
+  scene.add(world);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  var dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(300, 500, 400); scene.add(dl);
+  var az = 0.7, el = 0.45, dist = 480, helmetMesh = null, wires = [], sel = -1;
+  function place() {
+    camera.position.set(dist * Math.cos(el) * Math.sin(az), dist * Math.sin(el) + 40, dist * Math.cos(el) * Math.cos(az));
+    camera.lookAt(0, 40, 0); render();
+  }
+  function render() { scene.background = new THREE.Color(css('--panel')); renderer.render(scene, camera); }
+  function resize() { var w = host.clientWidth, h = host.clientHeight; if (!w) return; renderer.setPixelRatio(window.devicePixelRatio || 1); renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); place(); }
+  new ResizeObserver(resize).observe(host);
+  var drag = null, moved = false;
+  host.addEventListener('pointerdown', function (e) { drag = [e.clientX, e.clientY, az, el]; moved = false; host.setPointerCapture(e.pointerId); });
+  host.addEventListener('pointermove', function (e) {
+    if (!drag) return; var dx = e.clientX - drag[0], dy = e.clientY - drag[1]; if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+    az = drag[2] - dx * 0.008; el = Math.max(-1.2, Math.min(1.45, drag[3] + dy * 0.008)); place();
+  });
+  host.addEventListener('pointerup', function (e) { var was = drag; drag = null; if (was && !moved) pick(e); });
+  host.addEventListener('wheel', function (e) { e.preventDefault(); dist = Math.max(200, Math.min(2000, dist * (e.deltaY > 0 ? 1.1 : 0.9))); place(); }, { passive: false });
+  var ray = new THREE.Raycaster();
+  function pick(e) {
+    var r = renderer.domElement.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera);
+    var hit = ray.intersectObjects(wires, false)[0];
+    select(hit ? hit.object.userData.i : -1);
+  }
+  function helmet(H) {
+    if (helmetMesh) { world.remove(helmetMesh); helmetMesh.geometry.dispose(); }
+    var nu = 96, nv = 40, v0 = Math.asin(Math.max(-1, Math.min(1, (H.zCut - 30) / H.c))), pos = [], col = [], idx = [];
+    var cIn = new THREE.Color(css('--accent')), cOut = new THREE.Color(css('--muted'));
+    for (var j = 0; j <= nv; j++) for (var i = 0; i <= nu; i++) {
+      var u = i / nu * 2 * Math.PI, v = v0 + (Math.PI / 2 - v0) * j / nv, p = S.point(H, u, v);
+      pos.push(p[0], p[1], p[2]); var c = S.inCoverage(H, p) ? cIn : cOut; col.push(c.r, c.g, c.b);
+    }
+    for (var j2 = 0; j2 < nv; j2++) for (var i2 = 0; i2 < nu; i2++) {
+      var a = j2 * (nu + 1) + i2, b = a + 1, c2 = a + nu + 1, d = c2 + 1; idx.push(a, b, d, a, d, c2);
+    }
+    var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    helmetMesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ vertexColors: true, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }));
+    world.add(helmetMesh); render();
+  }
+  var colours = { ok: 0x2e9e5b, warn: 0xe0a030, bad: 0xd9473f, sel: 0x3b82f6 };
+  function setWires(res, status) {
+    wires.forEach(function (w) { world.remove(w); w.geometry.dispose(); }); wires = [];
+    var rad = Math.max(0.8, res.config.wire.d / 2);
+    res.wires.forEach(function (pts, i) {
+      var curve = new THREE.CatmullRomCurve3(pts.map(function (p) { return new THREE.Vector3(p[0], p[1], p[2]); }), true);
+      var m = new THREE.Mesh(new THREE.TubeGeometry(curve, pts.length, rad, 6, true), new THREE.MeshPhongMaterial({ color: colours[status[i]] }));
+      m.userData = { i: i, status: status[i] }; world.add(m); wires.push(m);
+    });
+    sel = -1; render();
+  }
+  function select(i) {
+    sel = i;
+    wires.forEach(function (w) { w.material.color.setHex(w.userData.i === i ? colours.sel : colours[w.userData.status]); });
+    render(); showPairs(i);
+  }
+  return { resize: resize, helmet: helmet, setWires: setWires, render: render, select: select };
+})();
+
+// ---------- array solve ----------
+var arrRes = null, arrBusy = false;
+function arrCfg() {
+  return { N: Math.max(2, Math.round(+$('N').value)), knot: { p: +$('p').value, q: +$('q').value, beta: +$('beta').value }, wire: wire(), helmet: helmet(),
+    opts: { target: $('target').value, rotation: $('rotation').value, theta0: +$('theta').value * Math.PI / 180, thresholdK: +$('thr').value, seed: Math.round(+$('seed').value) } };
+}
+function setBusy(b) { arrBusy = b; $('runFast').disabled = $('runFull').disabled = b; $('cancel').disabled = !b; }
+function run(which) {
+  if (arrBusy) return;
+  var cfg = arrCfg(), clear = cfg.wire.d + 2 * cfg.wire.tIns;
+  setBusy(true); $('status').textContent = 'Building coupling table…'; $('bar').style.width = '2%';
+  document.querySelector('.tabs button[data-tab=arr]').click();
+  newWorker(function (e) {
+    var d = e.data;
+    if (d.type === 'progress') {
+      var p = d.p, frac = p.stage === 'table' ? 0.05 + 0.25 * p.sweep / p.of : p.stage === 'exact' ? 0.3 + 0.5 * p.sweep / p.of : 0.8 + 0.2 * p.sweep / p.of;
+      $('bar').style.width = (100 * frac).toFixed(0) + '%';
+      $('status').textContent = (p.stage === 'table' ? 'Fast (table) search' : p.stage === 'exact' ? 'Exact search on helmet' : 'Final exact coupling report') +
+        ' — step ' + p.sweep + (p.cost != null ? ', cost ' + p.cost.toExponential(2) + ', footprint ' + p.Rf.toFixed(1) + ' mm' : '');
+    } else if (d.type === 'error') { setBusy(false); $('status').textContent = 'Error: ' + d.msg; }
+    else if (d.type === 'result') { setBusy(false); $('bar').style.width = '100%'; arrRes = d.r; showArray(); $('status').textContent = 'Done in ' + d.r.seconds.toFixed(1) + ' s.'; }
+  }).postMessage({ cmd: 'run', cfg: cfg, which: which });
+}
+$('runFast').onclick = function () { run('fast'); };
+$('runFull').onclick = function () { run('full'); };
+$('cancel').onclick = function () { if (worker) worker.terminate(); worker = null; setBusy(false); $('status').textContent = 'Cancelled.'; $('bar').style.width = '0'; };
+
+function targetOf(p) { return arrRes.target === 'ring1' ? p.ring1 : p.footprint; }
+function showArray() {
+  var r = arrRes, N = r.N, thr = r.threshold, worst = new Array(N).fill(0);
+  r.pairs.forEach(function (p) { if (targetOf(p)) { worst[p.i] = Math.max(worst[p.i], Math.abs(p.k)); worst[p.j] = Math.max(worst[p.j], Math.abs(p.k)); } });
+  var status = worst.map(function (w) { return w < thr ? 'ok' : w < 3 * thr ? 'warn' : 'bad'; });
+  view3d.helmet(r.config.helmet); view3d.setWires(r, status);
+  function verdict(ok) { return '<span class="flag ' + (ok ? 'ok' : 'bad') + '">' + (ok ? 'yes' : 'no') + '</span>'; }
+  function st(s) { return s.count + ' pairs · max ' + fmt(s.max, 4) + ' · median ' + fmt(s.median, 4) + ' · ' + s.above + ' ≥ thr'; }
+  var rows = [
+    ['Knot', K.name(r.knot.p, r.knot.q) + ' T(' + r.knot.p + ',' + r.knot.q + '), β = ' + r.knot.beta],
+    ['Elements N', N], ['Solver stages', r.config.stages.join(' + ')], ['Target / rotation', r.target + ' / ' + r.config.opts.rotation],
+    ['Footprint radius (solved)', fmt(r.Rf, 1) + ' mm'], ['Core radius', fmt(r.coreRadius, 1) + ' mm'],
+    ['Pair-null spacing (table)', fmt(r.tableZero, 3) + ' Rf'],
+    ['Coverage of region', fmt(100 * r.coverage, 1) + '%'],
+    ['Decoupled — footprint pairs (Design.md)', verdict(r.decoupledFootprint)], ['  footprint pairs', st(r.footprint)],
+    ['Decoupled — nearest ring', verdict(r.decoupledRing1)], ['  nearest-ring pairs', st(r.ring1)],
+    ['Beyond nearest ring (< 3.5 Rf)', st(r.next)],
+    ['Element wire length', fmt(r.element.wireLength, 0) + ' mm'],
+    ['Element bend check', '<span class="flag ' + (r.element.bendOK ? 'ok' : 'bad') + '">' + fmt(r.element.minBendRadius, 2) + ' mm</span>'],
+    ['Crossing lift feasible', verdict(r.liftFeasible)],
+    ['Max wrap distortion (wire length)', fmt(100 * r.wrapDistortion.max, 2) + '%'],
+    ['Self-inductance L (range)', fmt(Math.min.apply(null, r.L), 0) + '–' + fmt(Math.max.apply(null, r.L), 0) + ' nH']
+  ];
+  $('arrTable').innerHTML = rows.map(function (x) { return '<tr><td>' + x[0] + '</td><td>' + x[1] + '</td></tr>'; }).join('');
+  drawHeat(); showPairs(-1);
+}
+function drawHeat() {
+  var cv = $('heat'), g = cv.getContext('2d'), N = arrRes.N, cell = Math.max(1, Math.floor(360 / N)), sz = cell * N;
+  cv.width = sz; cv.height = sz; cv.style.width = Math.min(360, sz * Math.max(1, Math.floor(360 / sz))) + 'px';
+  for (var i = 0; i < N; i++) for (var j = 0; j < N; j++) {
+    var k = arrRes.kMatrix[i * N + j], t = Math.min(1, Math.abs(k) / 0.05);
+    g.fillStyle = i === j ? '#888' : k > 0 ? 'rgb(' + Math.round(255 - 38 * t) + ',' + Math.round(255 - 184 * t) + ',' + Math.round(255 - 192 * t) + ')' :
+      'rgb(' + Math.round(255 - 196 * t) + ',' + Math.round(255 - 144 * t) + ',' + Math.round(255 - 38 * t) + ')';
+    g.fillRect(j * cell, i * cell, cell, cell);
+  }
+  cv.onmousemove = function (e) {
+    var r = cv.getBoundingClientRect(), j = Math.floor((e.clientX - r.left) / r.width * N), i = Math.floor((e.clientY - r.top) / r.height * N), tip = $('tip');
+    if (i < 0 || j < 0 || i >= N || j >= N) { tip.style.display = 'none'; return; }
+    tip.style.display = 'block'; tip.style.left = (e.clientX + 12) + 'px'; tip.style.top = (e.clientY + 12) + 'px';
+    tip.textContent = i === j ? 'element ' + i : 'k(' + i + ',' + j + ') = ' + arrRes.kMatrix[i * N + j].toFixed(4);
+  };
+  cv.onmouseleave = function () { $('tip').style.display = 'none'; };
+  cv.onclick = function (e) { var r = cv.getBoundingClientRect(); view3d.select(Math.floor((e.clientY - r.top) / r.height * N)); };
+}
+function showPairs(sel) {
+  if (!arrRes) return;
+  var list = arrRes.pairs.filter(function (p) { return sel < 0 ? targetOf(p) : (p.i === sel || p.j === sel) && p.dOverRf < 3.5; });
+  list.sort(function (a, b) { return Math.abs(b.k) - Math.abs(a.k); });
+  $('selTitle').textContent = sel < 0 ? 'Worst target pairs' : 'Element ' + sel + ': couplings within 3.5 Rf (click empty space to clear)';
+  $('pairList').innerHTML = '<tr><td>pair</td><td>distance / Rf · kind · k</td></tr>' + list.slice(0, 15).map(function (p) {
+    var bad = Math.abs(p.k) >= arrRes.threshold && targetOf(p);
+    return '<tr><td>' + p.i + '–' + p.j + '</td><td>' + fmt(p.dOverRf, 2) + ' · ' + (p.ring1 ? 'nearest ring' : p.footprint ? 'footprint' : 'next') + ' · <span class="flag ' + (bad ? 'bad' : 'ok') + '">' + p.k.toFixed(4) + '</span></td></tr>';
+  }).join('');
+}
+
+// ---------- exports ----------
+function download(name, text, type) {
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function need() { if (!arrRes) { alert('Run a solve first.'); return false; } return true; }
+function stamp() { return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19); }
+$('exJSON').onclick = function () {
+  if (!need()) return;
+  var r = Object.assign({}, arrRes, { kMatrix: Array.from(arrRes.kMatrix) });
+  download('knotted_array_' + stamp() + '.json', JSON.stringify({ software: 'knotted_coils app ' + APP_VERSION, generated: new Date().toISOString(),
+    provenance: 'Generated with AI-assisted software (Claude Code); geometric decoupling estimate, exploratory.', validation: window.KC_VALIDATION, result: r }, null, 1), 'application/json');
+};
+$('exCSV').onclick = function () {
+  if (!need()) return;
+  var lines = ['element,index,x_mm,y_mm,z_mm'];
+  arrRes.wires.forEach(function (P, e) { P.forEach(function (p, i) { lines.push(e + ',' + i + ',' + p[0].toFixed(4) + ',' + p[1].toFixed(4) + ',' + p[2].toFixed(4)); }); });
+  download('knotted_array_wires_' + stamp() + '.csv', lines.join('\n'), 'text/csv');
+};
+$('exK').onclick = function () {
+  if (!need()) return;
+  var N = arrRes.N, lines = [',' + Array.from({ length: N }, function (_, j) { return 'e' + j; }).join(',')];
+  for (var i = 0; i < N; i++) { var row = ['e' + i]; for (var j = 0; j < N; j++) row.push(i === j ? '1' : arrRes.kMatrix[i * N + j].toExponential(5)); lines.push(row.join(',')); }
+  download('knotted_array_k_' + stamp() + '.csv', lines.join('\n'), 'text/csv');
+};
+// Tube mesh around each wire (radius = wire radius, 8 sides), frames carried along the curve.
+function tubeMesh(res, sides) {
+  sides = sides || 8; var rad = res.config.wire.d / 2, V = [], F = [];
+  res.wires.forEach(function (P) {
+    var n = P.length, base = V.length, prevN = null;
+    for (var i = 0; i < n; i++) {
+      var a = P[(i - 1 + n) % n], b = P[(i + 1) % n], t = S.norm([b[0] - a[0], b[1] - a[1], b[2] - a[2]]);
+      var nn = prevN ? prevN : S.norm(S.cross(t, Math.abs(t[2]) < 0.9 ? [0, 0, 1] : [1, 0, 0]));
+      var d = S.dot(nn, t); nn = S.norm([nn[0] - d * t[0], nn[1] - d * t[1], nn[2] - d * t[2]]); prevN = nn;
+      var bb = S.cross(t, nn);
+      for (var s = 0; s < sides; s++) {
+        var ang = 2 * Math.PI * s / sides, c = Math.cos(ang) * rad, si = Math.sin(ang) * rad;
+        V.push([P[i][0] + c * nn[0] + si * bb[0], P[i][1] + c * nn[1] + si * bb[1], P[i][2] + c * nn[2] + si * bb[2]]);
+      }
+    }
+    for (var i2 = 0; i2 < n; i2++) for (var s2 = 0; s2 < sides; s2++) {
+      var a0 = base + i2 * sides + s2, a1 = base + i2 * sides + (s2 + 1) % sides, b0 = base + ((i2 + 1) % n) * sides + s2, b1 = base + ((i2 + 1) % n) * sides + (s2 + 1) % sides;
+      F.push([a0, b0, b1], [a0, b1, a1]);
+    }
+  });
+  return { V: V, F: F };
+}
+$('exOBJ').onclick = function () {
+  if (!need()) return;
+  var m = tubeMesh(arrRes), out = ['# knotted_coils wires, mm. Exploratory geometry.'];
+  m.V.forEach(function (v) { out.push('v ' + v.map(function (x) { return x.toFixed(4); }).join(' ')); });
+  m.F.forEach(function (f) { out.push('f ' + (f[0] + 1) + ' ' + (f[1] + 1) + ' ' + (f[2] + 1)); });
+  download('knotted_array_wires_' + stamp() + '.obj', out.join('\n'));
+};
+$('exSTL').onclick = function () {
+  if (!need()) return;
+  var m = tubeMesh(arrRes), out = ['solid knotted_wires'];
+  m.F.forEach(function (f) {
+    var a = m.V[f[0]], b = m.V[f[1]], c = m.V[f[2]], nrm = S.norm(S.cross([b[0] - a[0], b[1] - a[1], b[2] - a[2]], [c[0] - a[0], c[1] - a[1], c[2] - a[2]]));
+    out.push(' facet normal ' + nrm.map(function (x) { return isFinite(x) ? x.toFixed(5) : '0'; }).join(' '), '  outer loop');
+    [a, b, c].forEach(function (v) { out.push('   vertex ' + v.map(function (x) { return x.toFixed(4); }).join(' ')); });
+    out.push('  endloop', ' endfacet');
+  });
+  out.push('endsolid knotted_wires'); download('knotted_array_wires_' + stamp() + '.stl', out.join('\n'));
+};
+$('exSVG').onclick = function () {
+  if (!elRep) return;
+  var P = elRep.points, Rf = elRep.footprintRadius, pad = 2, sz = 2 * (Rf + pad), n = P.length, segs = [];
+  for (var i = 0; i < n; i++) segs.push([P[i], P[(i + 1) % n], (P[i][2] + P[(i + 1) % n][2]) / 2]);
+  segs.sort(function (u, v) { return u[2] - v[2]; });
+  var body = segs.map(function (s) {
+    var c = s[0][0].toFixed(3) + ',' + (-s[0][1]).toFixed(3) + ' ' + s[1][0].toFixed(3) + ',' + (-s[1][1]).toFixed(3);
+    return '<polyline points="' + c + '" stroke="#fff" stroke-width="1.6"/><polyline points="' + c + '" stroke="#000" stroke-width="0.6"/>';
+  }).join('');
+  download('knot_element_' + stamp() + '.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (-Rf - pad) + ' ' + (-Rf - pad) + ' ' + sz + ' ' + sz + '" width="' + sz + 'mm" height="' + sz + 'mm" fill="none" stroke-linecap="round">' +
+    '<!-- ' + K.name(+$('p').value, +$('q').value) + ', units mm, 1:1. Generated by knotted_coils (AI-assisted). -->' + body + '</svg>', 'image/svg+xml');
+};
+
+window.addEventListener('resize', function () { scheduleElement(); drawPair(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { scheduleElement(); drawPair(); view3d.render(); });
+updateElement(); drawPair(); view3d.helmet(helmet());
+</script>
+</body>
+</html>

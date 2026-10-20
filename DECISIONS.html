@@ -1,0 +1,101 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Decision Log</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Decision Log — Knotted Coil Designer</h1>
+<p>Dated entries: what was decided, why, who decided it, and what the alternatives were. Newest first.</p>
+<hr>
+<h3>2026-10-20 — Field maps (B1 / E) requested; not built yet</h3>
+<ul>
+<li><strong>Request (Reza):</strong> a UI toggle to visualise E-fields.</li>
+<li><strong>Claude’s assessment:</strong> a quasi-static wire model can compute the <strong>magnetic field</strong> properly, using Biot–Savart, and that can be checked against the analytic on-axis field of a loop. It can only give the <strong>inductive part of E</strong> (−∂A/∂t). The charge-driven part from capacitors and gaps, and the effect of the head, are missing, so an E map would be incomplete in a misleading way.</li>
+<li><strong>Status:</strong> outside frozen Design v1.0 scope (§1, §8). <strong>Awaiting Reza’s decision.</strong></li>
+</ul>
+<h3>2026-10-20 — In-plane rotation as a solver option</h3>
+<ul>
+<li><strong>Decided by:</strong> Reza, who asked for rotation as a decoupling lever.</li>
+<li><strong>What changed:</strong> rotation was already a free variable per element. It is now exposed as <code>rotation</code> = free / locked (one shared angle) / fixed.</li>
+<li><strong>Exploratory observation, one seed, N = 16, trefoil β = 0.4, nearest-ring target:</strong> worst nearest-ring |k| was 0.010 with free rotation, 0.040 locked and 0.045 fixed.</li>
+</ul>
+<h3>2026-10-20 — Neighbour definition: frozen rule kept as default, ‘ring1’ added (PENDING Reza)</h3>
+<ul>
+<li><strong>Finding:</strong> a trefoil at β = 0.4 nulls only at a centre spacing of about 1.14 Rf, which is heavy overlap. At that spacing, second-ring elements (about 1.97 Rf in a hexagonal layout) still overlap.</li>
+<li><strong>Consequence:</strong> under the frozen Design §5.1 definition (footprints overlap), the solver must null pairs that cannot be nulled together, and the problem is badly posed.</li>
+<li><strong>Option added:</strong> <code>target = 'ring1'</code> decouples only the nearest ring (closer than 1.35 × the pair-null spacing).</li>
+<li><strong>Results (16 elements, exploratory):</strong>
+<ul>
+<li>nearest ring: worst |k| ≈ 0.008–0.010;</li>
+<li>second ring: |k| up to about 0.08.</li>
+</ul>
+</li>
+<li><strong>Default is unchanged</strong> (frozen definition). Every result reports <strong>both</strong> verdicts.</li>
+<li><strong>Decision needed from Reza:</strong> which definition should be the default, i.e. which one “decoupled” should mean.</li>
+</ul>
+<h3>2026-10-20 — Validation runs 1 and 2: V6 FAIL (recorded), causes and fixes</h3>
+<ul>
+<li><strong>Run 1</strong> (git 9f89d91): V6 failed for three separate reasons.
+<ol>
+<li><strong>Physics:</strong> the bloom floor is above β = 0.02 for the placeholder wire (1 mm + 2 × 0.25 mm insulation) at R = 30 mm. Near the knot, the strands sit on a thin tube of in-plane radius βR. The p strands can be at most 2βR·sin(π/p) apart, so with c = d_w + 2t_i the minimum buildable bloom is β ≥ c / (2R sin(π/p)). That gives 0.025 for p = 2, 0.029 for p = 3 and 0.043 for p = 5. This is Claude’s derivation; the numerical lift solver agreed (feasible at 0.03, 0.03 and 0.045).</li>
+<li><strong>Discretisation:</strong> 300 points missed one crossing of T(2,5) at β = 0.9 (600 or more resolve it). That shape also has a 0.08 mm bend radius, so it cannot be built.</li>
+<li><strong>Harness bug:</strong> the reference over/under pattern was taken at β = 0.02, which was itself the degenerate case.</li>
+</ol>
+</li>
+<li><strong>Fixes:</strong>
+<ul>
+<li>adaptive point count (<code>knot.adaptiveN</code>);</li>
+<li>reference pattern taken at β = 0.4;</li>
+<li>bloom floor shown in the UI.</li>
+<li>The <strong>criterion is unchanged.</strong></li>
+</ul>
+</li>
+<li><strong>Run 2:</strong> V6 still FAILS, now <em>only</em> at β = 0.02, for every knot. That is the physical floor.</li>
+<li><strong>Post-hoc check PH2 (informational, not a verdict):</strong> topology is preserved from the floor upward for all catalogue knots.</li>
+<li><strong>Decision needed from Reza:</strong> whether to change the β_min default to the wire-dependent physical floor. That is a Design change.</li>
+</ul>
+<h3>2026-10-20 — V3 reference is UNVERIFIED</h3>
+<ul>
+<li><strong>Status:</strong> Roemer et al. 1990 is paywalled; a subagent tried the Wiley PDF, Semantic Scholar, OpenAlex, Europe PMC and the Internet Archive.</li>
+<li><strong>Closest primary text read:</strong> Roemer &amp; Edelstein, US 4,825,162 (1989), “D approximately equal to 0.75d”. This is PARAPHRASE-ONLY, read from Google Patents OCR text.</li>
+<li><strong>V3 verdict:</strong> NOT EVALUABLE. Our computed value is 0.7604 × diameter (exploratory comparison: +1.4% from the patent’s approximate value).</li>
+<li><strong>To resolve:</strong> Reza retrieves the paper through McGill library access.</li>
+</ul>
+<h3>2026-10-20 — Kernel softening between elements</h3>
+<ul>
+<li><strong>Choice:</strong> wires of <em>different</em> elements use a 1/√(r² + ε²) kernel with ε = d_w + 2t_i, so crossings between elements are treated as separated by the real centreline gap. This avoids having to model which wire goes over at each crossing.</li>
+<li><strong>Alternative:</strong> explicit over/under layers per crossing.</li>
+<li><strong>Status:</strong> sensitivity to ε not yet tested.</li>
+</ul>
+<h3>2026-10-20 — Design.md v1.0 frozen</h3>
+<ul>
+<li><strong>Decided by:</strong> Reza approved all §11 defaults.</li>
+<li><strong>Commit:</strong> git 39a4e83; this commit pre-registers V1–V6.</li>
+</ul>
+</body></html>

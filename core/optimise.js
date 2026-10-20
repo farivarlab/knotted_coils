@@ -54,6 +54,9 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     target: 'footprint',// Design.md §5.1 (frozen): neighbours = footprints overlap (d < 2 Rf). Alternative 'ring1' = nearest ring only, see DECISIONS.md 2026-10-20.
     ring1: 1.35,        // JUDG: 'ring1' neighbours are closer than 1.35 x the pair-null spacing (hexagonal 2nd ring sits at 1.73x). Alt: 1.25-1.5.
     ring1Taper: 1.55,   // JUDG: 'ring1' weight fades to 0 at 1.55 x null spacing.
+    rotation: 'free',   // In-plane rotation: 'free' = each element optimised separately; 'locked' = one shared angle,
+                        // optimised; 'fixed' = all elements at theta0, not optimised. (Reza, 2026-10-20: rotation as a decoupling lever.)
+    theta0: 0,          // JUDG: starting / fixed in-plane rotation (radians) for every element.
     nSamples: 2400,     // JUDG: coverage sample points on the full ellipsoid (fewer fall inside the covered region).
     seed: 1             // JUDG: random seed for move order; stored in exports so runs are reproducible.
   };
@@ -143,7 +146,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var zn = O.tableZero(T) || 1.5;
     var ctx = { cfg: cfg, o: o, H: H, kp: kp, wire: w, c: c, a: w.d / 2, h: lift.h, liftFeasible: lift.feasible,
       samples: samples, area: area, spacing: spacing, T: T, tableZero: zn, Lcache: {} };
-    ctx.state = { C: Lay.initialCentres(H, cfg.N, samples), th: new Float64Array(cfg.N), Rf: spacing / zn };
+    ctx.state = { C: Lay.initialCentres(H, cfg.N, samples), th: new Float64Array(cfg.N).fill(o.theta0), Rf: spacing / zn };
     return ctx;
   };
 
@@ -213,6 +216,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
         var moves = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
         for (var mi = 0; mi < moves.length; mi++) {
           var mv = moves[mi], dp = pos * st.Rf;
+          if (mv[2] !== 0 && o.rotation !== 'free') continue;   // shared/fixed rotation: no per-element turns
           var np = S.snap(ctx.H, [c0[0] + dp * (mv[0] * f0.e1[0] + mv[1] * f0.e2[0]), c0[1] + dp * (mv[0] * f0.e1[1] + mv[1] * f0.e2[1]),
             c0[2] + dp * (mv[0] * f0.e1[2] + mv[1] * f0.e2[2])]);
           if (!S.inCoverage(ctx.H, np)) continue;
@@ -232,6 +236,16 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
         if (F < bestF) { bestF = F; bestR = st.Rf; }
       });
       st.Rf = bestR; model.resize(frames);
+      if (o.rotation === 'locked') {          // one shared angle: try turning every element together
+        var th0s = Array.from(st.th), bestD = 0;
+        [rot, -rot].forEach(function (dth) {
+          for (var q = 0; q < N; q++) st.th[q] = th0s[q] + dth;
+          model.resize(frames); var F = total();
+          if (F < bestF) { bestF = F; bestD = dth; }
+        });
+        for (var q2 = 0; q2 < N; q2++) st.th[q2] = th0s[q2] + bestD;
+        model.resize(frames);
+      }
       history.push(bestF);
       if (accepted < 0.2 * N) { pos *= 0.7; rot *= 0.7; rs *= 0.7; }
       if (onProgress) onProgress({ stage: stageName, sweep: sw + 1, of: sweeps, cost: bestF, Rf: st.Rf, accepted: accepted });

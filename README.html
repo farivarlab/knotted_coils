@@ -1,0 +1,151 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Knotted Coil Designer — README</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Knotted Coil Designer</h1>
+<p>A browser tool for designing MRI receive phased arrays made of <strong>knotted wire loops</strong> (torus knots T(p,q), with 1–8 lobes) on a helmet former. It generates single elements, “blooms” them, and <strong>automatically arranges N elements to reduce coupling between neighbours (geometric decoupling)</strong>. It exports wire paths, coupling matrices and meshes.</p>
+<blockquote>
+<p><strong>Status: exploratory research software.</strong> Every electromagnetic output is a <em>quasi-static geometric estimate</em>: it assumes low frequency and models the wires as thin current paths. It ignores capacitors, the head/body load and wave effects. Confirm any design with a full electromagnetic (full-wave) simulation or with bench S21, the coupling between two coils measured on a network analyser, before building.</p>
+</blockquote>
+<h2>How to run</h2>
+<ul>
+<li><strong>Easiest:</strong> double-click <code>app/index.html</code>. It needs no install and no internet; the Three.js 3D library is stored in <code>vendor/</code>.
+<ul>
+<li><em>Not yet tested:</em> opening by double-click. It was tested served from a local web server.</li>
+<li>If the array solver doesn’t respond when opened by double-click, serve the folder instead, for example <code>npx http-server</code> (any static file server works) from this folder, and open <code>/app/index.html</code>.</li>
+</ul>
+</li>
+<li><strong>Validation suite</strong> (needs Node.js; takes about 2 minutes):</li>
+</ul>
+<pre><code class="language-bash">node tests/run.js
+</code></pre>
+<p>This writes <code>validation/validation_report.html</code>. The app’s header shows the latest verdicts.</p>
+<h2>What’s where</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Design.md</code></td>
+<td>Frozen design v1.0 (pre-registers validation criteria V1–V6)</td>
+</tr>
+<tr>
+<td><code>DECISIONS.md</code></td>
+<td>Dated decision log, including validation failures and open questions for Reza</td>
+</tr>
+<tr>
+<td><code>PARAMETERS.md</code></td>
+<td>Every parameter with its origin tag (LIT / CONV / JUDG / TUNED / DERIVED)</td>
+</tr>
+<tr>
+<td><code>core/</code></td>
+<td>Geometry and EM package: <code>knot.js</code>, <code>inductance.js</code>, <code>surface.js</code>, <code>layout.js</code>, <code>optimise.js</code></td>
+</tr>
+<tr>
+<td><code>app/index.html</code></td>
+<td>Browser UI: Element, Pair explorer, Array on helmet</td>
+</tr>
+<tr>
+<td><code>tests/run.js</code></td>
+<td>Pre-registered validation checks plus labelled post-hoc checks</td>
+</tr>
+<tr>
+<td><code>validation/</code></td>
+<td>Generated validation reports</td>
+</tr>
+<tr>
+<td><code>vendor/</code></td>
+<td>Three.js 0.149.0 (MIT licence, <code>vendor/three-LICENSE.txt</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2>Validation status (run 2, 2026-10-20)</h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1 Maxwell coaxial mutual inductance</td>
+<td>PASS (worst error 0.005%)</td>
+</tr>
+<tr>
+<td>V2 Loop self-inductance</td>
+<td>PASS (worst error 0.66%)</td>
+</tr>
+<tr>
+<td>V3 Coplanar-circle null spacing</td>
+<td>NOT EVALUABLE (reference unverified; computed 0.760 × diameter)</td>
+</tr>
+<tr>
+<td>V4 Convergence</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>V5 Symmetry</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>V6 Topology across bloom</td>
+<td><strong>FAIL</strong> at β = 0.02 only (below the physical floor for the placeholder wire; see DECISIONS.md)</td>
+</tr>
+</tbody>
+</table>
+<h2>References</h2>
+<ul>
+<li><strong>Rosa, E. B. &amp; Grover, F. W. (1912).</strong> Formulas and tables for the calculation of mutual and self-inductance (revised). <em>Bulletin of the Bureau of Standards</em> 8(1):1–237, Scientific Paper 169. <a href="https://nvlpubs.nist.gov/nistpubs/bulletin/08/nbsbulletinv8n1p1_A2b.pdf">https://nvlpubs.nist.gov/nistpubs/bulletin/08/nbsbulletinv8n1p1_A2b.pdf</a>
+<ul>
+<li>p. 6, eq. [1]: Maxwell’s coaxial formula, modulus convention. <strong>VERIFIED</strong>.</li>
+<li>p. 111, eq. [62]: ring self-inductance with surface current. <strong>VERIFIED</strong>.</li>
+<li>pp. 20–21: Example 1, used for post-hoc check PH1. <strong>VERIFIED</strong>.</li>
+</ul>
+</li>
+<li><strong>Roemer, P. B., Edelstein, W. A., Hayes, C. E., Souza, S. P. &amp; Mueller, O. M. (1990).</strong> The NMR phased array. <em>Magn Reson Med</em> 16:192–225. doi:10.1002/mrm.1910160203. <strong>UNVERIFIED</strong> (not read).</li>
+<li><strong>Roemer, P. B. &amp; Edelstein, W. A., US Patent 4,825,162 (1989).</strong> Read via Google Patents OCR text: circular-coil spacing “D approximately equal to 0.75d”. <strong>PARAPHRASE-ONLY.</strong></li>
+</ul>
+<h2>Provenance and AI-use statement</h2>
+<p>This software was written with <strong>Claude Code</strong> (Anthropic’s AI coding assistant, model Claude Opus 5.5) under the direction of <strong>Reza Farivar</strong> (McGill University), who is accountable for it.</p>
+<ul>
+<li>Every source file carries a provenance header.</li>
+<li>Reference formulas were verified against the primary text listed above.</li>
+<li>Validation criteria were pre-registered in <code>Design.md</code> (git 39a4e83) before any code was written.</li>
+<li>Failures are recorded in <code>DECISIONS.md</code> and in the git history.</li>
+<li>Any use of results in publications must disclose AI assistance as the venue requires (COPE/ICMJE for journals; current Tri-Agency guidance for grants).</li>
+</ul>
+<p><strong>Third-party code:</strong> Three.js 0.149.0, © three.js authors, MIT licence.</p>
+</body></html>

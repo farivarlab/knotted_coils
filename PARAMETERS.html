@@ -1,0 +1,262 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Parameter Registry</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Parameter Registry — Knotted Coil Designer</h1>
+<p>Every number that shapes a result, with its true origin. Tags follow the research-integrity code standard:
+<strong>LIT</strong> (from verified literature) · <strong>CONV</strong> (convention/library default) · <strong>JUDG</strong> (our judgement) · <strong>TUNED</strong> (searched) · <strong>DERIVED</strong> (computed from others).
+<strong>PLACEHOLDER</strong> marks a JUDG value awaiting Reza’s real specification.</p>
+<p>Last updated 2026-10-20.</p>
+<h2>Physical inputs (placeholders until Reza supplies them)</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Tag</th>
+<th>Rationale / source</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wire diameter d_w</td>
+<td>1.0 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Round number for magnet-wire-scale loops. Awaiting spec (Design D5)</td>
+<td>app, tests</td>
+</tr>
+<tr>
+<td>Insulation thickness t_i</td>
+<td>0.25 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Awaiting spec (D5)</td>
+<td>app, tests</td>
+</tr>
+<tr>
+<td>Minimum bend radius</td>
+<td>2 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Awaiting spec (D5)</td>
+<td>app, tests</td>
+</tr>
+<tr>
+<td>Helmet semi-axes a, b, c</td>
+<td>85, 105, 110 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Rough adult head plus clearance, not measured. Awaiting former dimensions (D4)</td>
+<td><code>core/surface.js</code></td>
+</tr>
+<tr>
+<td>Lowest covered height zCut</td>
+<td>0 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Ellipsoid equator</td>
+<td><code>core/surface.js</code></td>
+</tr>
+<tr>
+<td>Face opening half-angle / top</td>
+<td>40° / 60 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Visual guess</td>
+<td><code>core/surface.js</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Design defaults (Design.md v1.0)</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Tag</th>
+<th>Rationale / source</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bloom range β</td>
+<td>0.02–0.9 (UI allows 0.005–0.95)</td>
+<td>JUDG</td>
+<td>Design §3.3. <strong>Validation run 1 showed 0.02 is below the buildable floor for the placeholder wire</strong>. See DECISIONS.md</td>
+<td>knot, app</td>
+</tr>
+<tr>
+<td>Decoupling threshold |k|</td>
+<td>0.01</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Design D6; not yet justified from literature</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Neighbour definition</td>
+<td>footprints overlap (d &lt; 2 Rf)</td>
+<td>JUDG</td>
+<td>Design §5.1 (frozen). Alternative ‘ring1’ available; see DECISIONS.md</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Bloom mode</td>
+<td>constant core</td>
+<td>JUDG</td>
+<td>Design D2</td>
+<td>app</td>
+</tr>
+<tr>
+<td>Rotation mode</td>
+<td>free per element</td>
+<td>JUDG</td>
+<td>Reza 2026-10-20: rotation as a decoupling lever</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Numerical choices</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Tag</th>
+<th>Rationale / check</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>μ0/4π</td>
+<td>1e-7 H/m = 0.1 nH/mm</td>
+<td>DERIVED</td>
+<td>SI definition</td>
+<td><code>core/inductance.js</code></td>
+</tr>
+<tr>
+<td>Near-field refinement distance</td>
+<td>3 segment lengths</td>
+<td>JUDG</td>
+<td>Checked indirectly by V1, V2, V4</td>
+<td><code>core/inductance.js</code></td>
+</tr>
+<tr>
+<td>Max sub-pieces per segment</td>
+<td>12</td>
+<td>JUDG</td>
+<td>Same</td>
+<td><code>core/inductance.js</code></td>
+</tr>
+<tr>
+<td>Kernel softening between elements</td>
+<td>ε = d_w + 2 t_i</td>
+<td>JUDG</td>
+<td>Wires crossing between elements are separated by at least this. Sensitivity not yet tested</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Self-inductance method</td>
+<td>centreline vs copy offset by wire radius</td>
+<td>LIT (method)</td>
+<td>High-frequency surface-current formula, Rosa &amp; Grover 1912 eq. [62], VERIFIED. Checked by V2</td>
+<td><code>core/inductance.js</code></td>
+</tr>
+<tr>
+<td>Element points (element view)</td>
+<td>adaptive: 100·p·q (min 400), doubled until crossing count is stable</td>
+<td>JUDG</td>
+<td>Added after validation run 1</td>
+<td><code>core/knot.js</code></td>
+</tr>
+<tr>
+<td>Stage-1 table</td>
+<td>128 pts; d = 0.3–3.0 Rf in 55 steps; 12 rotation steps per 2π/q</td>
+<td>JUDG / DERIVED</td>
+<td>Speed. Stage 2 corrects table error</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Stage-2 / final points</td>
+<td>160 / 300 per element</td>
+<td>JUDG</td>
+<td>V4: k converged to &lt; 0.001 at 300</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Self-L points</td>
+<td>300</td>
+<td>JUDG</td>
+<td></td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Coverage weight λ</td>
+<td>1</td>
+<td>JUDG</td>
+<td>Makes gaps dominate k² terms</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Neighbour weight taper</td>
+<td>2.0 → 2.4 Rf (footprint); 1.35 → 1.55 × null spacing (ring1)</td>
+<td>JUDG</td>
+<td>Stops pairs escaping by stepping just past the cut-off</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Coverage samples</td>
+<td>2400 on full ellipsoid</td>
+<td>JUDG</td>
+<td></td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Search sweeps</td>
+<td>≤ 300 (stage 1), ≤ 12 (stage 2)</td>
+<td>JUDG</td>
+<td>Speed vs quality; not tuned</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Random seed</td>
+<td>1</td>
+<td>JUDG</td>
+<td>Reproducibility; stored in every export</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Bloom floor formula</td>
+<td>c / (2 R sin(π/p))</td>
+<td>DERIVED</td>
+<td>Claude’s geometric argument; agrees with the numerical lift solver (see DECISIONS.md)</td>
+<td><code>core/knot.js</code></td>
+</tr>
+</tbody>
+</table>
+</body></html>
