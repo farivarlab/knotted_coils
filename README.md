@@ -21,7 +21,7 @@ This writes `validation/validation_report.html`. The app's header shows the late
 
 | Path | Contents |
 |---|---|
-| `Design.md` | Frozen design v1.0 (pre-registers validation criteria V1–V6) |
+| `Design.md` | Frozen design v1.1 (v1.0 pre-registered validation criteria V1–V6; v1.1 changed the neighbour definition only) |
 | `DECISIONS.md` | Dated decision log, including validation failures and open questions for Reza |
 | `PARAMETERS.md` | Every parameter with its origin tag (LIT / CONV / JUDG / TUNED / DERIVED) |
 | `core/` | Geometry and EM package: `knot.js`, `inductance.js`, `surface.js`, `layout.js`, `optimise.js` |

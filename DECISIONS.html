@@ -33,6 +33,31 @@ tr:nth-child(even) td { background: var(--panel); }
 </style></head><body><h1>Decision Log — Knotted Coil Designer</h1>
 <p>Dated entries: what was decided, why, who decided it, and what the alternatives were. Newest first.</p>
 <hr>
+<h3>2026-10-20 — DECIDED: “decoupled” = nearest ring (Design v1.1)</h3>
+<ul>
+<li><strong>Decided by:</strong> Reza, choosing between the frozen footprint-overlap rule and the nearest-ring rule.</li>
+<li><strong>What changed:</strong>
+<ul>
+<li>Solver default is now <code>target = 'ring1'</code>.</li>
+<li>The app lists the nearest-ring verdict first.</li>
+<li>The footprint verdict (v1.0 rule) is still computed and shown for every result.</li>
+<li>Design.md changelog updated.</li>
+</ul>
+</li>
+<li><strong>Alternatives:</strong> keep the footprint rule, with its ill-posed objective; or a Voronoi-adjacency definition (not built).</li>
+</ul>
+<h3>2026-10-20 — Deviation found: λ_max term not implemented</h3>
+<ul>
+<li><strong>What happened:</strong> Design §5.1’s cost includes λ_max·max|k|. The solver as built (git b21c784) omits it. Claude found this while editing §5.1 for v1.1 and disclosed it the same day.</li>
+<li><strong>Effect:</strong> the solver can trade one bad pair for many good ones. The worst pair is always reported but not specifically targeted.</li>
+<li><strong>Options:</strong>
+<ul>
+<li>implement it, e.g. as a smooth stand-in such as Σk⁴ or a soft-max, because a hard max is awkward for an element-by-element local search;</li>
+<li>or amend the Design to drop it.</li>
+</ul>
+</li>
+<li><strong>Status:</strong> awaiting Reza.</li>
+</ul>
 <h3>2026-10-20 — Field maps (B1 / E) requested; not built yet</h3>
 <ul>
 <li><strong>Request (Reza):</strong> a UI toggle to visualise E-fields.</li>
@@ -45,7 +70,7 @@ tr:nth-child(even) td { background: var(--panel); }
 <li><strong>What changed:</strong> rotation was already a free variable per element. It is now exposed as <code>rotation</code> = free / locked (one shared angle) / fixed.</li>
 <li><strong>Exploratory observation, one seed, N = 16, trefoil β = 0.4, nearest-ring target:</strong> worst nearest-ring |k| was 0.010 with free rotation, 0.040 locked and 0.045 fixed.</li>
 </ul>
-<h3>2026-10-20 — Neighbour definition: frozen rule kept as default, ‘ring1’ added (PENDING Reza)</h3>
+<h3>2026-10-20 — Neighbour definition: frozen rule kept as default, ‘ring1’ added (superseded by the v1.1 entry above)</h3>
 <ul>
 <li><strong>Finding:</strong> a trefoil at β = 0.4 nulls only at a centre spacing of about 1.14 Rf, which is heavy overlap. At that spacing, second-ring elements (about 1.97 Rf in a hexagonal layout) still overlap.</li>
 <li><strong>Consequence:</strong> under the frozen Design §5.1 definition (footprints overlap), the solver must null pairs that cannot be nulled together, and the problem is badly posed.</li>

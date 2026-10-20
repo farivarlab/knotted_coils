@@ -113,8 +113,8 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 
   <h2>Array solver</h2>
   <label class="row">Number of elements N<input type="number" id="N" value="16" min="2" max="256"></label>
-  <label class="row"><span>Pairs to decouple<span class="hint">footprint = Design.md definition</span></span>
-    <select id="target"><option value="footprint">footprints overlap</option><option value="ring1">nearest ring</option></select></label>
+  <label class="row"><span>Pairs to decouple<span class="hint">nearest ring = Design v1.1 default</span></span>
+    <select id="target"><option value="ring1">nearest ring</option><option value="footprint">footprints overlap</option></select></label>
   <label class="row"><span>Rotation<span class="hint">in-plane, per element</span></span>
     <select id="rotation"><option value="free">free per element</option><option value="locked">one shared angle</option><option value="fixed">fixed at θ</option></select></label>
   <label class="row">Threshold |k|<input type="number" id="thr" value="0.01" step="0.001" min="0"></label>
@@ -484,8 +484,8 @@ function showArray() {
     ['Footprint radius (solved)', fmt(r.Rf, 1) + ' mm'], ['Core radius', fmt(r.coreRadius, 1) + ' mm'],
     ['Pair-null spacing (table)', fmt(r.tableZero, 3) + ' Rf'],
     ['Coverage of region', fmt(100 * r.coverage, 1) + '%'],
-    ['Decoupled — footprint pairs (Design.md)', verdict(r.decoupledFootprint)], ['  footprint pairs', st(r.footprint)],
-    ['Decoupled — nearest ring', verdict(r.decoupledRing1)], ['  nearest-ring pairs', st(r.ring1)],
+    ['Decoupled — nearest ring (Design v1.1 definition)', verdict(r.decoupledRing1)], ['  nearest-ring pairs', st(r.ring1)],
+    ['Decoupled — all overlapping footprints (v1.0 rule)', verdict(r.decoupledFootprint)], ['  footprint pairs', st(r.footprint)],
     ['Beyond nearest ring (< 3.5 Rf)', st(r.next)],
     ['Element wire length', fmt(r.element.wireLength, 0) + ' mm'],
     ['Element bend check', '<span class="flag ' + (r.element.bendOK ? 'ok' : 'bad') + '">' + fmt(r.element.minBendRadius, 2) + ' mm</span>'],

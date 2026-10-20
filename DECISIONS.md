@@ -4,6 +4,23 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-20 — DECIDED: "decoupled" = nearest ring (Design v1.1)
+- **Decided by:** Reza, choosing between the frozen footprint-overlap rule and the nearest-ring rule.
+- **What changed:**
+  - Solver default is now `target = 'ring1'`.
+  - The app lists the nearest-ring verdict first.
+  - The footprint verdict (v1.0 rule) is still computed and shown for every result.
+  - Design.md changelog updated.
+- **Alternatives:** keep the footprint rule, with its ill-posed objective; or a Voronoi-adjacency definition (not built).
+
+### 2026-10-20 — Deviation found: λ_max term not implemented
+- **What happened:** Design §5.1's cost includes λ_max·max|k|. The solver as built (git b21c784) omits it. Claude found this while editing §5.1 for v1.1 and disclosed it the same day.
+- **Effect:** the solver can trade one bad pair for many good ones. The worst pair is always reported but not specifically targeted.
+- **Options:**
+  - implement it, e.g. as a smooth stand-in such as Σk⁴ or a soft-max, because a hard max is awkward for an element-by-element local search;
+  - or amend the Design to drop it.
+- **Status:** awaiting Reza.
+
 ### 2026-10-20 — Field maps (B1 / E) requested; not built yet
 - **Request (Reza):** a UI toggle to visualise E-fields.
 - **Claude's assessment:** a quasi-static wire model can compute the **magnetic field** properly, using Biot–Savart, and that can be checked against the analytic on-axis field of a loop. It can only give the **inductive part of E** (−∂A/∂t). The charge-driven part from capacitors and gaps, and the effect of the head, are missing, so an E map would be incomplete in a misleading way.
@@ -14,7 +31,7 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 - **What changed:** rotation was already a free variable per element. It is now exposed as `rotation` = free / locked (one shared angle) / fixed.
 - **Exploratory observation, one seed, N = 16, trefoil β = 0.4, nearest-ring target:** worst nearest-ring |k| was 0.010 with free rotation, 0.040 locked and 0.045 fixed.
 
-### 2026-10-20 — Neighbour definition: frozen rule kept as default, 'ring1' added (PENDING Reza)
+### 2026-10-20 — Neighbour definition: frozen rule kept as default, 'ring1' added (superseded by the v1.1 entry above)
 - **Finding:** a trefoil at β = 0.4 nulls only at a centre spacing of about 1.14 Rf, which is heavy overlap. At that spacing, second-ring elements (about 1.97 Rf in a hexagonal layout) still overlap.
 - **Consequence:** under the frozen Design §5.1 definition (footprints overlap), the solver must null pairs that cannot be nulled together, and the problem is badly posed.
 - **Option added:** `target = 'ring1'` decouples only the nearest ring (closer than 1.35 × the pair-null spacing).

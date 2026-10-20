@@ -51,7 +51,8 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     sweeps2: 12,        // JUDG: max stage-2 sweeps.
     wNear: 2.0,         // DERIVED: footprints overlap when centre distance < 2 Rf -> weight 1.
     wTaper: 2.4,        // JUDG: weight fades linearly to 0 at 2.4 Rf so pairs can't "escape" by stepping just past 2 Rf.
-    target: 'footprint',// Design.md §5.1 (frozen): neighbours = footprints overlap (d < 2 Rf). Alternative 'ring1' = nearest ring only, see DECISIONS.md 2026-10-20.
+    target: 'ring1',    // Design.md v1.1 §5.1 (Reza, 2026-10-20): "decoupled" = nearest ring only. 'footprint' (= v1.0 rule,
+                        // footprints overlap, d < 2 Rf) remains selectable and its verdict is always reported too.
     ring1: 1.35,        // JUDG: 'ring1' neighbours are closer than 1.35 x the pair-null spacing (hexagonal 2nd ring sits at 1.73x). Alt: 1.25-1.5.
     ring1Taper: 1.55,   // JUDG: 'ring1' weight fades to 0 at 1.55 x null spacing.
     rotation: 'free',   // In-plane rotation: 'free' = each element optimised separately; 'locked' = one shared angle,

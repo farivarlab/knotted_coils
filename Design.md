@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.0 (approved by Reza Farivar, 2026-10-20) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.1 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 change to §5 approved by Reza 2026-10-20, see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -121,7 +121,7 @@ minimise   Σ_(i,j neighbours) k_ij²   +   λ_cov · (uncovered area)   +   λ_
 subject to wire-clearance constraints
 ```
 
-Neighbours are pairs whose footprints overlap or touch. The max term is there so one bad pair can't hide behind a good average.
+**Neighbours (v1.1):** the *nearest ring* — pairs whose centres are closer than 1.35 × the pair-null spacing (the spacing at which two flat elements have k = 0). In a hexagonal layout the second ring sits at about 1.73 × that spacing, so it is excluded. *(v1.0 defined neighbours as pairs whose footprints overlap or touch, d < 2 Rf. Knots null only at heavy overlap, about 1.14 Rf for a trefoil at β = 0.4, so under the v1.0 rule second-ring pairs also counted as neighbours and could not be nulled at the same time. The v1.0 rule stays selectable, and its verdict is always reported alongside.)* The max term is there so one bad pair can't hide behind a good average. **Not yet implemented — see §12, v1.1.**
 
 ### 5.2 Solver strategy (two stages, so it stays interactive)
 
@@ -134,7 +134,7 @@ Neighbours are pairs whose footprints overlap or touch. The max term is there so
 - On a curved helmet, elements have **irregular neighbour counts** (5, 6 or 7 neighbours, like the panels of a geodesic dome). A knot with q-fold symmetry generally **cannot null every neighbour at once**. The tool will:
   - show a per-pair residual |k_ij|, colour-coded, plus the worst pair and the median;
   - report **next-nearest-neighbour coupling**, which geometry cannot null even for circular loops and which is normally handled by preamplifier decoupling;
-  - never present the array as "fully decoupled" unless every neighbour pair meets the threshold. The default threshold is |k| < 0.01; that value is a placeholder, decision D6.
+  - never present the array as "fully decoupled" unless every neighbour pair (nearest ring, v1.1) meets the threshold. Always report the v1.0 verdict (all overlapping footprints) next to it. The default threshold is |k| < 0.01; that value is a placeholder, decision D6.
 - **N is unlimited in principle.** The performance target is interactive optimisation up to N = 64 and batch (slower) optimisation up to N = 128.
 
 ## 6. EM model
@@ -207,5 +207,10 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20, v1.1 (approved by Reza).**
+  - **§5.1 / §5.3, definition of "decoupled":** now means the *nearest ring* of neighbours (closer than 1.35 × the pair-null spacing). The v1.0 footprint-overlap rule remains a selectable option, and its verdict is always reported alongside.
+  - **Reason:** knotted elements null only at heavy overlap, so under the v1.0 rule second-ring pairs counted as neighbours, and they cannot be nulled together with the first ring. Evidence is in DECISIONS.md: on a 16-element trefoil test, nearest-ring |k| reached about 0.01 while second-ring |k| reached about 0.08.
+  - **Validation criteria V1–V6:** unchanged.
+  - **Implementation deviation, disclosed at the same time (found by Claude while making this change):** the λ_max·max|k| term of the §5.1 cost function was **not implemented** in the solver as built (git b21c784). The solver minimises Σ w·k² + λ_cov·gaps only. The worst pair is reported but not targeted. This is still open; whether to implement it is Reza's call.
 - **2026-10-20, v1.0 — FROZEN.** Reza approved all proposed defaults in §11 (D1–D7). Wire spec (D5) and helmet dimensions (D4) to follow from Reza; placeholders are used and labelled until then. Parameter tags follow the research-integrity code standard (LIT / CONV / JUDG / TUNED / DERIVED); "placeholder" values are tagged JUDG with the word PLACEHOLDER. The project also keeps `DECISIONS.md` and a README with a provenance and AI-use statement.
 - **2026-10-20, v0.1:** first draft from design conversation. Bloom = lobe amplitude with knot topology preserved; flat knots; wire loops (not PCB); helmet former; unlimited N with automatic decoupling.

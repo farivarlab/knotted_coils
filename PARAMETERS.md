@@ -23,7 +23,7 @@ Last updated 2026-10-20.
 |---|---|---|---|---|
 | Bloom range β | 0.02–0.9 (UI allows 0.005–0.95) | JUDG | Design §3.3. **Validation run 1 showed 0.02 is below the buildable floor for the placeholder wire**. See DECISIONS.md | knot, app |
 | Decoupling threshold \|k\| | 0.01 | JUDG PLACEHOLDER | Design D6; not yet justified from literature | `core/optimise.js` |
-| Neighbour definition | footprints overlap (d < 2 Rf) | JUDG | Design §5.1 (frozen). Alternative 'ring1' available; see DECISIONS.md | `core/optimise.js` |
+| Neighbour definition | nearest ring (d < 1.35 × pair-null spacing) | JUDG | Design v1.1 §5.1 (Reza, 2026-10-20). The v1.0 rule (footprints overlap, d < 2 Rf) is selectable and always reported | `core/optimise.js` |
 | Bloom mode | constant core | JUDG | Design D2 | app |
 | Rotation mode | free per element | JUDG | Reza 2026-10-20: rotation as a decoupling lever | `core/optimise.js` |
 
