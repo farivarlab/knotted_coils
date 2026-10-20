@@ -103,12 +103,14 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
 // V6 — topology preserved under bloom, for every catalogue knot (q = 1..8), core radius 30 mm.
 (function () {
   var betas = [0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
+  // Harness fix after run 1 (logged in DECISIONS.md): the reference over/under pattern is taken at the
+  // nominal bloom beta = 0.4, not at the first (most degenerate) beta; point count is adaptive. Criterion unchanged.
   K.catalogue().forEach(function (row) {
-    var refPat = null, fails = [];
+    var fails = [], ref = { p: row.p, q: row.q, beta: 0.4, size: 30, bloomMode: 'core' };
+    var nRef = K.adaptiveN(ref), refPat = K.crossings(K.points(Object.assign({}, ref, { h: K.solveLift(ref, c, nRef).h }), nRef)).pattern;
     betas.forEach(function (b) {
-      var prm = { p: row.p, q: row.q, beta: b, size: 30, bloomMode: 'core' }, n = 150 * row.p;
+      var prm = { p: row.p, q: row.q, beta: b, size: 30, bloomMode: 'core' }, n = K.adaptiveN(prm);
       var lift = K.solveLift(prm, c, n), P = K.points(Object.assign({}, prm, { h: lift.h }), n), cr = K.crossings(P);
-      if (refPat === null) refPat = cr.pattern;
       var ok = cr.list.length === row.crossings && K.samePattern(refPat, cr.pattern) && lift.feasible && lift.clearance >= c - 1e-9;
       if (!ok) fails.push({ beta: b, crossings: cr.list.length, expected: row.crossings, patternSame: K.samePattern(refPat, cr.pattern),
         liftFeasible: lift.feasible, clearance: lift.clearance });
@@ -120,6 +122,27 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
     criterion: 'crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i', verdict: allOK ? 'PASS' : 'FAIL',
     summary: rows.filter(function (r) { return !r.pass; }).map(function (r) { return r.knot + ' fails at beta=' + r.fails.map(function (f) { return f.beta; }).join(','); }).join('; ') || 'all knots pass',
     rows: rows });
+})();
+
+// POST-HOC (added after run 1): V6's test, restricted to blooms at or above the physical floor
+// betaMinPhysical for this wire. Informational only; it does not change V6's verdict.
+(function () {
+  var c = WIRE.d + 2 * WIRE.tIns, rows = [], allOK = true;
+  K.catalogue().forEach(function (row) {
+    var bmin = K.betaMinPhysical(row.p, 30, c), b0 = Math.ceil((bmin + 1e-9) * 200) / 200, fails = [];
+    var ref = { p: row.p, q: row.q, beta: 0.4, size: 30, bloomMode: 'core' }, nRef = K.adaptiveN(ref);
+    var refPat = K.crossings(K.points(Object.assign({}, ref, { h: K.solveLift(ref, c, nRef).h }), nRef)).pattern;
+    [b0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].filter(function (b) { return b >= b0; }).forEach(function (b) {
+      var prm = { p: row.p, q: row.q, beta: b, size: 30, bloomMode: 'core' }, n = K.adaptiveN(prm);
+      var lift = K.solveLift(prm, c, n), cr = K.crossings(K.points(Object.assign({}, prm, { h: lift.h }), n));
+      if (!(cr.list.length === row.crossings && K.samePattern(refPat, cr.pattern) && lift.feasible)) fails.push(b);
+    });
+    if (fails.length) allOK = false;
+    rows.push({ knot: 'T(' + row.p + ',' + row.q + ')', betaMinPhysical: bmin, testedFrom: b0, failsAt: fails });
+  });
+  rec({ id: 'PH2', title: 'POST-HOC: V6 test from the physical bloom floor (c / (2 R sin(pi/p))) upward',
+    criterion: 'post-hoc; not pre-registered (informational)', verdict: allOK ? 'AGREES' : 'DISAGREES',
+    summary: rows.map(function (r) { return r.knot + ' from ' + r.testedFrom + (r.failsAt.length ? ' FAILS ' + r.failsAt : ''); }).join('; '), rows: rows });
 })();
 
 // POST-HOC (added after pre-registration, 2026-10-20): Rosa & Grover worked Example 1 (pp. 20–21).

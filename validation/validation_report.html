@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Validation Report</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a2238}h1{color:#0b1f5c}table{border-collapse:collapse;width:100%;margin:.5rem 0 1.5rem;font-size:.9rem}td,th{border:1px solid #d7deea;padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#0b1f5c;color:#fff}.PASS,.AGREES{color:#0a7a3b;font-weight:700}.FAIL,.DISAGREES{color:#b3261e;font-weight:700}.NOT{color:#a15c00;font-weight:700}pre{background:#f4f7fb;padding:.5rem;overflow:auto;font-size:.8rem}</style></head><body><h1>Knotted-coil validation report</h1><p>Generated 2026-10-20T19:01:27.815Z · code git ced0980 · criteria pre-registered in Design.md v1.0 §7 (git 39a4e83). Wire: placeholder d = 1 mm, insulation 0.25 mm.</p><p><b>All pre-registered checks pass: NO</b></p><table><tr><th>ID</th><th>Check</th><th>Criterion</th><th>Verdict</th><th>Summary</th></tr><tr><td>V1</td><td>Mutual inductance, coaxial circles (r = 50, 40 mm; 400 points) vs Maxwell</td><td>relative error &lt; 0.5% at all 5 separations</td><td class="PASS">PASS</td><td>worst 0.0052%</td></tr><tr><td>V2</td><td>Self-inductance, circular loop R = 50 mm (400 points) vs mu0 R (ln(8R/a) - 2)</td><td>relative error &lt; 2% for R/a >= 50</td><td class="PASS">PASS</td><td>worst 0.656%</td></tr><tr><td>V3</td><td>Zero-coupling centre spacing, two coplanar circles</td><td>within 1% of the VERIFIED literature value</td><td class="NOT">NOT EVALUABLE</td><td>computed spacing = 0.7604 x diameter; no VERIFIED reference value available</td></tr><tr><td>V4</td><td>Convergence of k, trefoil pair (Rf = 40 mm), 300 -> 600 points (final-report resolution)</td><td>|k(2n) - k(n)| &lt; 0.001</td><td class="PASS">PASS</td><td>worst change 1.42e-4</td></tr><tr><td>V5</td><td>Symmetry: swap of the two elements, and rotation of both by 2pi/q</td><td>relative difference &lt; 1e-9 (machine-precision level)</td><td class="PASS">PASS</td><td>worst 4.11e-14</td></tr><tr><td>V6</td><td>Topology and clearance across bloom beta = 0.02–0.9 (catalogue knots, core R = 30 mm, placeholder wire)</td><td>crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i</td><td class="FAIL">FAIL</td><td>unknot (2-turn) T(2,1) fails at beta=0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9; trefoil T(3,2) fails at beta=0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9; trefoil T(2,3) fails at beta=0.02; T(3,4) = 8_19 T(3,4) fails at beta=0.02; cinquefoil T(2,5) fails at beta=0.02,0.9; T(5,6) T(5,6) fails at beta=0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9; T(2,7) = 7_1 T(2,7) fails at beta=0.02; T(3,8) T(3,8) fails at beta=0.02</td></tr><tr><td>PH1</td><td>POST-HOC: Maxwell implementation vs Rosa &amp; Grover Example 1 (A = a = 25 cm, d = 20 cm -> 167.08562 cm = nH)</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>167.08578 nH, rel diff 9.79e-7</td></tr></table><h3>V1</h3><p>Reference: Rosa &amp; Grover 1912, Bull. Bureau of Standards 8:1–237, p. 6 eq. [1] — VERIFIED</p><pre>[
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Validation Report</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a2238}h1{color:#0b1f5c}table{border-collapse:collapse;width:100%;margin:.5rem 0 1.5rem;font-size:.9rem}td,th{border:1px solid #d7deea;padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#0b1f5c;color:#fff}.PASS,.AGREES{color:#0a7a3b;font-weight:700}.FAIL,.DISAGREES{color:#b3261e;font-weight:700}.NOT{color:#a15c00;font-weight:700}pre{background:#f4f7fb;padding:.5rem;overflow:auto;font-size:.8rem}</style></head><body><h1>Knotted-coil validation report</h1><p>Generated 2026-10-20T19:04:30.596Z · code git 9f89d91 · criteria pre-registered in Design.md v1.0 §7 (git 39a4e83). Wire: placeholder d = 1 mm, insulation 0.25 mm.</p><p><b>All pre-registered checks pass: NO</b></p><table><tr><th>ID</th><th>Check</th><th>Criterion</th><th>Verdict</th><th>Summary</th></tr><tr><td>V1</td><td>Mutual inductance, coaxial circles (r = 50, 40 mm; 400 points) vs Maxwell</td><td>relative error &lt; 0.5% at all 5 separations</td><td class="PASS">PASS</td><td>worst 0.0052%</td></tr><tr><td>V2</td><td>Self-inductance, circular loop R = 50 mm (400 points) vs mu0 R (ln(8R/a) - 2)</td><td>relative error &lt; 2% for R/a >= 50</td><td class="PASS">PASS</td><td>worst 0.656%</td></tr><tr><td>V3</td><td>Zero-coupling centre spacing, two coplanar circles</td><td>within 1% of the VERIFIED literature value</td><td class="NOT">NOT EVALUABLE</td><td>computed spacing = 0.7604 x diameter; no VERIFIED reference value available</td></tr><tr><td>V4</td><td>Convergence of k, trefoil pair (Rf = 40 mm), 300 -> 600 points (final-report resolution)</td><td>|k(2n) - k(n)| &lt; 0.001</td><td class="PASS">PASS</td><td>worst change 1.42e-4</td></tr><tr><td>V5</td><td>Symmetry: swap of the two elements, and rotation of both by 2pi/q</td><td>relative difference &lt; 1e-9 (machine-precision level)</td><td class="PASS">PASS</td><td>worst 4.11e-14</td></tr><tr><td>V6</td><td>Topology and clearance across bloom beta = 0.02–0.9 (catalogue knots, core R = 30 mm, placeholder wire)</td><td>crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i</td><td class="FAIL">FAIL</td><td>unknot (2-turn) T(2,1) fails at beta=0.02; trefoil T(3,2) fails at beta=0.02; trefoil T(2,3) fails at beta=0.02; T(3,4) = 8_19 T(3,4) fails at beta=0.02; cinquefoil T(2,5) fails at beta=0.02; T(5,6) T(5,6) fails at beta=0.02; T(2,7) = 7_1 T(2,7) fails at beta=0.02; T(3,8) T(3,8) fails at beta=0.02</td></tr><tr><td>PH2</td><td>POST-HOC: V6 test from the physical bloom floor (c / (2 R sin(pi/p))) upward</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>T(2,1) from 0.03; T(3,2) from 0.03; T(2,3) from 0.03; T(3,4) from 0.03; T(2,5) from 0.03; T(5,6) from 0.045; T(2,7) from 0.03; T(3,8) from 0.03</td></tr><tr><td>PH1</td><td>POST-HOC: Maxwell implementation vs Rosa &amp; Grover Example 1 (A = a = 25 cm, d = 20 cm -> 167.08562 cm = nH)</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>167.08578 nH, rel diff 9.79e-7</td></tr></table><h3>V1</h3><p>Reference: Rosa &amp; Grover 1912, Bull. Bureau of Standards 8:1–237, p. 6 eq. [1] — VERIFIED</p><pre>[
  {
   "d_mm": 5,
   "numeric_nH": 84.42789870378849,
@@ -127,91 +127,11 @@
   "fails": [
    {
     "beta": 0.02,
-    "crossings": 3,
+    "crossings": 1,
     "expected": 1,
     "patternSame": true,
     "liftFeasible": false,
     "clearance": 1.2000000000000028
-   },
-   {
-    "beta": 0.05,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.1,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.2,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.3,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.4,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.5,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.6,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.7,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.8,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
-   },
-   {
-    "beta": 0.9,
-    "crossings": 1,
-    "expected": 1,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
    }
   ]
  },
@@ -221,91 +141,11 @@
   "fails": [
    {
     "beta": 0.02,
-    "crossings": 6,
+    "crossings": 4,
     "expected": 4,
     "patternSame": true,
     "liftFeasible": false,
-    "clearance": 1.0549149301364784
-   },
-   {
-    "beta": 0.05,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.1,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.2,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.3,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.4,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.5,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.6,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.7,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.8,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
-   },
-   {
-    "beta": 0.9,
-    "crossings": 4,
-    "expected": 4,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000214705933
+    "clearance": 1.0392304845413303
    }
   ]
  },
@@ -333,7 +173,7 @@
     "expected": 8,
     "patternSame": true,
     "liftFeasible": false,
-    "clearance": 1.0549149301364784
+    "clearance": 1.039230484541328
    }
   ]
  },
@@ -348,14 +188,6 @@
     "patternSame": true,
     "liftFeasible": false,
     "clearance": 1.200000000000002
-   },
-   {
-    "beta": 0.9,
-    "crossings": 4,
-    "expected": 5,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.5000000223517418
    }
   ]
  },
@@ -365,91 +197,11 @@
   "fails": [
    {
     "beta": 0.02,
-    "crossings": 30,
+    "crossings": 24,
     "expected": 24,
     "patternSame": true,
     "liftFeasible": false,
-    "clearance": 0.7392757729771026
-   },
-   {
-    "beta": 0.05,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.1,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.2,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.3,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.4,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.5,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.6,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.7,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.8,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
-   },
-   {
-    "beta": 0.9,
-    "crossings": 24,
-    "expected": 24,
-    "patternSame": false,
-    "liftFeasible": true,
-    "clearance": 1.500000015524222
+    "clearance": 0.7053423027509604
    }
   ]
  },
@@ -463,7 +215,7 @@
     "expected": 7,
     "patternSame": true,
     "liftFeasible": false,
-    "clearance": 1.2000000000000028
+    "clearance": 1.1999999999999993
    }
   ]
  },
@@ -477,8 +229,57 @@
     "expected": 16,
     "patternSame": true,
     "liftFeasible": false,
-    "clearance": 1.054914930136453
+    "clearance": 1.0392304845413232
    }
   ]
+ }
+]</pre><h3>PH2</h3><pre>[
+ {
+  "knot": "T(2,1)",
+  "betaMinPhysical": 0.025,
+  "testedFrom": 0.03,
+  "failsAt": []
+ },
+ {
+  "knot": "T(3,2)",
+  "betaMinPhysical": 0.02886751345948129,
+  "testedFrom": 0.03,
+  "failsAt": []
+ },
+ {
+  "knot": "T(2,3)",
+  "betaMinPhysical": 0.025,
+  "testedFrom": 0.03,
+  "failsAt": []
+ },
+ {
+  "knot": "T(3,4)",
+  "betaMinPhysical": 0.02886751345948129,
+  "testedFrom": 0.03,
+  "failsAt": []
+ },
+ {
+  "knot": "T(2,5)",
+  "betaMinPhysical": 0.025,
+  "testedFrom": 0.03,
+  "failsAt": []
+ },
+ {
+  "knot": "T(5,6)",
+  "betaMinPhysical": 0.042532540417601995,
+  "testedFrom": 0.045,
+  "failsAt": []
+ },
+ {
+  "knot": "T(2,7)",
+  "betaMinPhysical": 0.025,
+  "testedFrom": 0.03,
+  "failsAt": []
+ },
+ {
+  "knot": "T(3,8)",
+  "betaMinPhysical": 0.02886751345948129,
+  "testedFrom": 0.03,
+  "failsAt": []
  }
 ]</pre><h3>PH1</h3></body></html>

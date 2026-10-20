@@ -175,9 +175,31 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
     return { h: hi, clearance: clr(hi), feasible: true };
   };
 
+  // Smallest buildable bloom for a given wire (found by validation run 1, 2026-10-20; see DECISIONS.md).
+  // Near a strand, the knot sits on a thin elliptical tube (in-plane radius beta*R, lift h); the p strands
+  // are spread evenly round it, so neighbouring strands are at best 2*beta*R*sin(pi/p) apart in-plane.
+  // DERIVED (Claude's geometric argument, approximate); agrees with solveLift numerically to within one
+  // 0.005 beta step for p = 2, 3, 5 at R = 30 mm, c = 1.5 mm.
+  knot.betaMinPhysical = function (p, R, clear) {
+    return p < 2 ? 0 : clear / (2 * R * Math.sin(Math.PI / p));
+  };
+
+  // Enough points to resolve every crossing: start at 100*p*q (at least 400) and double until
+  // the crossing count stops changing (max 6400). Validation run 1 showed 300 points missing a
+  // crossing of T(2,5) at beta = 0.9.
+  knot.adaptiveN = function (prm, h) {
+    var n = Math.max(400, 100 * prm.p * prm.q), last = -1;
+    while (n <= 6400) {
+      var c = knot.crossings(knot.points(Object.assign({}, prm, { h: h || 1 }), n)).list.length;
+      if (c === last) return n / 2;
+      last = c; n *= 2;
+    }
+    return 6400;
+  };
+
   // Everything a user needs to judge one element: geometry + fabrication checks.
   knot.report = function (prm, wire, n) {
-    n = n || 400;
+    n = n || knot.adaptiveN(prm);
     var clear = wire.d + 2 * wire.tIns;
     var lift = knot.solveLift(prm, clear, n);
     var P = knot.points(Object.assign({}, prm, { h: lift.h }), n);
@@ -187,7 +209,8 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       name: knot.name(prm.p, prm.q), coreRadius: knot.coreRadius(prm), footprintRadius: knot.footprintRadius(prm),
       h: lift.h, liftFeasible: lift.feasible, minClearance: lift.clearance, requiredClearance: clear,
       wireLength: knot.wireLength(P), crossings: cr.list.length, expectedCrossings: knot.expectedCrossings(prm.p, prm.q),
-      pattern: cr.pattern, minBendRadius: bend, bendOK: bend >= wire.minBend, points: P
+      pattern: cr.pattern, minBendRadius: bend, bendOK: bend >= wire.minBend, points: P, n: n,
+      betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear)
     };
   };
 });

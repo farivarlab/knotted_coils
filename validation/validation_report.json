@@ -1,6 +1,6 @@
 {
- "generated": "2026-10-20T19:01:27.815Z",
- "git": "ced0980",
+ "generated": "2026-10-20T19:04:30.596Z",
+ "git": "9f89d91",
  "wire": {
   "d": 1,
   "tIns": 0.25,
@@ -178,7 +178,7 @@
    "title": "Topology and clearance across bloom beta = 0.02–0.9 (catalogue knots, core R = 30 mm, placeholder wire)",
    "criterion": "crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i",
    "verdict": "FAIL",
-   "summary": "unknot (2-turn) T(2,1) fails at beta=0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9; trefoil T(3,2) fails at beta=0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9; trefoil T(2,3) fails at beta=0.02; T(3,4) = 8_19 T(3,4) fails at beta=0.02; cinquefoil T(2,5) fails at beta=0.02,0.9; T(5,6) T(5,6) fails at beta=0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9; T(2,7) = 7_1 T(2,7) fails at beta=0.02; T(3,8) T(3,8) fails at beta=0.02",
+   "summary": "unknot (2-turn) T(2,1) fails at beta=0.02; trefoil T(3,2) fails at beta=0.02; trefoil T(2,3) fails at beta=0.02; T(3,4) = 8_19 T(3,4) fails at beta=0.02; cinquefoil T(2,5) fails at beta=0.02; T(5,6) T(5,6) fails at beta=0.02; T(2,7) = 7_1 T(2,7) fails at beta=0.02; T(3,8) T(3,8) fails at beta=0.02",
    "rows": [
     {
      "knot": "unknot (2-turn) T(2,1)",
@@ -186,91 +186,11 @@
      "fails": [
       {
        "beta": 0.02,
-       "crossings": 3,
+       "crossings": 1,
        "expected": 1,
        "patternSame": true,
        "liftFeasible": false,
        "clearance": 1.2000000000000028
-      },
-      {
-       "beta": 0.05,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.1,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.2,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.3,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.4,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.5,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.6,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.7,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.8,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
-      },
-      {
-       "beta": 0.9,
-       "crossings": 1,
-       "expected": 1,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
       }
      ]
     },
@@ -280,91 +200,11 @@
      "fails": [
       {
        "beta": 0.02,
-       "crossings": 6,
+       "crossings": 4,
        "expected": 4,
        "patternSame": true,
        "liftFeasible": false,
-       "clearance": 1.0549149301364784
-      },
-      {
-       "beta": 0.05,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.1,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.2,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.3,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.4,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.5,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.6,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.7,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.8,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
-      },
-      {
-       "beta": 0.9,
-       "crossings": 4,
-       "expected": 4,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000214705933
+       "clearance": 1.0392304845413303
       }
      ]
     },
@@ -392,7 +232,7 @@
        "expected": 8,
        "patternSame": true,
        "liftFeasible": false,
-       "clearance": 1.0549149301364784
+       "clearance": 1.039230484541328
       }
      ]
     },
@@ -407,14 +247,6 @@
        "patternSame": true,
        "liftFeasible": false,
        "clearance": 1.200000000000002
-      },
-      {
-       "beta": 0.9,
-       "crossings": 4,
-       "expected": 5,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.5000000223517418
       }
      ]
     },
@@ -424,91 +256,11 @@
      "fails": [
       {
        "beta": 0.02,
-       "crossings": 30,
+       "crossings": 24,
        "expected": 24,
        "patternSame": true,
        "liftFeasible": false,
-       "clearance": 0.7392757729771026
-      },
-      {
-       "beta": 0.05,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.1,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.2,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.3,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.4,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.5,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.6,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.7,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.8,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
-      },
-      {
-       "beta": 0.9,
-       "crossings": 24,
-       "expected": 24,
-       "patternSame": false,
-       "liftFeasible": true,
-       "clearance": 1.500000015524222
+       "clearance": 0.7053423027509604
       }
      ]
     },
@@ -522,7 +274,7 @@
        "expected": 7,
        "patternSame": true,
        "liftFeasible": false,
-       "clearance": 1.2000000000000028
+       "clearance": 1.1999999999999993
       }
      ]
     },
@@ -536,9 +288,66 @@
        "expected": 16,
        "patternSame": true,
        "liftFeasible": false,
-       "clearance": 1.054914930136453
+       "clearance": 1.0392304845413232
       }
      ]
+    }
+   ]
+  },
+  {
+   "id": "PH2",
+   "title": "POST-HOC: V6 test from the physical bloom floor (c / (2 R sin(pi/p))) upward",
+   "criterion": "post-hoc; not pre-registered (informational)",
+   "verdict": "AGREES",
+   "summary": "T(2,1) from 0.03; T(3,2) from 0.03; T(2,3) from 0.03; T(3,4) from 0.03; T(2,5) from 0.03; T(5,6) from 0.045; T(2,7) from 0.03; T(3,8) from 0.03",
+   "rows": [
+    {
+     "knot": "T(2,1)",
+     "betaMinPhysical": 0.025,
+     "testedFrom": 0.03,
+     "failsAt": []
+    },
+    {
+     "knot": "T(3,2)",
+     "betaMinPhysical": 0.02886751345948129,
+     "testedFrom": 0.03,
+     "failsAt": []
+    },
+    {
+     "knot": "T(2,3)",
+     "betaMinPhysical": 0.025,
+     "testedFrom": 0.03,
+     "failsAt": []
+    },
+    {
+     "knot": "T(3,4)",
+     "betaMinPhysical": 0.02886751345948129,
+     "testedFrom": 0.03,
+     "failsAt": []
+    },
+    {
+     "knot": "T(2,5)",
+     "betaMinPhysical": 0.025,
+     "testedFrom": 0.03,
+     "failsAt": []
+    },
+    {
+     "knot": "T(5,6)",
+     "betaMinPhysical": 0.042532540417601995,
+     "testedFrom": 0.045,
+     "failsAt": []
+    },
+    {
+     "knot": "T(2,7)",
+     "betaMinPhysical": 0.025,
+     "testedFrom": 0.03,
+     "failsAt": []
+    },
+    {
+     "knot": "T(3,8)",
+     "betaMinPhysical": 0.02886751345948129,
+     "testedFrom": 0.03,
+     "failsAt": []
     }
    ]
   },
