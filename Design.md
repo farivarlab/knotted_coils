@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.2 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 change to §5 and v1.2 change to §3 requested and approved by Reza 2026-10-20, see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.3 (v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2 and v1.3 (§3, §7 V7) requested and approved by Reza 2026-10-20, see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -157,6 +157,7 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V4 | Convergence | Internal | k changes < 0.001 when the point count doubles |
 | V5 | Symmetry | Internal | M_ij = M_ji to machine precision; k invariant under rotating both elements by 2π/q |
 | V6 | Topology preserved under bloom | Internal | Crossing count and over/under pattern unchanged across β ∈ [β_min, β_max]; minimum self-clearance ≥ d_w + 2·t_i |
+| V7 *(added v1.3, pre-registered before running)* | Topology preserved under petal sharpness | Internal | Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i |
 
 If a check fails, the app shows a banner and every EM output is labelled "UNVALIDATED".
 
@@ -209,6 +210,14 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20, v1.3 (requested by Reza): petal sharpness.**
+  - **Request (Reza):** "Add a petal-sharpness control that narrows each lobe, with the same topology checks."
+  - **§3.1 outward shape becomes** r = R(1 + β·((1 + cos qφ)/2)^m), with sharpness m ≥ 1.
+    - m = 1 is exactly the v1.2 shape. Larger m narrows each lobe while keeping its tip and base radius fixed.
+    - Range 1–16 (JUDG). It does not apply to the symmetric v1.0 shape.
+  - **Lobe aspect ratio** (length ÷ width at half length) is now reported.
+  - **The bloom-floor formula assumes m = 1.** For m > 1, buildability is judged by the clearance check alone.
+  - **New check V7 (§7):** pre-registered and committed before it was run.
 - **2026-10-20, v1.2 (requested by Reza): bloom extends the lobes instead of pinching.**
   - **Request (Reza):** "currently, 'bloom' is just pinching a portion of the loop. I want 'bloom' to make the lobes more extended, such that each lobe's aspect ratio would increase as I increase 'bloom'."
   - **New default §3.1 shape ("outward"):** r = R(1 + β(1 + cos qφ)/2).

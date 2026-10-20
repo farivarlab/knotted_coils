@@ -70,13 +70,15 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   // Points of the closed curve (first point not repeated). prm: {p,q,beta,size,bloomMode,theta,h}
   knot.points = function (prm, n) {
     var R = knot.coreRadius(prm), p = prm.p, q = prm.q, b = prm.beta, th = prm.theta || 0, h = prm.h || 0;
-    var shape = prm.bloomShape || 'outward';
+    var shape = prm.bloomShape || 'outward', m = prm.sharpness || 1;
     var P = new Array(n);
     for (var i = 0; i < n; i++) {
       var phi = 2 * Math.PI * i / n, c = Math.cos(q * phi);
       // 'outward' (Design v1.2 default): base circle R stays put, lobes grow outward to R(1+beta), so each lobe
       // gets longer at fixed base width (aspect ratio rises with beta). 'symmetric' (v1.0): lobes out AND waist in.
-      var r = shape === 'symmetric' ? R * (1 + b * c) : R * (1 + b * (1 + c) / 2);
+      // Petal sharpness m (Design v1.3, outward shape only): raising the lobe profile (1+c)/2 to the power m keeps
+      // the tip (profile 1) and the base (profile 0) where they are but narrows the bump. m = 1 is the v1.2 shape.
+      var r = shape === 'symmetric' ? R * (1 + b * c) : R * (1 + b * Math.pow((1 + c) / 2, m));
       P[i] = [r * Math.cos(p * phi + th), r * Math.sin(p * phi + th), h * Math.sin(q * phi)];
     }
     return P;
@@ -182,6 +184,18 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
     return { h: hi, clearance: clr(hi), feasible: true };
   };
 
+  // Lobe aspect ratio = lobe length / lobe width at half its length (both in the flat drawing).
+  // Half length is where the profile ((1+cos psi)/2)^m = 1/2, i.e. cos psi = 2 * 0.5^(1/m) - 1, with psi = q*phi.
+  // The matching angle around the centre is psi * p / q; width = 2 * that angle * radius at half length.
+  // DERIVED (Claude), from the curve formula; the symmetric shape uses m = 1 and length 2*beta*R.
+  knot.lobeAspect = function (prm) {
+    var R = knot.coreRadius(prm), sym = prm.bloomShape === 'symmetric', m = sym ? 1 : (prm.sharpness || 1);
+    var psiHalf = Math.acos(2 * Math.pow(0.5, 1 / m) - 1), ang = psiHalf * prm.p / prm.q;
+    var len = sym ? 2 * prm.beta * R : prm.beta * R, rHalf = sym ? R : R * (1 + prm.beta / 2);
+    var width = 2 * ang * rHalf;
+    return { length: len, width: width, aspect: len / width };
+  };
+
   // Smallest buildable bloom for a given wire (found by validation run 1, 2026-10-20; see DECISIONS.md).
   // Near a strand, the knot sits on a thin elliptical tube (in-plane radius beta*R, lift h); the p strands
   // are spread evenly round it, so neighbouring strands are at best 2*beta*R*sin(pi/p) apart in-plane.
@@ -219,7 +233,10 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       h: lift.h, liftFeasible: lift.feasible, minClearance: lift.clearance, requiredClearance: clear,
       wireLength: knot.wireLength(P), crossings: cr.list.length, expectedCrossings: knot.expectedCrossings(prm.p, prm.q),
       pattern: cr.pattern, minBendRadius: bend, bendOK: bend >= wire.minBend, points: P, n: n,
-      betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear, prm.bloomShape)
+      betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear, prm.bloomShape),
+      // the floor formula assumes the m = 1 profile; for sharper petals rely on the clearance check instead
+      floorApplies: prm.bloomShape === 'symmetric' || (prm.sharpness || 1) === 1,
+      lobe: knot.lobeAspect(prm)
     };
   };
 });
