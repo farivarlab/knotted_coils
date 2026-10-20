@@ -13,7 +13,7 @@ change any pre-registered verdict.
 'use strict';
 var fs = require('fs'), path = require('path');
 var root = path.join(__dirname, '..');
-['knot', 'inductance', 'surface', 'layout', 'optimise'].forEach(function (m) { require(path.join(root, 'core', m + '.js')); });
+['knot', 'inductance', 'surface', 'layout', 'optimise', 'field'].forEach(function (m) { require(path.join(root, 'core', m + '.js')); });
 var KC = globalThis.KC, I = KC.ind, K = KC.knot;
 
 var WIRE = { d: 1.0, tIns: 0.25, minBend: 2 };   // JUDG PLACEHOLDER wire (Design.md D5) until Reza supplies the spec
@@ -147,6 +147,18 @@ function rec(r) { results.push(r); console.log((r.verdict + '        ').slice(0,
     criterion: 'crossing count = q(p-1); pattern equal to m=1, beta=0.4; lift solvable with clearance >= d_w + 2 t_i', verdict: allOK ? 'PASS' : 'FAIL',
     summary: rows.filter(function (r) { return !r.pass; }).map(function (r) { return r.knot + ' fails at ' + r.fails.map(function (f) { return 'm=' + f.m + '/b=' + f.beta; }).join(','); }).join('; ') || 'all knots pass at all 45 (m, beta) points',
     rows: rows, note: 'Tightest bend radius per knot is shown for information only (not part of the criterion).' });
+})();
+
+// V8 — on-axis field of a circular loop vs closed form (pre-registered in Design.md v1.5, git ff1a40e).
+(function () {
+  var W = I.prep(I.circle(50, 400)), rows = [], worst = 0;
+  [0, 10, 20, 40, 80].forEach(function (z) {
+    var num = KC.field.magnitude(W, 0, 0, z), ref = KC.field.onAxisLoop(50, z), e = (num - ref) / ref;
+    worst = Math.max(worst, Math.abs(e)); rows.push({ z_mm: z, numeric_uT_per_A: num, closedForm_uT_per_A: ref, relErr: e });
+  });
+  rec({ id: 'V8', title: 'B1 (Biot–Savart) on the axis of a circular loop, R = 50 mm, 400 points, vs closed form',
+    criterion: 'relative error < 0.5% at z = 0, 10, 20, 40, 80 mm', verdict: worst < 0.005 ? 'PASS' : 'FAIL',
+    summary: 'worst ' + (worst * 100).toFixed(4) + '%', rows: rows, reference: 'Closed form DERIVED from Biot–Savart (core/field.js header); not a literature value' });
 })();
 
 // POST-HOC (added after run 1): V6's test, restricted to blooms at or above the physical floor

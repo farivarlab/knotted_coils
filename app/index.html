@@ -178,7 +178,14 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
     <div class="exploratory" id="arrLabel">Geometric decoupling estimate (quasi-static filament model), EXPLORATORY. Confirm with full-wave simulation or bench S21 before building.</div>
     <div class="grid2">
       <div class="card"><h3>Array (drag to rotate, wheel to zoom, click a wire to select)</h3><div id="three"></div>
-        <div class="legend"><span><i style="background:#2e9e5b"></i>all target pairs |k| &lt; threshold</span><span><i style="background:#e0a030"></i>worst &lt; 3× threshold</span><span><i style="background:#d9473f"></i>worse</span><span><i style="background:#3b82f6"></i>selected</span></div></div>
+        <div class="legend"><span><i style="background:#2e9e5b"></i>all target pairs |k| &lt; threshold</span><span><i style="background:#e0a030"></i>worst &lt; 3× threshold</span><span><i style="background:#d9473f"></i>worse</span><span><i style="background:#3b82f6"></i>selected</span></div>
+        <h3 style="margin-top:14px">B1 field (quick look)</h3>
+        <label class="row">B1 view <select id="b1mode"><option value="off">off</option><option value="surface">on head surface (3D)</option><option value="slice">slice</option></select></label>
+        <label class="row">Slice plane <select id="b1plane"><option value="axial">axial (from above)</option><option value="coronal">coronal (from front)</option><option value="sagittal">sagittal (from side)</option></select></label>
+        <div class="slider"><div class="top"><span>Slice position</span><b id="b1posV">40 mm</b></div><input type="range" id="b1pos" min="-100" max="120" step="2" value="40"></div>
+        <canvas id="b1slice" class="view" height="380" style="display:none"></canvas>
+        <div class="legend" id="b1legend" style="display:none"><span style="display:inline-block;width:160px;height:10px;border-radius:2px;background:linear-gradient(90deg,#440154,#3b528b,#21918c,#5ec962,#fde725)"></span><span>−30 dB → 0 dB (relative to the maximum shown)</span></div>
+        <p class="note">All elements combined as √Σ|B1ᵢ|² (1 A each); click a wire to show that element alone. Head = helmet minus 10 mm (placeholder). Quasi-static Biot–Savart: no tissue or wave effects — for comparing coverage and depth fall-off between designs only.</p></div>
       <div class="card"><h3>Result</h3><table class="kv" id="arrTable"><tr><td>No solution yet</td><td>Press Fast solve</td></tr></table>
         <h3 style="margin-top:14px">Coupling matrix k<sub>ij</sub></h3>
         <canvas id="heat" width="360" height="360"></canvas>
@@ -196,6 +203,7 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 <script src="../core/surface.js"></script>
 <script src="../core/layout.js"></script>
 <script src="../core/optimise.js"></script>
+<script src="../core/field.js"></script>
 <script src="../validation/validation_status.js" onerror="window.KC_VALIDATION=null"></script>
 <script>
 'use strict';
@@ -361,8 +369,14 @@ function workerMain() {
         var r = KC.opt.run(m.cfg, function (p) { var t = Date.now(); if (t - last > 120) { last = t; postMessage({ type: 'progress', p: p }); } }, m.which);
         postMessage({ type: 'result', r: r });
       } else if (m.cmd === 'element') {
-        var n = Math.min(KC.knot.adaptiveN(m.prm), 1600), rep = KC.knot.report(m.prm, m.wire, n);
-        postMessage({ type: 'element', id: m.id, rep: rep, n: n, L: KC.ind.selfL(rep.points, m.wire.d / 2) });
+        // full adaptive point count (up to 25600) so the crossing check is trustworthy; self-L on <= 800 points
+        var n = KC.knot.adaptiveN(m.prm), rep = KC.knot.report(m.prm, m.wire, n), st = Math.max(1, Math.ceil(n / 800));
+        var Ps = rep.points.filter(function (_, i) { return i % st === 0; });
+        postMessage({ type: 'element', id: m.id, rep: rep, n: n, L: KC.ind.selfL(Ps, m.wire.d / 2) });
+      } else if (m.cmd === 'b1') {
+        var W = KC.field.prepWires(m.wires, 200);
+        var G = m.mode === 'surface' ? KC.field.surfacePoints(m.H, 96, 40) : KC.field.slicePoints(m.H, m.plane, m.offset, 110);
+        postMessage({ type: 'b1', mode: m.mode, plane: m.plane, offset: m.offset, n: G.n, ext: G.ext, per: KC.field.atPoints(W, G.pts) });
       } else if (m.cmd === 'pair') {
         postMessage({ type: 'pair', r: KC.opt.pairScan(m.kp, m.Rf, m.wire, m.a1, m.a2) });
       }
@@ -516,8 +530,24 @@ var view3d = (function () {
     sel = i;
     wires.forEach(function (w) { w.material.color.setHex(w.userData.i === i ? colours.sel : colours[w.userData.status]); });
     render(); showPairs(i);
+    b1Sel = i; if (b1Res) drawB1();
   }
-  return { resize: resize, helmet: helmet, setWires: setWires, render: render, select: select };
+  // B1 colours on the placeholder head surface (null = remove)
+  var headMesh = null;
+  function setHead(H, cols) {
+    if (headMesh) { world.remove(headMesh); headMesh.geometry.dispose(); headMesh = null; }
+    if (H) {
+      var G = KC.field.surfacePoints(H, 96, 40), pos = [], col = [], idx = [], nu = G.nu, nv = G.nv;
+      G.pts.forEach(function (p, k) { pos.push(p[0], p[1], p[2]); col.push(cols[3 * k], cols[3 * k + 1], cols[3 * k + 2]); });
+      for (var j = 0; j < nv; j++) for (var i = 0; i < nu; i++) { var a = j * (nu + 1) + i, b = a + 1, c = a + nu + 1, d = c + 1; idx.push(a, b, d, a, d, c); }
+      var geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+      headMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      world.add(headMesh);
+    }
+    render();
+  }
+  return { resize: resize, helmet: helmet, setWires: setWires, render: render, select: select, setHead: setHead };
 })();
 
 // ---------- array solve ----------
@@ -572,7 +602,70 @@ function showArray() {
   ];
   $('arrTable').innerHTML = rows.map(function (x) { return '<tr><td>' + x[0] + '</td><td>' + x[1] + '</td></tr>'; }).join('');
   drawHeat(); showPairs(-1);
+  b1Res = null; b1Sel = -1; if ($('b1mode').value !== 'off') b1Request();
 }
+
+// ---------- B1 quick look (Design v1.5): computed in a worker, coloured in dB relative to the maximum shown ----------
+var b1Res = null, b1Sel = -1, b1Worker = null, b1Busy = false;
+function b1Request() {
+  var mode = $('b1mode').value;
+  if (!arrRes || mode === 'off') { b1Res = null; view3d.setHead(null); $('b1slice').style.display = 'none'; $('b1legend').style.display = 'none'; return; }
+  if (b1Busy && b1Worker) { b1Worker.terminate(); b1Worker = null; }
+  if (!b1Worker) { b1Worker = new Worker(workerURL); b1Worker.onmessage = onB1; }
+  b1Busy = true; $('status').textContent = 'Computing B1 map…';
+  b1Worker.postMessage({ cmd: 'b1', wires: arrRes.wires, H: arrRes.config.helmet, mode: mode, plane: $('b1plane').value, offset: +$('b1pos').value });
+}
+function onB1(e) {
+  b1Busy = false;
+  if (e.data.type === 'error') { $('status').textContent = 'B1 error: ' + e.data.msg; return; }
+  b1Res = e.data; $('status').textContent = 'B1 map ready.'; drawB1();
+}
+function b1Values() {
+  var per = b1Res.per, n = per[0].length, out = new Float32Array(n);
+  for (var k = 0; k < n; k++) {
+    if (b1Sel >= 0 && b1Sel < per.length) { out[k] = per[b1Sel][k]; continue; }
+    var s = 0; for (var i = 0; i < per.length; i++) s += per[i][k] * per[i][k];
+    out[k] = Math.sqrt(s);   // NaN stays NaN (outside the head)
+  }
+  return out;
+}
+var VIRIDIS = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+function b1Colour(v, max) {   // dB relative to max, -30..0 dB -> viridis
+  var t = Math.max(0, Math.min(1, (20 * Math.log10(v / max) + 30) / 30)) * 4, i = Math.min(3, Math.floor(t)), f = t - i, A = VIRIDIS[i], B = VIRIDIS[i + 1];
+  return [A[0] + (B[0] - A[0]) * f, A[1] + (B[1] - A[1]) * f, A[2] + (B[2] - A[2]) * f];
+}
+function drawB1() {
+  if (!b1Res) return;
+  var vals = b1Values(), max = 0;
+  for (var k = 0; k < vals.length; k++) if (vals[k] > max) max = vals[k];
+  $('b1legend').style.display = 'flex';
+  if (b1Res.mode === 'surface') {
+    var cols = new Float32Array(vals.length * 3);
+    for (var k2 = 0; k2 < vals.length; k2++) { var c = b1Colour(vals[k2], max); cols[3 * k2] = c[0] / 255; cols[3 * k2 + 1] = c[1] / 255; cols[3 * k2 + 2] = c[2] / 255; }
+    $('b1slice').style.display = 'none'; view3d.setHead(arrRes.config.helmet, cols);
+    $('status').textContent = 'B1 on head surface: max ' + max.toFixed(1) + ' µT/A' + (b1Sel >= 0 ? ' (element ' + b1Sel + ')' : ' (all, root-sum-of-squares)');
+    return;
+  }
+  view3d.setHead(null);
+  var cv = $('b1slice'); cv.style.display = 'block';
+  var r = sizeCanvas(cv), g = r.g, n = b1Res.n, side = Math.min(r.w, r.h) - 30, x0 = (r.w - side) / 2, y0 = 20;
+  g.clearRect(0, 0, r.w, r.h);
+  var img = document.createElement('canvas'); img.width = n; img.height = n;
+  var ig = img.getContext('2d'), id = ig.createImageData(n, n);
+  for (var p = 0; p < n * n; p++) {
+    if (!(vals[p] > 0)) { id.data[4 * p + 3] = 0; continue; }
+    var cc = b1Colour(vals[p], max); id.data[4 * p] = cc[0]; id.data[4 * p + 1] = cc[1]; id.data[4 * p + 2] = cc[2]; id.data[4 * p + 3] = 255;
+  }
+  ig.putImageData(id, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(img, x0, y0, side, side);
+  g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
+  var lab = { axial: ['left', 'right', 'back', 'front'], coronal: ['left', 'right', 'down', 'up'], sagittal: ['back', 'front', 'down', 'up'] }[b1Res.plane];
+  g.fillText(b1Res.plane + ' slice at ' + b1Res.offset + ' mm — max ' + max.toFixed(1) + ' µT/A' + (b1Sel >= 0 ? ' (element ' + b1Sel + ')' : ' (all elements)'), x0, 14);
+  g.fillText('← ' + lab[0] + ' · ' + lab[1] + ' →   (' + lab[2] + ' at bottom, ' + lab[3] + ' at top; ' + (2 * b1Res.ext).toFixed(0) + ' mm across)', x0, y0 + side + 8);
+}
+$('b1mode').addEventListener('change', b1Request);
+$('b1plane').addEventListener('change', b1Request);
+$('b1pos').addEventListener('input', function () { $('b1posV').textContent = $('b1pos').value + ' mm'; });
+$('b1pos').addEventListener('change', b1Request);
 function drawHeat() {
   var cv = $('heat'), g = cv.getContext('2d'), N = arrRes.N, cell = Math.max(1, Math.floor(360 / N)), sz = cell * N;
   cv.width = sz; cv.height = sz; cv.style.width = Math.min(360, sz * Math.max(1, Math.floor(360 / sz))) + 'px';

@@ -17,7 +17,16 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
   - **Failed from m ≈ 3–6:** the 3- and 5-winding knots.
   - **Mechanism:** extra crossings in the flat drawing, in pairs (e.g. 10 instead of 8). The power law flattens the base between petals, so neighbouring strands run almost on top of each other and cross back and forth.
   - **Knot type:** Claude argues it is probably unchanged, because the 3D curve still lies on an embedded torus. **Not verified computationally.** The diagram is still not clean: it has extra wire crossings and long stacked runs.
-  - **Response:** v1.4 replaces the power law with an angle warp. See the next entry.
+  - **Response:** v1.4 replaces the power law with an angle warp.
+- **v1.4 (git 7d7b6bf):** sharpness warps the lobe angle, ψ = qφ + (1 − 1/m)·sin(qφ), and the same ψ drives both radius and lift.
+  - Claude's argument: crossings stay exactly q(p−1), with the same pattern.
+  - Probes showed residual mismatches only at m = 16, β = 0.1. They were confirmed as discretisation artefacts: they vanish at 2,000 points for T(3,2) and 16,000 for T(5,6).
+  - **Numerical changes:**
+    - a grid-accelerated crossing and clearance search (identical to brute force on 108 crossing cases and 6 clearance cases);
+    - a point-count rule requiring stability over two doublings (max 25,600 points).
+  - **Trade-offs seen in probes (not validated):**
+    - Aspect ratio gains are larger for 2-winding knots (T(2,5) at β = 1.5: 0.68 → 1.25 from m = 1 to 16) than for 3–5-winding knots (T(3,4): 0.36 → 0.66).
+    - The crossing lift needed grows with m, up to about 9.8 mm for T(5,6) at m = 16. That is likely impractical.
 - **Bend radius:** tightens with m, e.g. 3.9 mm at m = 10 for that cinquefoil. The app flags this against the wire's minimum bend radius.
 
 ### 2026-10-20 — Design v1.2: bloom extends lobes (outward shape)

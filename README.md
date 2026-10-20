@@ -41,6 +41,12 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | V5 Symmetry | PASS |
 | V6 Topology across bloom | **FAIL** at β = 0.02 only (below the physical floor for the placeholder wire; see DECISIONS.md) |
 
+**B1 quick look (Array tab):** shows the quasi-static Biot–Savart field of the solved wires.
+- **Views:** on a placeholder head surface, or as an axial, coronal or sagittal slice.
+- **Elements:** combined as root-sum-of-squares, or a single element (click its wire).
+- **Use it for:** comparing coverage and depth fall-off between designs. It is not an absolute sensitivity prediction, because tissue and wave effects are not modelled.
+- **E-fields are not shown:** this model can't produce them reliably. Use a full-wave simulator with the exported wire paths.
+
 **Solver comparison (pre-registered):** `validation/compare_worstpair.html`. The worst-pair term is on by default. It lowers the worst pair but raises the typical (median) coupling; set "Worst-pair weight" to 0 to turn it off.
 
 ## References

@@ -30,6 +30,16 @@ Last updated 2026-10-20.
 | Bloom mode | constant core | JUDG | Design D2 | app |
 | Rotation mode | free per element | JUDG | Reza 2026-10-20: rotation as a decoupling lever | `core/optimise.js` |
 
+## B1 quick look (Design v1.5)
+
+| Parameter | Value | Tag | Rationale / source | Where |
+|---|---|---|---|---|
+| Head surface | helmet semi-axes − 10 mm | JUDG PLACEHOLDER | Stand-in for a head; replace with a real head model when simulating | `core/field.js` |
+| B1 units factor | 100 µT/A per (1/mm) | DERIVED | μ0/4π with mm units; header of `core/field.js`; checked by V8 | `core/field.js` |
+| Wire thinning for B1 | ≤ 200 points per element | JUDG | Speed. Field points are ≥ 10 mm from wires, so the midpoint rule is adequate (not separately tested) | `core/field.js` |
+| Colour scale | −30 to 0 dB relative to the maximum shown, viridis | CONV | Viridis is a standard perceptually uniform colour map | app |
+| Array combination | √Σ\|B1ᵢ\|² (1 A per element) | CONV | Common quick stand-in for combined array sensitivity; ignores noise correlation | app |
+
 ## Numerical choices
 
 | Parameter | Value | Tag | Rationale / check | Where |
