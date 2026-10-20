@@ -7,7 +7,8 @@ WHAT IT DOES (plain language):
   Unknowns: one shared element size (footprint radius Rf), each element's centre on the helmet,
   and each element's in-plane rotation. Goal: neighbouring elements have coupling k close to 0,
   while together the elements cover the whole region. Cost =
-      sum over neighbour pairs of w(d) * k^2  +  lambdaCov * sum over helmet sample points of gap^2
+      sum over neighbour pairs of w(d) * (k^2 + lambdaMax * k^4 / thr^2)  +  lambdaCov * sum over helmet sample points of gap^2
+  (the k^4 part is a smooth stand-in for the worst-pair term of Design §5.1; added 2026-10-20)
   where gap = how far a sample point lies outside the nearest element's footprint (in units of Rf),
   and w(d) = 1 for overlapping footprints, fading to 0 just beyond touching (Design.md §5.1).
 
@@ -38,6 +39,8 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
 
   O.DEFAULTS = {
     thresholdK: 0.01,   // JUDG PLACEHOLDER (Design.md D6): "decoupled" means |k| < 0.01 for every neighbour pair.
+    lambdaMax: 0,       // JUDG: weight of the smooth worst-pair term (Design §5.1 lambda_max). 0 = solver as built to git ea9f761.
+                        // Default to be set by the pre-registered comparison in validation/COMPARE_worstpair_PROTOCOL.md.
     lambdaCov: 1,       // JUDG: coverage weight. Large enough that gaps dominate small k^2 values (k^2 ~ 1e-4), so coverage is met first.
     nTable: 128,        // JUDG: points per element in the stage-1 table. Alt: 96, 200. Stage 2 corrects table error.
     tableDMin: 0.3,     // JUDG: table range in units of Rf (0.3 = nearly on top of each other) ...
@@ -171,7 +174,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
   function search(ctx, model, sweeps, steps, onProgress, stageName) {
     var st = ctx.state, N = st.C.length, o = ctx.o, rnd = Lay.rng(o.seed + (stageName === 'exact' ? 7 : 0));
     var frames = st.C.map(function (p) { return S.frame(ctx.H, p); });
-    var cand, sc, es, weight = weightFn(ctx);
+    var cand, sc, es, weight = weightFn(ctx), lamMax = o.lambdaMax, thr2 = o.thresholdK * o.thresholdK;
     function rebuildLists() {
       var R = st.Rf;
       cand = st.C.map(function (ci, i) {
@@ -191,7 +194,10 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     function pairCost(i, j) {
       var dn = Lay.dist(st.C[i], st.C[j]) / st.Rf, wt = weight(dn);
       if (wt === 0) return 0;
-      var k = model.k(i, j, frames); return wt * k * k;
+      var k = model.k(i, j, frames), k2 = k * k;
+      // Worst-pair term (Design §5.1 lambda_max), smooth stand-in: + lambdaMax * k^4 / thr^2. It equals k^2
+      // when |k| = threshold, grows much faster above it, and is negligible well below it.
+      return wt * (k2 + lamMax * k2 * k2 / thr2);
     }
     function local(i) {
       var c = 0, l = cand[i]; for (var q = 0; q < l.length; q++) c += pairCost(i, l[q]);
