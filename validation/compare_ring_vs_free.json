@@ -1,0 +1,143 @@
+{
+ "generated": "2026-10-20T20:57:42.123Z",
+ "git": "5f60ace",
+ "protocol": "validation/COMPARE_ring_vs_free_PROTOCOL.md",
+ "rows": [
+  {
+   "config": "T(2,3) b0.8 m1 N16",
+   "free": {
+    "worstAdjacent": 0.05610056537020663,
+    "medianAdjacent": 0.017845861869807057,
+    "adjacentPairs": 34,
+    "regularityCV": 0.02800582930409146,
+    "coverage": 0.995,
+    "zoneViolations": 0,
+    "footprintMax": 0.06202022187417591,
+    "N": 16,
+    "seconds": 1.285,
+    "rings": null
+   },
+   "ring": {
+    "worstAdjacent": 0.0677937326730768,
+    "medianAdjacent": 0.04571589912422383,
+    "adjacentPairs": 33,
+    "regularityCV": 0.12024715534311345,
+    "coverage": 0.9891666666666666,
+    "zoneViolations": 0,
+    "footprintMax": 0.0677937326730768,
+    "N": 16,
+    "seconds": 3.02,
+    "rings": [
+     3,
+     6,
+     7
+    ]
+   }
+  },
+  {
+   "config": "T(2,3) b0.8 m1 N24",
+   "free": {
+    "worstAdjacent": 0.05771798189172691,
+    "medianAdjacent": 0.020572274510999,
+    "adjacentPairs": 56,
+    "regularityCV": 0.029399627927301764,
+    "coverage": 0.985353946297803,
+    "zoneViolations": 0,
+    "footprintMax": 0.057844926341482396,
+    "N": 24,
+    "seconds": 1.628,
+    "rings": null
+   },
+   "ring": {
+    "worstAdjacent": 0.060231450995423354,
+    "medianAdjacent": 0.03126539774471385,
+    "adjacentPairs": 54,
+    "regularityCV": 0.08949430985112299,
+    "coverage": 0.9235150528885273,
+    "zoneViolations": 0,
+    "footprintMax": 0.06629839829272914,
+    "N": 24,
+    "seconds": 2.834,
+    "rings": [
+     4,
+     10,
+     10
+    ]
+   }
+  },
+  {
+   "config": "T(2,3) b0.8 m1 N32",
+   "free": {
+    "worstAdjacent": 0.05597230386590255,
+    "medianAdjacent": 0.018962157860137094,
+    "adjacentPairs": 78,
+    "regularityCV": 0.039631707792624996,
+    "coverage": 0.9846526655896607,
+    "zoneViolations": 0,
+    "footprintMax": 0.057456198669209535,
+    "N": 32,
+    "seconds": 2.63,
+    "rings": null
+   },
+   "ring": {
+    "worstAdjacent": 0.07106148584349219,
+    "medianAdjacent": 0.03998646878553972,
+    "adjacentPairs": 73,
+    "regularityCV": 0.06231222157508355,
+    "coverage": 0.9983844911147012,
+    "zoneViolations": 0,
+    "footprintMax": 0.07269174064644976,
+    "N": 32,
+    "seconds": 5.06,
+    "rings": [
+     4,
+     9,
+     9,
+     10
+    ]
+   }
+  },
+  {
+   "config": "T(2,5) b0.8 m2 N24",
+   "free": {
+    "worstAdjacent": 0.04999877867639151,
+    "medianAdjacent": 0.011230929857286572,
+    "adjacentPairs": 58,
+    "regularityCV": 0.040062472817282105,
+    "coverage": 0.9942575881870386,
+    "zoneViolations": 0,
+    "footprintMax": 0.05460337218877662,
+    "N": 24,
+    "seconds": 2.963,
+    "rings": null
+   },
+   "ring": {
+    "worstAdjacent": 0.05903517775142563,
+    "medianAdjacent": 0.028523025527547676,
+    "adjacentPairs": 54,
+    "regularityCV": 0.08785814813984326,
+    "coverage": 0.963084495488105,
+    "zoneViolations": 0,
+    "footprintMax": 0.05903517775142563,
+    "N": 24,
+    "seconds": 4.414,
+    "rings": [
+     4,
+     10,
+     10
+    ]
+   }
+  }
+ ],
+ "summary": {
+  "ringCVLowerIn": 0,
+  "medianWorstAdjacentRatioRingOverFree": 1.19458232518546,
+  "ringCoverageAndZonesOK": false,
+  "criteria": {
+   "1: ring CV lower in >= 3 of 4": false,
+   "2: median ratio worst adjacent |k| (ring/free) <= 1.10": false,
+   "3: ring coverage >= 0.97 and zero zone violations in all": false
+  },
+  "ringBecomesDefault": false
+ }
+}

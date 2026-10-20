@@ -20,6 +20,11 @@ Reza Farivar's instructions during the build session of 2026-10-20, quoted, with
 | 14 | "is there a fast and effective way to visualize the e-fields of a solved array?" · "how do I visualize the B1 field?" · "I just want a quick visualization that's reasonable. We will do simulations later" | Design v1.5: quick B1 view (Biot–Savart; head surface and slices). E-fields left to full-wave simulation |
 | 15 | "package the whole thing so I can share it" · "include all the instructions you gathered here (the design files, etc.) so that others can expand on the work" | This package: developer guide, request log, project CLAUDE.md, integrity rules, sources |
 
+| 16 | "what else should this package do? … the array should be symmetric with regards to the head … placement … could be more optimized … the bloom parameter and size of the loop could also be controlled?" | `docs/PROPOSAL_v2.md` (WP1–WP10) |
+| 17 | "how does openEMS compare with COMSOL …?" · "how would things look if we modelled capacitor breaks …? … can you link our app to COMSOL?" · "is openEMS the only system …?" · "I'd want something we could link to programmatically." | Verified solver survey → `docs/SOLVER_OPTIONS.md` (MARIE 3.0 for coil + head; NEC-2 WebAssembly for coils in air) |
+| 18 | "have a helmet and a sort of head in there, and then mark-off the eyes and mouth …" · "we need a way of ensuring that your B1 estimates aren't BS—ideally calculations with a separate package" | WP11 face exclusion zones; WP12 three-tier B1 validation (V14 vs Magpylib) |
+| 19 | "Okay, let's do the major update!" | Design v1.6: zones, symmetric ring layouts, per-ring size/bloom/sharpness, multi-start, capacitor breaks, save/load, exact-segment B1, V9–V14, C2 |
+
 ## Standing instructions that shaped the work
 
 These come from Reza's workspace instructions (his global `CLAUDE.md`). The ones relevant to this project:

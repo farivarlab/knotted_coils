@@ -26,6 +26,8 @@ It designs MRI receive phased arrays made of **flat knotted wire loops** (torus 
 | `app/index.html` | The whole UI: Element, Pair explorer, Array on helmet, exports. Heavy maths runs in Web Workers |
 | `tests/run.js` | Validation checks V1–V8 (pre-registered) plus labelled post-hoc checks. Writes `validation/` |
 | `tests/compare_worstpair.js` | Pre-registered paired solver comparison (protocol in `validation/`) |
+| `tests/compare_ring_vs_free.js` | Pre-registered comparison C2: ring vs free layouts (v1.6). Run before `tests/run.js`, because V12 reads its arrays |
+| `tests/b1_crosscheck.py` | V14: our B1 against Magpylib 6.0.0 on identical wires. Needs a Python environment with `magpylib==6.0.0`; set `KC_PYTHON` to its python.exe (default `C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe`) |
 | `tools/serve.js` | Tiny local web server: `node tools/serve.js` → http://localhost:8765/app/index.html |
 | `tools/build_dist.js` | Builds `dist/`, a flat copy of the app for hosting or sending |
 | `vendor/` | Three.js 0.149.0 (MIT), pinned and stored locally so the app works offline |
@@ -47,6 +49,19 @@ It designs MRI receive phased arrays made of **flat knotted wire loops** (torus 
   - r = R(1 + β(1 + cos ψ)/2);
   - x = r·cos(pφ + θ), y = r·sin(pφ + θ), z = h·sin ψ.
   - The v1.0 "symmetric" shape (r = R(1 + β cos qφ)) is still selectable.
+
+### v1.6 features, and where they live
+- **Face exclusion zones:** `KC.surface.zoneHit` and `zonePoints`. Zones are angular ellipses seen from the helmet centre; defaults are in `surface.DEFAULTS.zones`.
+  - The solver keeps wires out with disc samples in the fast stage and real wires in the exact stage. Zones take priority in free-mode moves.
+  - `covSamples` drops coverage demands next to zones.
+- **Ring mode:** `KC.opt.ringSetup`, `ringLayout` and `ringOptimise`.
+  - Each element's parameters come from `ctx.elemFn(i)`.
+  - Left twins use `mirror: true`: a reflected knot, with **points in reverse order** so current circulates the same way on every element.
+  - Midline elements get rotations that are multiples of π/q.
+- **Multi-start:** `KC.opt.run` with `opts.starts`. The best start is chosen by worst *adjacent* |k| in the exact report.
+- **Adjacency:** `KC.opt.adjacency`. Two elements are adjacent when some helmet sample lies on the border between their regions (Voronoi).
+- **Capacitor breaks:** `KC.knot.breaks` places them; `KC.knot.capacitor` gives values (γ/2π from CODATA 2022). The app exports them as ports.
+- **B1:** `KC.field.vector` uses the exact finite-segment formula, not the midpoint rule; V14 checks it against Magpylib.
 
 ## 4. Common extensions — where to start
 

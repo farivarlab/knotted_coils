@@ -1,4 +1,344 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Validation Report</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a2238}h1{color:#0b1f5c}table{border-collapse:collapse;width:100%;margin:.5rem 0 1.5rem;font-size:.9rem}td,th{border:1px solid #d7deea;padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#0b1f5c;color:#fff}.PASS,.AGREES{color:#0a7a3b;font-weight:700}.FAIL,.DISAGREES{color:#b3261e;font-weight:700}.NOT{color:#a15c00;font-weight:700}pre{background:#f4f7fb;padding:.5rem;overflow:auto;font-size:.8rem}</style></head><body><h1>Knotted-coil validation report</h1><p>Generated 2026-10-20T20:55:50.646Z · code git 91c4df5 · criteria pre-registered in Design.md v1.0 §7 (git 39a4e83). Wire: placeholder d = 1 mm, insulation 0.25 mm.</p><p><b>All pre-registered checks pass: YES</b></p><table><tr><th>ID</th><th>Check</th><th>Criterion</th><th>Verdict</th><th>Summary</th></tr><tr><td>V8</td><td>B1 (Biot–Savart) on the axis of a circular loop, R = 50 mm, 400 points, vs closed form</td><td>relative error &lt; 0.5% at z = 0, 10, 20, 40, 80 mm</td><td class="PASS">PASS</td><td>worst 0.0024%</td></tr><tr><td>V9</td><td>Ring layouts are exactly left-right symmetric (wires and coupling matrix)</td><td>mirror pairs: wires &lt; 1e-9 mm; k &lt; 1e-9 (no midline element), &lt; 1e-3 (midline pairs)</td><td class="PASS">PASS</td><td>T(2,3) b=0.8 N=16 ring: wire 4.3e-14 mm, k 6.4e-16 / midline 5.8e-4; T(2,5) b=0.8 m=2 N=24 ring: wire 5.0e-14 mm, k 2.6e-15 / midline 0.0e+0</td></tr><tr><td>V14</td><td>B1 implementation vs independent library (Magpylib) on identical wires, ~1000 points per case</td><td>relative difference &lt; 0.5% at every point >= 10 mm from any wire</td><td class="PASS">PASS</td><td>(a) one flat trefoil (z = 60 mm): worst 0.0000% (768 pts); (b) one T(2,5) element, beta 1.5, m 4 (z = 60 mm): worst 0.0000% (751 pts); (c) solved 16-element array (free, fast, seed 1): worst 0.0000% (771 pts) — Magpylib 6.0.0</td></tr></table><h3>V8</h3><p>Reference: Closed form DERIVED from Biot–Savart (core/field.js header); not a literature value</p><pre>[
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Validation Report</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;color:#1a2238}h1{color:#0b1f5c}table{border-collapse:collapse;width:100%;margin:.5rem 0 1.5rem;font-size:.9rem}td,th{border:1px solid #d7deea;padding:.35rem .5rem;text-align:left;vertical-align:top}th{background:#0b1f5c;color:#fff}.PASS,.AGREES{color:#0a7a3b;font-weight:700}.FAIL,.DISAGREES{color:#b3261e;font-weight:700}.NOT{color:#a15c00;font-weight:700}pre{background:#f4f7fb;padding:.5rem;overflow:auto;font-size:.8rem}</style></head><body><h1>Knotted-coil validation report</h1><p>Generated 2026-10-20T21:15:38.971Z · code git 5f60ace · criteria pre-registered in Design.md v1.0 §7 (git 39a4e83). Wire: placeholder d = 1 mm, insulation 0.25 mm.</p><p><b>All pre-registered checks pass: NO</b></p><table><tr><th>ID</th><th>Check</th><th>Criterion</th><th>Verdict</th><th>Summary</th></tr><tr><td>V1</td><td>Mutual inductance, coaxial circles (r = 50, 40 mm; 400 points) vs Maxwell</td><td>relative error &lt; 0.5% at all 5 separations</td><td class="PASS">PASS</td><td>worst 0.0052%</td></tr><tr><td>V2</td><td>Self-inductance, circular loop R = 50 mm (400 points) vs mu0 R (ln(8R/a) - 2)</td><td>relative error &lt; 2% for R/a >= 50</td><td class="PASS">PASS</td><td>worst 0.656%</td></tr><tr><td>V3</td><td>Zero-coupling centre spacing, two coplanar circles</td><td>within 1% of the VERIFIED literature value</td><td class="NOT">NOT EVALUABLE</td><td>computed spacing = 0.7604 x diameter; no VERIFIED reference value available</td></tr><tr><td>V4</td><td>Convergence of k, trefoil pair (Rf = 40 mm), 300 -> 600 points (final-report resolution)</td><td>|k(2n) - k(n)| &lt; 0.001</td><td class="PASS">PASS</td><td>worst change 1.10e-4</td></tr><tr><td>V5</td><td>Symmetry: swap of the two elements, and rotation of both by 2pi/q</td><td>relative difference &lt; 1e-9 (machine-precision level)</td><td class="PASS">PASS</td><td>worst 3.13e-14</td></tr><tr><td>V6</td><td>Topology and clearance across bloom beta = 0.02–3.0, Design v1.2 outward bloom (catalogue knots, core R = 30 mm, placeholder wire)</td><td>crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i</td><td class="FAIL">FAIL</td><td>unknot (2-turn) T(2,1) fails at beta=0.02; trefoil T(3,2) fails at beta=0.02,0.05; trefoil T(2,3) fails at beta=0.02,0.05; T(3,4) = 8_19 T(3,4) fails at beta=0.02,0.05; cinquefoil T(2,5) fails at beta=0.02,0.05; T(5,6) T(5,6) fails at beta=0.02,0.05; T(2,7) = 7_1 T(2,7) fails at beta=0.02,0.05; T(3,8) T(3,8) fails at beta=0.02,0.05</td></tr><tr><td>V7</td><td>Topology and clearance across petal sharpness m = 1–16 x bloom 0.1–3.0 (catalogue knots, core R = 30 mm, placeholder wire)</td><td>crossing count = q(p-1); pattern equal to m=1, beta=0.4; lift solvable with clearance >= d_w + 2 t_i</td><td class="PASS">PASS</td><td>all knots pass at all 45 (m, beta) points</td></tr><tr><td>V8</td><td>B1 (Biot–Savart) on the axis of a circular loop, R = 50 mm, 400 points, vs closed form</td><td>relative error &lt; 0.5% at z = 0, 10, 20, 40, 80 mm</td><td class="PASS">PASS</td><td>worst 0.0024%</td></tr><tr><td>V9</td><td>Ring layouts are exactly left-right symmetric (wires and coupling matrix)</td><td>mirror pairs: wires &lt; 1e-9 mm; k &lt; 1e-9 (no midline element), &lt; 1e-3 (midline pairs)</td><td class="PASS">PASS</td><td>T(2,3) b=0.8 N=16 ring: wire 4.3e-14 mm, k 6.4e-16 / midline 5.8e-4; T(2,5) b=0.8 m=2 N=24 ring: wire 5.0e-14 mm, k 2.6e-15 / midline 0.0e+0</td></tr><tr><td>V10</td><td>Capacitor breaks: >= 5 mm from every crossing pass, segments within 1.5x, whenever placement reports success</td><td>no reported success violates clearance or segment ratio; infeasible cases counted, not failed</td><td class="PASS">PASS</td><td>64 of 64 placed successfully; 0 reported infeasible</td></tr><tr><td>V11</td><td>Capacitor value, circular loop R = 50 mm, wire radius 0.5 mm, vs n/(w^2 L) with Rosa &amp; Grover L</td><td>relative error &lt; 1%</td><td class="PASS">PASS</td><td>worst 0.376%</td></tr><tr><td>V12</td><td>No wire point inside a face exclusion zone (V9 and C2 arrays)</td><td>zero wire points inside any zone</td><td class="PASS">PASS</td><td>T(2,3) b=0.8 N=16 ring: 0; T(2,5) b=0.8 m=2 N=24 ring: 0; C2 T(2,3) b0.8 m1 N16 free: 0; C2 T(2,3) b0.8 m1 N16 ring: 0; C2 T(2,3) b0.8 m1 N24 free: 0; C2 T(2,3) b0.8 m1 N24 ring: 0; C2 T(2,3) b0.8 m1 N32 free: 0; C2 T(2,3) b0.8 m1 N32 ring: 0; C2 T(2,5) b0.8 m2 N24 free: 0; C2 T(2,5) b0.8 m2 N24 ring: 0 — C2 arrays included (2026-10-20T20:57:42.123Z)</td></tr><tr><td>V13</td><td>Reproducibility: same configuration + seed gives identical layout and k matrix</td><td>all differences exactly 0</td><td class="PASS">PASS</td><td>free fast N=16 identical; ring N=16 identical</td></tr><tr><td>V14</td><td>B1 implementation vs independent library (Magpylib) on identical wires, ~1000 points per case</td><td>relative difference &lt; 0.5% at every point >= 10 mm from any wire</td><td class="PASS">PASS</td><td>(a) one flat trefoil (z = 60 mm): worst 0.0000% (768 pts); (b) one T(2,5) element, beta 1.5, m 4 (z = 60 mm): worst 0.0000% (751 pts); (c) solved 16-element array (free, fast, seed 1): worst 0.0000% (771 pts) — Magpylib 6.0.0</td></tr><tr><td>PH2</td><td>POST-HOC: V6 test from the physical bloom floor (outward shape: c / (R sin(pi/p))) upward</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>T(2,1) from 0.055; T(3,2) from 0.06; T(2,3) from 0.055; T(3,4) from 0.06; T(2,5) from 0.055; T(5,6) from 0.09; T(2,7) from 0.055; T(3,8) from 0.06</td></tr><tr><td>PH1</td><td>POST-HOC: Maxwell implementation vs Rosa &amp; Grover Example 1 (A = a = 25 cm, d = 20 cm -> 167.08562 cm = nH)</td><td>post-hoc; not pre-registered (informational)</td><td class="AGREES">AGREES</td><td>167.08578 nH, rel diff 9.79e-7</td></tr></table><h3>V1</h3><p>Reference: Rosa &amp; Grover 1912, Bull. Bureau of Standards 8:1–237, p. 6 eq. [1] — VERIFIED</p><pre>[
+ {
+  "d_mm": 5,
+  "numeric_nH": 84.42789870378849,
+  "maxwell_nH": 84.42735615046593,
+  "relErr": 0.0000064262739862840695
+ },
+ {
+  "d_mm": 10,
+  "numeric_nH": 72.20059279228553,
+  "maxwell_nH": 72.20064021902708,
+  "relErr": -6.56874252107613e-7
+ },
+ {
+  "d_mm": 20,
+  "numeric_nH": 49.7568416159741,
+  "maxwell_nH": 49.75747180843788,
+  "relErr": -0.000012665283039301637
+ },
+ {
+  "d_mm": 40,
+  "numeric_nH": 24.790747399010364,
+  "maxwell_nH": 24.79148544042284,
+  "relErr": -0.000029769955263429603
+ },
+ {
+  "d_mm": 80,
+  "numeric_nH": 7.890639914376564,
+  "maxwell_nH": 7.891049880966221,
+  "relErr": -0.00005195336436099708
+ }
+]</pre><h3>V2</h3><p>Reference: Rosa &amp; Grover 1912, p. 111 eq. [62] (surface current; leading term) — VERIFIED</p><pre>[
+ {
+  "R_over_a": 50,
+  "numeric_nH": 250.24750941864468,
+  "closedForm_nH": 250.79111396517092,
+  "relErr": -0.002167559041193675
+ },
+ {
+  "R_over_a": 100,
+  "numeric_nH": 293.24137207410735,
+  "closedForm_nH": 294.34283577124296,
+  "relErr": -0.003742111453976914
+ },
+ {
+  "R_over_a": 200,
+  "numeric_nH": 335.6774399998626,
+  "closedForm_nH": 337.894557577315,
+  "relErr": -0.006561566405061494
+ }
+]</pre><h3>V3</h3><p>Reference: Roemer et al. 1990 MRM 16:192 — UNVERIFIED (paywalled, not read). Closest primary text read: Roemer &amp; Edelstein, US 4,825,162 (1989), "D approximately equal to 0.75d" (PARAPHRASE-ONLY; Google Patents OCR text). Exploratory comparison only: 1.39% from the patent's approximate value.</p><pre>[
+ {
+  "computed_spacing_over_diameter": 0.7604234630725386,
+  "patent_value": 0.75,
+  "diff_vs_patent": 0.013897950763384811
+ }
+]</pre><h3>V4</h3><p>k160 (stage-2 search resolution) shown for information; the criterion applies to the reported resolution (300).</p><pre>[
+ {
+  "dOverRf": 1.14,
+  "rot": [
+   0,
+   0
+  ],
+  "k160": 0.06459163222238361,
+  "k300": 0.06455516418643788,
+  "k600": 0.06449108409945338,
+  "change300to600": 0.00006408008698449708
+ },
+ {
+  "dOverRf": 1.6,
+  "rot": [
+   0,
+   0
+  ],
+  "k160": -0.07378139423091604,
+  "k300": -0.07357698017927117,
+  "k600": -0.07349667406540387,
+  "change300to600": 0.0000803061138672928
+ },
+ {
+  "dOverRf": 1.14,
+  "rot": [
+   0.3,
+   0.7
+  ],
+  "k160": 0.0655351613003449,
+  "k300": 0.06549676042575976,
+  "k600": 0.06543397784935304,
+  "change300to600": 0.00006278257640672524
+ },
+ {
+  "dOverRf": 1.6,
+  "rot": [
+   0.3,
+   0.7
+  ],
+  "k160": -0.06840015446728545,
+  "k300": -0.06810298788665974,
+  "k600": -0.06799308943677852,
+  "change300to600": 0.00010989844988121278
+ }
+]</pre><h3>V5</h3><pre>[
+ {
+  "knot": "T(2,3)",
+  "swapRelDiff": 7.100113546090396e-15,
+  "rotRelDiff": 1.1178902178950837e-14
+ },
+ {
+  "knot": "T(3,4)",
+  "swapRelDiff": 1.0138156947293846e-14,
+  "rotRelDiff": 2.7035085192783586e-15
+ },
+ {
+  "knot": "T(2,5)",
+  "swapRelDiff": 4.452427967451506e-15,
+  "rotRelDiff": 3.132601105671238e-14
+ },
+ {
+  "knot": "T(3,8)",
+  "swapRelDiff": 1.7625397784369575e-14,
+  "rotRelDiff": 1.6697745269402758e-14
+ }
+]</pre><h3>V6</h3><pre>[
+ {
+  "knot": "unknot (2-turn) T(2,1)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 1,
+    "expected": 1,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.6000000000000014
+   }
+  ]
+ },
+ {
+  "knot": "trefoil T(3,2)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 4,
+    "expected": 4,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.5196152422706664
+   },
+   {
+    "beta": 0.05,
+    "crossings": 4,
+    "expected": 4,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 1.2990381056766571
+   }
+  ]
+ },
+ {
+  "knot": "trefoil T(2,3)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 3,
+    "expected": 3,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.5999999999999999
+   },
+   {
+    "beta": 0.05,
+    "crossings": 3,
+    "expected": 3,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 1.4999999999999987
+   }
+  ]
+ },
+ {
+  "knot": "T(3,4) = 8_19 T(3,4)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 8,
+    "expected": 8,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.5196152422706636
+   },
+   {
+    "beta": 0.05,
+    "crossings": 8,
+    "expected": 8,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 1.2990381056766551
+   }
+  ]
+ },
+ {
+  "knot": "cinquefoil T(2,5)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 5,
+    "expected": 5,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.6000000000000001
+   },
+   {
+    "beta": 0.05,
+    "crossings": 5,
+    "expected": 5,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 1.4999999999999984
+   }
+  ]
+ },
+ {
+  "knot": "T(5,6) T(5,6)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 24,
+    "expected": 24,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.35267115137547855
+   },
+   {
+    "beta": 0.05,
+    "crossings": 24,
+    "expected": 24,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.8816778784387074
+   }
+  ]
+ },
+ {
+  "knot": "T(2,7) = 7_1 T(2,7)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 7,
+    "expected": 7,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.5999999999999991
+   },
+   {
+    "beta": 0.05,
+    "crossings": 7,
+    "expected": 7,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 1.4999999999999984
+   }
+  ]
+ },
+ {
+  "knot": "T(3,8) T(3,8)",
+  "pass": false,
+  "fails": [
+   {
+    "beta": 0.02,
+    "crossings": 16,
+    "expected": 16,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 0.5196152422706642
+   },
+   {
+    "beta": 0.05,
+    "crossings": 16,
+    "expected": 16,
+    "patternSame": true,
+    "liftFeasible": false,
+    "clearance": 1.299038105676654
+   }
+  ]
+ }
+]</pre><h3>V7</h3><p>Tightest bend radius per knot is shown for information only (not part of the criterion).</p><pre>[
+ {
+  "knot": "unknot (2-turn) T(2,1)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 30.001517230113095
+ },
+ {
+  "knot": "trefoil T(3,2)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 30.00320420514439
+ },
+ {
+  "knot": "trefoil T(2,3)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 12.679237365454245
+ },
+ {
+  "knot": "T(3,4) = 8_19 T(3,4)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 18.044503562876002
+ },
+ {
+  "knot": "cinquefoil T(2,5)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 3.611754690870217
+ },
+ {
+  "knot": "T(5,6) T(5,6)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 20.009106697467402
+ },
+ {
+  "knot": "T(2,7) = 7_1 T(2,7)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 1.7530670446917516
+ },
+ {
+  "knot": "T(3,8) T(3,8)",
+  "pass": true,
+  "fails": [],
+  "minBendRadius_info": 3.1285172847350067
+ }
+]</pre><h3>V8</h3><p>Reference: Closed form DERIVED from Biot–Savart (core/field.js header); not a literature value</p><pre>[
  {
   "z_mm": 0,
   "numeric_uT_per_A": 12.566629006373711,
@@ -46,6 +386,91 @@
   "pairsChecked": 276,
   "pass": true
  }
+]</pre><h3>V10</h3><pre>[]</pre><h3>V11</h3><pre>[
+ {
+  "breaks": 4,
+  "B0": 3,
+  "ours_pF": 21.177399354653748,
+  "closedForm_pF": 21.09815116596326,
+  "relErr": 0.003756167451218971
+ },
+ {
+  "breaks": 4,
+  "B0": 7,
+  "ours_pF": 3.8897264120792583,
+  "closedForm_pF": 3.8751706223197817,
+  "relErr": 0.003756167451218726
+ },
+ {
+  "breaks": 8,
+  "B0": 3,
+  "ours_pF": 42.354798709307495,
+  "closedForm_pF": 42.19630233192652,
+  "relErr": 0.003756167451218971
+ },
+ {
+  "breaks": 8,
+  "B0": 7,
+  "ours_pF": 7.779452824158517,
+  "closedForm_pF": 7.750341244639563,
+  "relErr": 0.003756167451218726
+ }
+]</pre><h3>V12</h3><pre>[
+ {
+  "array": "T(2,3) b=0.8 N=16 ring",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "T(2,5) b=0.8 m=2 N=24 ring",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,3) b0.8 m1 N16 free",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,3) b0.8 m1 N16 ring",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,3) b0.8 m1 N24 free",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,3) b0.8 m1 N24 ring",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,3) b0.8 m1 N32 free",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,3) b0.8 m1 N32 ring",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,5) b0.8 m2 N24 free",
+  "wirePointsInZones": 0
+ },
+ {
+  "array": "C2 T(2,5) b0.8 m2 N24 ring",
+  "wirePointsInZones": 0
+ }
+]</pre><h3>V13</h3><pre>[
+ {
+  "config": "free fast N=16",
+  "maxCentreDiff": 0,
+  "maxThetaDiff": 0,
+  "maxKDiff": 0,
+  "pass": true
+ },
+ {
+  "config": "ring N=16",
+  "maxCentreDiff": 0,
+  "maxThetaDiff": 0,
+  "maxKDiff": 0,
+  "pass": true
+ }
 ]</pre><h3>V14</h3><p>Reference: Magpylib 6.0.0 current.Polyline (Ortner &amp; Coliado Bandeira 2020, SoftwareX 11:100466, doi:10.1016/j.softx.2020.100466)</p><pre>[
  {
   "name": "(a) one flat trefoil (z = 60 mm)",
@@ -77,4 +502,53 @@
   "n_5to10mm": 134,
   "pass": true
  }
-]</pre></body></html>
+]</pre><h3>PH2</h3><pre>[
+ {
+  "knot": "T(2,1)",
+  "betaMinPhysical": 0.05,
+  "testedFrom": 0.055,
+  "failsAt": []
+ },
+ {
+  "knot": "T(3,2)",
+  "betaMinPhysical": 0.05773502691896258,
+  "testedFrom": 0.06,
+  "failsAt": []
+ },
+ {
+  "knot": "T(2,3)",
+  "betaMinPhysical": 0.05,
+  "testedFrom": 0.055,
+  "failsAt": []
+ },
+ {
+  "knot": "T(3,4)",
+  "betaMinPhysical": 0.05773502691896258,
+  "testedFrom": 0.06,
+  "failsAt": []
+ },
+ {
+  "knot": "T(2,5)",
+  "betaMinPhysical": 0.05,
+  "testedFrom": 0.055,
+  "failsAt": []
+ },
+ {
+  "knot": "T(5,6)",
+  "betaMinPhysical": 0.08506508083520399,
+  "testedFrom": 0.09,
+  "failsAt": []
+ },
+ {
+  "knot": "T(2,7)",
+  "betaMinPhysical": 0.05,
+  "testedFrom": 0.055,
+  "failsAt": []
+ },
+ {
+  "knot": "T(3,8)",
+  "betaMinPhysical": 0.05773502691896258,
+  "testedFrom": 0.06,
+  "failsAt": []
+ }
+]</pre><h3>PH1</h3></body></html>

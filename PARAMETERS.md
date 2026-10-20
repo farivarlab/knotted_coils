@@ -30,6 +30,28 @@ Last updated 2026-10-20.
 | Bloom mode | constant core | JUDG | Design D2 | app |
 | Rotation mode | free per element | JUDG | Reza 2026-10-20: rotation as a decoupling lever | `core/optimise.js` |
 
+## Design v1.6 additions
+
+| Parameter | Value | Tag | Rationale / source | Where |
+|---|---|---|---|---|
+| Face zones: eyes | az ±17°, el +5°, half-widths 13° × 10° | JUDG PLACEHOLDER | Rough adult proportions. Replace with measured landmarks or the ICBM152 eye mask | `core/surface.js` |
+| Face zone: mouth | az 0°, el −30°, half-widths 20° × 9° | JUDG PLACEHOLDER | Same | `core/surface.js` |
+| Zone margin for wires | 5 mm | JUDG PLACEHOLDER | Proposal default | `core/surface.js` |
+| Lowest covered height zCut | −20 mm (was 0) | JUDG PLACEHOLDER | Lowered once zones protect the face | `core/surface.js` |
+| Face wedge | off (was on) | JUDG | Replaced by zones | `core/surface.js` |
+| lambdaZone | 1 (was 0.05 in development) | JUDG | Wires entered zones at 0.05 | `core/optimise.js` |
+| Coverage buffer around zones | 0.5 × footprint radius | JUDG | Stops the coverage term pulling wires into zones | `core/optimise.js` |
+| Footprint zone check | 97 points, 1.1 × Rf | JUDG | 37 points at 1.0 × Rf missed zones; wrapped wires reach ~5% past Rf | `core/optimise.js` |
+| Multi-start jitter | 0.25 × spacing | JUDG | | `core/optimise.js` |
+| Adjacency tolerance | 2 × sample spacing | DERIVED | Voronoi border detection | `core/optimise.js` |
+| Ring count heuristic | round(√(N/2.5)) rings | JUDG | | `core/optimise.js` |
+| Ring elevation range | covered edge to 1.5 rad (start top at 1.3 rad) | JUDG | | `core/optimise.js` |
+| Ring search points per element | 96 | JUDG | Speed; final report uses 300 | `core/optimise.js` |
+| γ/2π (proton) | 42.577478461 MHz/T | **LIT** | CODATA 2022 via NIST; VERIFIED 2026-10-20, archived in `sources/` | `core/knot.js` |
+| Capacitor clearance from crossings | 5 mm | JUDG PLACEHOLDER | Until the capacitor package size is known | app |
+| Segment-length warning | λ/10 (free space) | JUDG | Rule of thumb, not a cited value | `core/knot.js` |
+| Break placement | 200 trial offsets; nudges up to ¼ segment | JUDG | | `core/knot.js` |
+
 ## B1 quick look (Design v1.5)
 
 | Parameter | Value | Tag | Rationale / source | Where |

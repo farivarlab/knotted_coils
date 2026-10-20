@@ -53,6 +53,16 @@ This writes `validation/validation_report.html`. The app's header shows the late
 
 Every failing run is kept in the git history; see DECISIONS.md.
 
+**New in v1.6:**
+- **Head and face zones:** a head model with editable eye and mouth exclusion zones. No wire is allowed inside them.
+- **Symmetric rings:** a ring layout mode, mirror-symmetric left–right, with per-ring size, bloom and sharpness.
+- **Multi-start solving.**
+- **Capacitor breaks:** placed away from crossings, with first-pass values at 1.5, 3 or 7 T, and port export.
+- **Save and load** designs.
+- **B1:** exact-segment field, cross-checked against Magpylib (V14).
+
+Solver options for the next step (simulation) are in `docs/SOLVER_OPTIONS.md`.
+
 **B1 quick look (Array tab):** shows the quasi-static Biot–Savart field of the solved wires.
 - **Views:** on a placeholder head surface, or as an axial, coronal or sagittal slice.
 - **Elements:** combined as root-sum-of-squares, or a single element (click its wire).

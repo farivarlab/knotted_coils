@@ -1,12 +1,413 @@
 {
- "generated": "2026-10-20T20:55:50.646Z",
- "git": "91c4df5",
+ "generated": "2026-10-20T21:15:38.971Z",
+ "git": "5f60ace",
  "wire": {
   "d": 1,
   "tIns": 0.25,
   "minBend": 2
  },
  "results": [
+  {
+   "id": "V1",
+   "title": "Mutual inductance, coaxial circles (r = 50, 40 mm; 400 points) vs Maxwell",
+   "criterion": "relative error < 0.5% at all 5 separations",
+   "verdict": "PASS",
+   "summary": "worst 0.0052%",
+   "rows": [
+    {
+     "d_mm": 5,
+     "numeric_nH": 84.42789870378849,
+     "maxwell_nH": 84.42735615046593,
+     "relErr": 0.0000064262739862840695
+    },
+    {
+     "d_mm": 10,
+     "numeric_nH": 72.20059279228553,
+     "maxwell_nH": 72.20064021902708,
+     "relErr": -6.56874252107613e-7
+    },
+    {
+     "d_mm": 20,
+     "numeric_nH": 49.7568416159741,
+     "maxwell_nH": 49.75747180843788,
+     "relErr": -0.000012665283039301637
+    },
+    {
+     "d_mm": 40,
+     "numeric_nH": 24.790747399010364,
+     "maxwell_nH": 24.79148544042284,
+     "relErr": -0.000029769955263429603
+    },
+    {
+     "d_mm": 80,
+     "numeric_nH": 7.890639914376564,
+     "maxwell_nH": 7.891049880966221,
+     "relErr": -0.00005195336436099708
+    }
+   ],
+   "reference": "Rosa & Grover 1912, Bull. Bureau of Standards 8:1–237, p. 6 eq. [1] — VERIFIED"
+  },
+  {
+   "id": "V2",
+   "title": "Self-inductance, circular loop R = 50 mm (400 points) vs mu0 R (ln(8R/a) - 2)",
+   "criterion": "relative error < 2% for R/a >= 50",
+   "verdict": "PASS",
+   "summary": "worst 0.656%",
+   "rows": [
+    {
+     "R_over_a": 50,
+     "numeric_nH": 250.24750941864468,
+     "closedForm_nH": 250.79111396517092,
+     "relErr": -0.002167559041193675
+    },
+    {
+     "R_over_a": 100,
+     "numeric_nH": 293.24137207410735,
+     "closedForm_nH": 294.34283577124296,
+     "relErr": -0.003742111453976914
+    },
+    {
+     "R_over_a": 200,
+     "numeric_nH": 335.6774399998626,
+     "closedForm_nH": 337.894557577315,
+     "relErr": -0.006561566405061494
+    }
+   ],
+   "reference": "Rosa & Grover 1912, p. 111 eq. [62] (surface current; leading term) — VERIFIED"
+  },
+  {
+   "id": "V3",
+   "title": "Zero-coupling centre spacing, two coplanar circles",
+   "criterion": "within 1% of the VERIFIED literature value",
+   "verdict": "NOT EVALUABLE",
+   "summary": "computed spacing = 0.7604 x diameter; no VERIFIED reference value available",
+   "rows": [
+    {
+     "computed_spacing_over_diameter": 0.7604234630725386,
+     "patent_value": 0.75,
+     "diff_vs_patent": 0.013897950763384811
+    }
+   ],
+   "reference": "Roemer et al. 1990 MRM 16:192 — UNVERIFIED (paywalled, not read). Closest primary text read: Roemer & Edelstein, US 4,825,162 (1989), \"D approximately equal to 0.75d\" (PARAPHRASE-ONLY; Google Patents OCR text). Exploratory comparison only: 1.39% from the patent's approximate value."
+  },
+  {
+   "id": "V4",
+   "title": "Convergence of k, trefoil pair (Rf = 40 mm), 300 -> 600 points (final-report resolution)",
+   "criterion": "|k(2n) - k(n)| < 0.001",
+   "verdict": "PASS",
+   "summary": "worst change 1.10e-4",
+   "rows": [
+    {
+     "dOverRf": 1.14,
+     "rot": [
+      0,
+      0
+     ],
+     "k160": 0.06459163222238361,
+     "k300": 0.06455516418643788,
+     "k600": 0.06449108409945338,
+     "change300to600": 0.00006408008698449708
+    },
+    {
+     "dOverRf": 1.6,
+     "rot": [
+      0,
+      0
+     ],
+     "k160": -0.07378139423091604,
+     "k300": -0.07357698017927117,
+     "k600": -0.07349667406540387,
+     "change300to600": 0.0000803061138672928
+    },
+    {
+     "dOverRf": 1.14,
+     "rot": [
+      0.3,
+      0.7
+     ],
+     "k160": 0.0655351613003449,
+     "k300": 0.06549676042575976,
+     "k600": 0.06543397784935304,
+     "change300to600": 0.00006278257640672524
+    },
+    {
+     "dOverRf": 1.6,
+     "rot": [
+      0.3,
+      0.7
+     ],
+     "k160": -0.06840015446728545,
+     "k300": -0.06810298788665974,
+     "k600": -0.06799308943677852,
+     "change300to600": 0.00010989844988121278
+    }
+   ],
+   "note": "k160 (stage-2 search resolution) shown for information; the criterion applies to the reported resolution (300)."
+  },
+  {
+   "id": "V5",
+   "title": "Symmetry: swap of the two elements, and rotation of both by 2pi/q",
+   "criterion": "relative difference < 1e-9 (machine-precision level)",
+   "verdict": "PASS",
+   "summary": "worst 3.13e-14",
+   "rows": [
+    {
+     "knot": "T(2,3)",
+     "swapRelDiff": 7.100113546090396e-15,
+     "rotRelDiff": 1.1178902178950837e-14
+    },
+    {
+     "knot": "T(3,4)",
+     "swapRelDiff": 1.0138156947293846e-14,
+     "rotRelDiff": 2.7035085192783586e-15
+    },
+    {
+     "knot": "T(2,5)",
+     "swapRelDiff": 4.452427967451506e-15,
+     "rotRelDiff": 3.132601105671238e-14
+    },
+    {
+     "knot": "T(3,8)",
+     "swapRelDiff": 1.7625397784369575e-14,
+     "rotRelDiff": 1.6697745269402758e-14
+    }
+   ]
+  },
+  {
+   "id": "V6",
+   "title": "Topology and clearance across bloom beta = 0.02–3.0, Design v1.2 outward bloom (catalogue knots, core R = 30 mm, placeholder wire)",
+   "criterion": "crossing count and over/under pattern unchanged; minimum self-clearance >= d_w + 2 t_i",
+   "verdict": "FAIL",
+   "summary": "unknot (2-turn) T(2,1) fails at beta=0.02; trefoil T(3,2) fails at beta=0.02,0.05; trefoil T(2,3) fails at beta=0.02,0.05; T(3,4) = 8_19 T(3,4) fails at beta=0.02,0.05; cinquefoil T(2,5) fails at beta=0.02,0.05; T(5,6) T(5,6) fails at beta=0.02,0.05; T(2,7) = 7_1 T(2,7) fails at beta=0.02,0.05; T(3,8) T(3,8) fails at beta=0.02,0.05",
+   "rows": [
+    {
+     "knot": "unknot (2-turn) T(2,1)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 1,
+       "expected": 1,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.6000000000000014
+      }
+     ]
+    },
+    {
+     "knot": "trefoil T(3,2)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 4,
+       "expected": 4,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.5196152422706664
+      },
+      {
+       "beta": 0.05,
+       "crossings": 4,
+       "expected": 4,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 1.2990381056766571
+      }
+     ]
+    },
+    {
+     "knot": "trefoil T(2,3)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 3,
+       "expected": 3,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.5999999999999999
+      },
+      {
+       "beta": 0.05,
+       "crossings": 3,
+       "expected": 3,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 1.4999999999999987
+      }
+     ]
+    },
+    {
+     "knot": "T(3,4) = 8_19 T(3,4)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 8,
+       "expected": 8,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.5196152422706636
+      },
+      {
+       "beta": 0.05,
+       "crossings": 8,
+       "expected": 8,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 1.2990381056766551
+      }
+     ]
+    },
+    {
+     "knot": "cinquefoil T(2,5)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 5,
+       "expected": 5,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.6000000000000001
+      },
+      {
+       "beta": 0.05,
+       "crossings": 5,
+       "expected": 5,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 1.4999999999999984
+      }
+     ]
+    },
+    {
+     "knot": "T(5,6) T(5,6)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 24,
+       "expected": 24,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.35267115137547855
+      },
+      {
+       "beta": 0.05,
+       "crossings": 24,
+       "expected": 24,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.8816778784387074
+      }
+     ]
+    },
+    {
+     "knot": "T(2,7) = 7_1 T(2,7)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 7,
+       "expected": 7,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.5999999999999991
+      },
+      {
+       "beta": 0.05,
+       "crossings": 7,
+       "expected": 7,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 1.4999999999999984
+      }
+     ]
+    },
+    {
+     "knot": "T(3,8) T(3,8)",
+     "pass": false,
+     "fails": [
+      {
+       "beta": 0.02,
+       "crossings": 16,
+       "expected": 16,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 0.5196152422706642
+      },
+      {
+       "beta": 0.05,
+       "crossings": 16,
+       "expected": 16,
+       "patternSame": true,
+       "liftFeasible": false,
+       "clearance": 1.299038105676654
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "V7",
+   "title": "Topology and clearance across petal sharpness m = 1–16 x bloom 0.1–3.0 (catalogue knots, core R = 30 mm, placeholder wire)",
+   "criterion": "crossing count = q(p-1); pattern equal to m=1, beta=0.4; lift solvable with clearance >= d_w + 2 t_i",
+   "verdict": "PASS",
+   "summary": "all knots pass at all 45 (m, beta) points",
+   "rows": [
+    {
+     "knot": "unknot (2-turn) T(2,1)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 30.001517230113095
+    },
+    {
+     "knot": "trefoil T(3,2)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 30.00320420514439
+    },
+    {
+     "knot": "trefoil T(2,3)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 12.679237365454245
+    },
+    {
+     "knot": "T(3,4) = 8_19 T(3,4)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 18.044503562876002
+    },
+    {
+     "knot": "cinquefoil T(2,5)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 3.611754690870217
+    },
+    {
+     "knot": "T(5,6) T(5,6)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 20.009106697467402
+    },
+    {
+     "knot": "T(2,7) = 7_1 T(2,7)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 1.7530670446917516
+    },
+    {
+     "knot": "T(3,8) T(3,8)",
+     "pass": true,
+     "fails": [],
+     "minBendRadius_info": 3.1285172847350067
+    }
+   ],
+   "note": "Tightest bend radius per knot is shown for information only (not part of the criterion)."
+  },
   {
    "id": "V8",
    "title": "B1 (Biot–Savart) on the axis of a circular loop, R = 50 mm, 400 points, vs closed form",
@@ -73,6 +474,123 @@
    ]
   },
   {
+   "id": "V10",
+   "title": "Capacitor breaks: >= 5 mm from every crossing pass, segments within 1.5x, whenever placement reports success",
+   "criterion": "no reported success violates clearance or segment ratio; infeasible cases counted, not failed",
+   "verdict": "PASS",
+   "summary": "64 of 64 placed successfully; 0 reported infeasible",
+   "rows": []
+  },
+  {
+   "id": "V11",
+   "title": "Capacitor value, circular loop R = 50 mm, wire radius 0.5 mm, vs n/(w^2 L) with Rosa & Grover L",
+   "criterion": "relative error < 1%",
+   "verdict": "PASS",
+   "summary": "worst 0.376%",
+   "rows": [
+    {
+     "breaks": 4,
+     "B0": 3,
+     "ours_pF": 21.177399354653748,
+     "closedForm_pF": 21.09815116596326,
+     "relErr": 0.003756167451218971
+    },
+    {
+     "breaks": 4,
+     "B0": 7,
+     "ours_pF": 3.8897264120792583,
+     "closedForm_pF": 3.8751706223197817,
+     "relErr": 0.003756167451218726
+    },
+    {
+     "breaks": 8,
+     "B0": 3,
+     "ours_pF": 42.354798709307495,
+     "closedForm_pF": 42.19630233192652,
+     "relErr": 0.003756167451218971
+    },
+    {
+     "breaks": 8,
+     "B0": 7,
+     "ours_pF": 7.779452824158517,
+     "closedForm_pF": 7.750341244639563,
+     "relErr": 0.003756167451218726
+    }
+   ]
+  },
+  {
+   "id": "V12",
+   "title": "No wire point inside a face exclusion zone (V9 and C2 arrays)",
+   "criterion": "zero wire points inside any zone",
+   "verdict": "PASS",
+   "summary": "T(2,3) b=0.8 N=16 ring: 0; T(2,5) b=0.8 m=2 N=24 ring: 0; C2 T(2,3) b0.8 m1 N16 free: 0; C2 T(2,3) b0.8 m1 N16 ring: 0; C2 T(2,3) b0.8 m1 N24 free: 0; C2 T(2,3) b0.8 m1 N24 ring: 0; C2 T(2,3) b0.8 m1 N32 free: 0; C2 T(2,3) b0.8 m1 N32 ring: 0; C2 T(2,5) b0.8 m2 N24 free: 0; C2 T(2,5) b0.8 m2 N24 ring: 0 — C2 arrays included (2026-10-20T20:57:42.123Z)",
+   "rows": [
+    {
+     "array": "T(2,3) b=0.8 N=16 ring",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "T(2,5) b=0.8 m=2 N=24 ring",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,3) b0.8 m1 N16 free",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,3) b0.8 m1 N16 ring",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,3) b0.8 m1 N24 free",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,3) b0.8 m1 N24 ring",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,3) b0.8 m1 N32 free",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,3) b0.8 m1 N32 ring",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,5) b0.8 m2 N24 free",
+     "wirePointsInZones": 0
+    },
+    {
+     "array": "C2 T(2,5) b0.8 m2 N24 ring",
+     "wirePointsInZones": 0
+    }
+   ]
+  },
+  {
+   "id": "V13",
+   "title": "Reproducibility: same configuration + seed gives identical layout and k matrix",
+   "criterion": "all differences exactly 0",
+   "verdict": "PASS",
+   "summary": "free fast N=16 identical; ring N=16 identical",
+   "rows": [
+    {
+     "config": "free fast N=16",
+     "maxCentreDiff": 0,
+     "maxThetaDiff": 0,
+     "maxKDiff": 0,
+     "pass": true
+    },
+    {
+     "config": "ring N=16",
+     "maxCentreDiff": 0,
+     "maxThetaDiff": 0,
+     "maxKDiff": 0,
+     "pass": true
+    }
+   ]
+  },
+  {
    "id": "V14",
    "title": "B1 implementation vs independent library (Magpylib) on identical wires, ~1000 points per case",
    "criterion": "relative difference < 0.5% at every point >= 10 mm from any wire",
@@ -111,8 +629,72 @@
     }
    ],
    "reference": "Magpylib 6.0.0 current.Polyline (Ortner & Coliado Bandeira 2020, SoftwareX 11:100466, doi:10.1016/j.softx.2020.100466)"
+  },
+  {
+   "id": "PH2",
+   "title": "POST-HOC: V6 test from the physical bloom floor (outward shape: c / (R sin(pi/p))) upward",
+   "criterion": "post-hoc; not pre-registered (informational)",
+   "verdict": "AGREES",
+   "summary": "T(2,1) from 0.055; T(3,2) from 0.06; T(2,3) from 0.055; T(3,4) from 0.06; T(2,5) from 0.055; T(5,6) from 0.09; T(2,7) from 0.055; T(3,8) from 0.06",
+   "rows": [
+    {
+     "knot": "T(2,1)",
+     "betaMinPhysical": 0.05,
+     "testedFrom": 0.055,
+     "failsAt": []
+    },
+    {
+     "knot": "T(3,2)",
+     "betaMinPhysical": 0.05773502691896258,
+     "testedFrom": 0.06,
+     "failsAt": []
+    },
+    {
+     "knot": "T(2,3)",
+     "betaMinPhysical": 0.05,
+     "testedFrom": 0.055,
+     "failsAt": []
+    },
+    {
+     "knot": "T(3,4)",
+     "betaMinPhysical": 0.05773502691896258,
+     "testedFrom": 0.06,
+     "failsAt": []
+    },
+    {
+     "knot": "T(2,5)",
+     "betaMinPhysical": 0.05,
+     "testedFrom": 0.055,
+     "failsAt": []
+    },
+    {
+     "knot": "T(5,6)",
+     "betaMinPhysical": 0.08506508083520399,
+     "testedFrom": 0.09,
+     "failsAt": []
+    },
+    {
+     "knot": "T(2,7)",
+     "betaMinPhysical": 0.05,
+     "testedFrom": 0.055,
+     "failsAt": []
+    },
+    {
+     "knot": "T(3,8)",
+     "betaMinPhysical": 0.05773502691896258,
+     "testedFrom": 0.06,
+     "failsAt": []
+    }
+   ]
+  },
+  {
+   "id": "PH1",
+   "title": "POST-HOC: Maxwell implementation vs Rosa & Grover Example 1 (A = a = 25 cm, d = 20 cm -> 167.08562 cm = nH)",
+   "criterion": "post-hoc; not pre-registered (informational)",
+   "verdict": "AGREES",
+   "summary": "167.08578 nH, rel diff 9.79e-7"
   }
  ],
  "preregistered": "Design.md v1.0 §7 (git 39a4e83)",
- "allPreregisteredPass": true
+ "allPreregisteredPass": false
 }
