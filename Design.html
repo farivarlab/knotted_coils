@@ -412,6 +412,14 @@ subject to wire-clearance constraints
 </table>
 <h2>12. Changelog</h2>
 <ul>
+<li><strong>2026-10-20, v1.1 addendum: worst-pair term implemented.</strong>
+<ul>
+<li>The λ_max·max|k| term of §5.1 is now implemented as a smooth stand-in: λ_max·k⁴/thr² per neighbour pair, with λ_max = 1.</li>
+<li>It was made the default by a pre-registered paired comparison (<code>validation/COMPARE_worstpair_PROTOCOL.md</code>, git 6d96721): all three criteria were met.</li>
+<li>Trade-off: the worst pair gets lower, but the median |k| gets higher. Details are in DECISIONS.md.</li>
+<li>The validation criteria V1–V6 are unchanged.</li>
+</ul>
+</li>
 <li><strong>2026-10-20, v1.1 (approved by Reza).</strong>
 <ul>
 <li><strong>§5.1 / §5.3, definition of “decoupled”:</strong> now means the <em>nearest ring</em> of neighbours (closer than 1.35 × the pair-null spacing). The v1.0 footprint-overlap rule remains a selectable option, and its verdict is always reported alongside.</li>

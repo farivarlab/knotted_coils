@@ -118,6 +118,7 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
   <label class="row"><span>Rotation<span class="hint">in-plane, per element</span></span>
     <select id="rotation"><option value="free">free per element</option><option value="locked">one shared angle</option><option value="fixed">fixed at θ</option></select></label>
   <label class="row">Threshold |k|<input type="number" id="thr" value="0.01" step="0.001" min="0"></label>
+  <label class="row"><span>Worst-pair weight<span class="hint">extra k⁴ penalty above threshold; 0 = off</span></span><input type="number" id="lamMax" value="1" step="0.5" min="0"></label>
   <label class="row">Random seed<input type="number" id="seed" value="1" step="1"></label>
   <div class="btns">
     <button class="primary" id="runFast">Fast solve</button>
@@ -257,7 +258,9 @@ function drawKnot(g, P, cx, cy, sc, colour, width) {
     path(k - m - 1, k + m + 2); g.strokeStyle = colour; g.lineWidth = width; g.stroke();
   });
 }
-function updateElement() {
+// preview = true while a control is being dragged: draw only (fixed point count, estimated lift),
+// skipping the slow checks (adaptive point count, lift solving), which run when the control is released.
+function updateElement(preview) {
   var prm = elemPrm(), w = wire(), clear = w.d + 2 * w.tIns;
   $('betaV').textContent = prm.beta.toFixed(3);
   $('thetaV').textContent = Math.round(prm.theta * 180 / Math.PI) + '°';
@@ -266,6 +269,15 @@ function updateElement() {
   var floor = K.betaMinPhysical(prm.p, K.coreRadius(prm), clear);
   $('betaFloor').innerHTML = prm.p < 2 ? 'No crossings: no bloom floor.' :
     'Buildable bloom floor for this wire ≈ ' + floor.toFixed(3) + (prm.beta < floor ? ' — <b style="color:var(--bad)">below floor: strands would touch</b>' : '');
+  if (preview) {
+    var nP = Math.min(1200, Math.max(400, 100 * prm.p * prm.q)), hEst = prm.p < 2 ? 0 : clear / (2 * Math.sin(Math.PI / prm.p));
+    var Pp = K.points(Object.assign({}, prm, { h: hEst }), nP);
+    var cvp = sizeCanvas($('elCanvas')), gp = cvp.g, Rfp = K.footprintRadius(prm), scp = Math.min(cvp.w, cvp.h) * 0.45 / Rfp;
+    gp.clearRect(0, 0, cvp.w, cvp.h);
+    drawKnot(gp, Pp, cvp.w / 2, cvp.h / 2, scp, css('--wire'), 3);
+    gp.fillStyle = css('--muted'); gp.font = '12px Segoe UI'; gp.fillText('preview — checks update when you release the control', 10, cvp.h - 10);
+    return;
+  }
   var n = Math.min(K.adaptiveN(prm), 1600);
   elRep = K.report(prm, w, n);
   var cv = sizeCanvas($('elCanvas')), g = cv.g, Rf = elRep.footprintRadius, sc = Math.min(cv.w, cv.h) * 0.45 / Rf;
@@ -295,10 +307,22 @@ function updateElement() {
   } catch (e) {}
   $('elTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
 }
-var elTimer = null;
-function scheduleElement() { clearTimeout(elTimer); elTimer = setTimeout(updateElement, 60); }
+var elTimer = null, previewPending = false;
+function scheduleElement() { clearTimeout(elTimer); elTimer = setTimeout(function () { updateElement(false); }, 60); }
+// Sliders: cheap preview on each animation frame while dragging, full checks on release ('change').
+function schedulePreview() {
+  if (previewPending) return; previewPending = true;
+  requestAnimationFrame(function () { previewPending = false; updateElement(true); });
+}
 ['q', 'p', 'beta', 'bloomMode', 'size', 'theta', 'wd', 'wt', 'wb'].forEach(function (id) {
-  $(id).addEventListener('input', function () { if (id === 'q') fillP(); scheduleElement(); pairStale(); });
+  var isSlider = $(id).type === 'range';
+  $(id).addEventListener('input', function () {
+    if (id === 'q') fillP();
+    if (isSlider) { $('betaV').textContent = (+$('beta').value).toFixed(3); $('thetaV').textContent = $('theta').value + '°'; schedulePreview(); }
+    else scheduleElement();
+    pairStale();
+  });
+  if (isSlider) $(id).addEventListener('change', scheduleElement);
 });
 
 // ---------- worker (all heavy maths off the page thread) ----------
@@ -447,7 +471,7 @@ var view3d = (function () {
 var arrRes = null, arrBusy = false;
 function arrCfg() {
   return { N: Math.max(2, Math.round(+$('N').value)), knot: { p: +$('p').value, q: +$('q').value, beta: +$('beta').value }, wire: wire(), helmet: helmet(),
-    opts: { target: $('target').value, rotation: $('rotation').value, theta0: +$('theta').value * Math.PI / 180, thresholdK: +$('thr').value, seed: Math.round(+$('seed').value) } };
+    opts: { target: $('target').value, rotation: $('rotation').value, theta0: +$('theta').value * Math.PI / 180, thresholdK: +$('thr').value, lambdaMax: +$('lamMax').value, seed: Math.round(+$('seed').value) } };
 }
 function setBusy(b) { arrBusy = b; $('runFast').disabled = $('runFull').disabled = b; $('cancel').disabled = !b; }
 function run(which) {
@@ -480,7 +504,7 @@ function showArray() {
   function st(s) { return s.count + ' pairs · max ' + fmt(s.max, 4) + ' · median ' + fmt(s.median, 4) + ' · ' + s.above + ' ≥ thr'; }
   var rows = [
     ['Knot', K.name(r.knot.p, r.knot.q) + ' T(' + r.knot.p + ',' + r.knot.q + '), β = ' + r.knot.beta],
-    ['Elements N', N], ['Solver stages', r.config.stages.join(' + ')], ['Target / rotation', r.target + ' / ' + r.config.opts.rotation],
+    ['Elements N', N], ['Solver stages', r.config.stages.join(' + ')], ['Target / rotation / worst-pair weight', r.target + ' / ' + r.config.opts.rotation + ' / ' + r.config.opts.lambdaMax],
     ['Footprint radius (solved)', fmt(r.Rf, 1) + ' mm'], ['Core radius', fmt(r.coreRadius, 1) + ' mm'],
     ['Pair-null spacing (table)', fmt(r.tableZero, 3) + ' Rf'],
     ['Coverage of region', fmt(100 * r.coverage, 1) + '%'],
@@ -603,7 +627,7 @@ $('exSVG').onclick = function () {
     '<!-- ' + K.name(+$('p').value, +$('q').value) + ', units mm, 1:1. Generated by knotted_coils (AI-assisted). -->' + body + '</svg>', 'image/svg+xml');
 };
 
-window.addEventListener('resize', function () { scheduleElement(); drawPair(); });
+window.addEventListener('resize', function () { if (elRep) scheduleElement(); drawPair(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { scheduleElement(); drawPair(); view3d.render(); });
 updateElement(); drawPair(); view3d.helmet(helmet());
 </script>

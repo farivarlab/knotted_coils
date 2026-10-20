@@ -207,6 +207,11 @@ knotted_coils/
 
 ## 12. Changelog
 
+- **2026-10-20, v1.1 addendum: worst-pair term implemented.**
+  - The λ_max·max|k| term of §5.1 is now implemented as a smooth stand-in: λ_max·k⁴/thr² per neighbour pair, with λ_max = 1.
+  - It was made the default by a pre-registered paired comparison (`validation/COMPARE_worstpair_PROTOCOL.md`, git 6d96721): all three criteria were met.
+  - Trade-off: the worst pair gets lower, but the median |k| gets higher. Details are in DECISIONS.md.
+  - The validation criteria V1–V6 are unchanged.
 - **2026-10-20, v1.1 (approved by Reza).**
   - **§5.1 / §5.3, definition of "decoupled":** now means the *nearest ring* of neighbours (closer than 1.35 × the pair-null spacing). The v1.0 footprint-overlap rule remains a selectable option, and its verdict is always reported alongside.
   - **Reason:** knotted elements null only at heavy overlap, so under the v1.0 rule second-ring pairs counted as neighbours, and they cannot be nulled together with the first ring. Evidence is in DECISIONS.md: on a 16-element trefoil test, nearest-ring |k| reached about 0.01 while second-ring |k| reached about 0.08.

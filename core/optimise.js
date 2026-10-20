@@ -39,8 +39,9 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
 
   O.DEFAULTS = {
     thresholdK: 0.01,   // JUDG PLACEHOLDER (Design.md D6): "decoupled" means |k| < 0.01 for every neighbour pair.
-    lambdaMax: 0,       // JUDG: weight of the smooth worst-pair term (Design §5.1 lambda_max). 0 = solver as built to git ea9f761.
-                        // Default to be set by the pre-registered comparison in validation/COMPARE_worstpair_PROTOCOL.md.
+    lambdaMax: 1,       // JUDG (value chosen before testing, not tuned): weight of the smooth worst-pair term (Design §5.1 lambda_max).
+                        // Made default by the pre-registered comparison (validation/compare_worstpair.html): all 3 criteria met.
+                        // Trade-off seen there: lower worst pair, but higher median |k| and more pairs above threshold. 0 = old solver.
     lambdaCov: 1,       // JUDG: coverage weight. Large enough that gaps dominate small k^2 values (k^2 ~ 1e-4), so coverage is met first.
     nTable: 128,        // JUDG: points per element in the stage-1 table. Alt: 96, 200. Stage 2 corrects table error.
     tableDMin: 0.3,     // JUDG: table range in units of Rf (0.3 = nearly on top of each other) ...

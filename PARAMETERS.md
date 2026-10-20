@@ -40,6 +40,7 @@ Last updated 2026-10-20.
 | Stage-1 table | 128 pts; d = 0.3–3.0 Rf in 55 steps; 12 rotation steps per 2π/q | JUDG / DERIVED | Speed. Stage 2 corrects table error | `core/optimise.js` |
 | Stage-2 / final points | 160 / 300 per element | JUDG | V4: k converged to < 0.001 at 300 | `core/optimise.js` |
 | Self-L points | 300 | JUDG | | `core/optimise.js` |
+| Worst-pair weight λ_max | 1 (cost term λ_max·k⁴/thr²) | JUDG | Chosen before testing, not tuned. Made default by the pre-registered comparison, `validation/compare_worstpair.html` | `core/optimise.js` |
 | Coverage weight λ | 1 | JUDG | Makes gaps dominate k² terms | `core/optimise.js` |
 | Neighbour weight taper | 2.0 → 2.4 Rf (footprint); 1.35 → 1.55 × null spacing (ring1) | JUDG | Stops pairs escaping by stepping just past the cut-off | `core/optimise.js` |
 | Coverage samples | 2400 on full ellipsoid | JUDG | | `core/optimise.js` |

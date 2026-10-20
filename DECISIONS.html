@@ -46,7 +46,42 @@ tr:nth-child(even) td { background: var(--panel); }
 </li>
 <li><strong>Alternatives:</strong> keep the footprint rule, with its ill-posed objective; or a Voronoi-adjacency definition (not built).</li>
 </ul>
-<h3>2026-10-20 — Deviation found: λ_max term not implemented</h3>
+<h3>2026-10-20 — Worst-pair term implemented; made default by pre-registered rule</h3>
+<ul>
+<li><strong>Requested by:</strong> Reza: “Implement the worst-pair term as a smooth stand-in (soft-max or sum of k^4), compare against the current solver on the same seeds, and report both.”</li>
+<li><strong>Implementation:</strong> per-pair cost w·(k² + λ_max·k⁴/thr²), with λ_max = 1 (JUDG, set before testing, not tuned).</li>
+<li><strong>Protocol:</strong> <code>validation/COMPARE_worstpair_PROTOCOL.md</code>, committed before running (git 6d96721). 35 paired runs:
+<ul>
+<li>T(2,3), T(2,5), T(3,4) at N = 16 and 32, seeds 1–5, fast solver;</li>
+<li>plus T(2,3) at N = 16, seeds 1–5, full solver.</li>
+</ul>
+</li>
+<li><strong>Result:</strong> all three criteria met.
+<ul>
+<li>B (with the term) had the lower worst nearest-ring |k| in 26 of 35 runs.</li>
+<li>Median paired ratio B/A = 0.84.</li>
+<li>Coverage violations: 0.</li>
+</ul>
+</li>
+<li><strong>Applied mechanically:</strong> default is now <code>lambdaMax = 1</code>.</li>
+<li><strong>Trade-off shown by the secondary outcomes (reported, not part of the rule):</strong>
+<ul>
+<li>median nearest-ring |k| rose from 0.0052 to 0.0119;</li>
+<li>median count of pairs ≥ threshold rose from 17 to 22.</li>
+<li>In short, the term lowers the single worst pair by spreading moderate coupling over more pairs.</li>
+<li>Second-ring worst |k| was essentially unchanged (0.066 vs 0.067).</li>
+</ul>
+</li>
+<li><strong>Also seen in both arms:</strong>
+<ul>
+<li>No N = 32 run met the threshold for all nearest-ring pairs.</li>
+<li>Results vary strongly with the random seed (same configuration, A’s worst |k| ranged 0.010–0.042).</li>
+<li>The solver is a weak link. Restarting from several seeds and keeping the best would be a cheap improvement (not built).</li>
+</ul>
+</li>
+<li><strong>Open for Reza:</strong> which matters more for his array, the worst pair or the typical pair. If the typical pair matters more, set the weight to 0; the app exposes it.</li>
+</ul>
+<h3>2026-10-20 — Deviation found: λ_max term not implemented (resolved by the entry above)</h3>
 <ul>
 <li><strong>What happened:</strong> Design §5.1’s cost includes λ_max·max|k|. The solver as built (git b21c784) omits it. Claude found this while editing §5.1 for v1.1 and disclosed it the same day.</li>
 <li><strong>Effect:</strong> the solver can trade one bad pair for many good ones. The worst pair is always reported but not specifically targeted.</li>

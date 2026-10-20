@@ -8,7 +8,7 @@ A browser tool for designing MRI receive phased arrays made of **knotted wire lo
 
 - **Easiest:** double-click `app/index.html`. It needs no install and no internet; the Three.js 3D library is stored in `vendor/`.
   - *Not yet tested:* opening by double-click. It was tested served from a local web server.
-  - If the array solver doesn't respond when opened by double-click, serve the folder instead, for example `npx http-server` (any static file server works) from this folder, and open `/app/index.html`.
+  - If the array solver doesn't respond when opened by double-click, use the built-in local server (tested). Run `node tools/serve.js` in this folder, then open http://localhost:8765/app/index.html.
 - **Validation suite** (needs Node.js; takes about 2 minutes):
 
 ```bash
@@ -40,6 +40,8 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | V4 Convergence | PASS |
 | V5 Symmetry | PASS |
 | V6 Topology across bloom | **FAIL** at β = 0.02 only (below the physical floor for the placeholder wire; see DECISIONS.md) |
+
+**Solver comparison (pre-registered):** `validation/compare_worstpair.html`. The worst-pair term is on by default. It lowers the worst pair but raises the typical (median) coupling; set "Worst-pair weight" to 0 to turn it off.
 
 ## References
 

@@ -40,7 +40,7 @@ tr:nth-child(even) td { background: var(--panel); }
 <li><strong>Easiest:</strong> double-click <code>app/index.html</code>. It needs no install and no internet; the Three.js 3D library is stored in <code>vendor/</code>.
 <ul>
 <li><em>Not yet tested:</em> opening by double-click. It was tested served from a local web server.</li>
-<li>If the array solver doesn’t respond when opened by double-click, serve the folder instead, for example <code>npx http-server</code> (any static file server works) from this folder, and open <code>/app/index.html</code>.</li>
+<li>If the array solver doesn’t respond when opened by double-click, use the built-in local server (tested). Run <code>node tools/serve.js</code> in this folder, then open <a href="http://localhost:8765/app/index.html">http://localhost:8765/app/index.html</a>.</li>
 </ul>
 </li>
 <li><strong>Validation suite</strong> (needs Node.js; takes about 2 minutes):</li>
@@ -126,6 +126,7 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 </tbody>
 </table>
+<p><strong>Solver comparison (pre-registered):</strong> <code>validation/compare_worstpair.html</code>. The worst-pair term is on by default. It lowers the worst pair but raises the typical (median) coupling; set “Worst-pair weight” to 0 to turn it off.</p>
 <h2>References</h2>
 <ul>
 <li><strong>Rosa, E. B. &amp; Grover, F. W. (1912).</strong> Formulas and tables for the calculation of mutual and self-inductance (revised). <em>Bulletin of the Bureau of Standards</em> 8(1):1–237, Scientific Paper 169. <a href="https://nvlpubs.nist.gov/nistpubs/bulletin/08/nbsbulletinv8n1p1_A2b.pdf">https://nvlpubs.nist.gov/nistpubs/bulletin/08/nbsbulletinv8n1p1_A2b.pdf</a>

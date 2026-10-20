@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Worst-pair comparison protocol</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Pre-registered comparison: worst-pair term on vs off</h1>
+<p><strong>Written 2026-10-20, before any comparison run, and committed to git before running.</strong> Requested by Reza: “Implement the worst-pair term as a smooth stand-in (soft-max or sum of k^4), compare against the current solver on the same seeds, and report both.”</p>
+<h2>Arms</h2>
+<ul>
+<li><strong>A (current solver):</strong> <code>lambdaMax = 0</code>. Cost per neighbour pair = w·k². This is the solver as built up to git ea9f761.</li>
+<li><strong>B (with worst-pair term):</strong> <code>lambdaMax = 1</code>. Cost per neighbour pair = w·(k² + k⁴/thr²), with thr = 0.01.</li>
+</ul>
+<p><strong>Why this form:</strong> Design §5.1 asks for a max|k| term. A hard maximum does not split into per-element pieces, and the solver’s local search moves one element at a time, so I used Σk⁴ (one of the two stand-ins Reza named). It equals k² at |k| = thr and dominates above it.</p>
+<p><strong>λ_max = 1 is a single judgement value (JUDG) chosen before running.</strong> It is not tuned on these runs.</p>
+<h2>Runs (paired: same configuration and same seed in both arms)</h2>
+<p>Everything not listed here stays at its default: target = nearest ring, rotation = free, threshold 0.01, placeholder wire and helmet.</p>
+<table>
+<thead>
+<tr>
+<th>Set</th>
+<th>Knots (β)</th>
+<th>N</th>
+<th>Seeds</th>
+<th>Solver</th>
+<th>Paired runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fast</td>
+<td>T(2,3) β=0.4 · T(2,5) β=0.4 · T(3,4) β=0.3</td>
+<td>16, 32</td>
+<td>1–5</td>
+<td>fast (table)</td>
+<td>30</td>
+</tr>
+<tr>
+<td>Full</td>
+<td>T(2,3) β=0.4</td>
+<td>16</td>
+<td>1–5</td>
+<td>full (table + exact)</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<h2>Outcomes</h2>
+<p><strong>Primary:</strong> worst nearest-ring |k| in the final exact report (<code>ring1.max</code>).</p>
+<p><strong>Secondary (reported, no decision attached):</strong></p>
+<ul>
+<li>number of nearest-ring pairs ≥ threshold;</li>
+<li>median nearest-ring |k|;</li>
+<li>worst footprint-pair |k|;</li>
+<li>worst |k| beyond the nearest ring;</li>
+<li>coverage;</li>
+<li>solved footprint radius;</li>
+<li>runtime.</li>
+</ul>
+<h2>Decision rule (applied mechanically)</h2>
+<p>B becomes the default (<code>lambdaMax = 1</code>) only if <strong>all three</strong> hold across the 35 paired runs:</p>
+<ol>
+<li>B’s primary outcome is lower than A’s in <strong>≥ 70%</strong> of paired runs (≥ 25 of 35).</li>
+<li>The <strong>median of paired ratios</strong> B/A of the primary outcome is <strong>≤ 0.90</strong>.</li>
+<li><strong>No paired run</strong> has B’s coverage below 0.99 where A’s is ≥ 0.99.</li>
+</ol>
+<p>Otherwise the default stays <code>lambdaMax = 0</code>, and the result goes to Reza to decide between dropping the term from the Design (v1.2) and trying another form.</p>
+<p><strong>Status of any adoption:</strong> this comparison covers only these configurations, so it is <strong>exploratory</strong>. It is not a general claim about the optimiser.</p>
+</body></html>

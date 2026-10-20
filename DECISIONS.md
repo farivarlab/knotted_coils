@@ -13,7 +13,29 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
   - Design.md changelog updated.
 - **Alternatives:** keep the footprint rule, with its ill-posed objective; or a Voronoi-adjacency definition (not built).
 
-### 2026-10-20 — Deviation found: λ_max term not implemented
+### 2026-10-20 — Worst-pair term implemented; made default by pre-registered rule
+- **Requested by:** Reza: "Implement the worst-pair term as a smooth stand-in (soft-max or sum of k^4), compare against the current solver on the same seeds, and report both."
+- **Implementation:** per-pair cost w·(k² + λ_max·k⁴/thr²), with λ_max = 1 (JUDG, set before testing, not tuned).
+- **Protocol:** `validation/COMPARE_worstpair_PROTOCOL.md`, committed before running (git 6d96721). 35 paired runs:
+  - T(2,3), T(2,5), T(3,4) at N = 16 and 32, seeds 1–5, fast solver;
+  - plus T(2,3) at N = 16, seeds 1–5, full solver.
+- **Result:** all three criteria met.
+  - B (with the term) had the lower worst nearest-ring |k| in 26 of 35 runs.
+  - Median paired ratio B/A = 0.84.
+  - Coverage violations: 0.
+- **Applied mechanically:** default is now `lambdaMax = 1`.
+- **Trade-off shown by the secondary outcomes (reported, not part of the rule):**
+  - median nearest-ring |k| rose from 0.0052 to 0.0119;
+  - median count of pairs ≥ threshold rose from 17 to 22.
+  - In short, the term lowers the single worst pair by spreading moderate coupling over more pairs.
+  - Second-ring worst |k| was essentially unchanged (0.066 vs 0.067).
+- **Also seen in both arms:**
+  - No N = 32 run met the threshold for all nearest-ring pairs.
+  - Results vary strongly with the random seed (same configuration, A's worst |k| ranged 0.010–0.042).
+  - The solver is a weak link. Restarting from several seeds and keeping the best would be a cheap improvement (not built).
+- **Open for Reza:** which matters more for his array, the worst pair or the typical pair. If the typical pair matters more, set the weight to 0; the app exposes it.
+
+### 2026-10-20 — Deviation found: λ_max term not implemented (resolved by the entry above)
 - **What happened:** Design §5.1's cost includes λ_max·max|k|. The solver as built (git b21c784) omits it. Claude found this while editing §5.1 for v1.1 and disclosed it the same day.
 - **Effect:** the solver can trade one bad pair for many good ones. The worst pair is always reported but not specifically targeted.
 - **Options:**
