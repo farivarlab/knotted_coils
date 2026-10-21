@@ -28,6 +28,11 @@ PARAMETERS (also in PARAMETERS.md):
   AIR 200 mm        CONV: air spacer, as in the openEMS MRI_Loop_Coil tutorial (Air_Box = 200).
   END_CRIT 1e-4     CONV: openEMS tutorial value (energy decay -40 dB).
   FC = 0.5 f0       JUDG: Gaussian excitation half-bandwidth.
+  PORT_ROUND 1e-3 mm  DERIVED: port terminals rounded to 1 um so that openEMS's 7-significant-digit XML export of the
+                    port box equals the grid line exactly (see DECISIONS 2026-10-21: an unrounded feed port was silently
+                    dropped in the pair case and the run produced no signal for 13.7 h).
+  MAX_TS 2e6        JUDG: timestep cap (openEMS default is 1e9, i.e. effectively none). The slowest completed run so far
+                    needed ~2e5 timesteps; a run that hits the cap is reported, not trusted.
 VALIDATED BY: V15 (resonance of a circular loop), V16 (passivity/reciprocity of S). Exploratory otherwise.
 """
 import argparse
@@ -80,7 +85,9 @@ def cut_wire(P, breaks, gap):
         p = np.asarray(b['p'], float)
         sb = s[b['index']] + b['f'] * (s[b['index'] + 1] - s[b['index']])
         delta = 0.5 * gap / max(abs(t[ax]), 0.5)                  # along-wire half-length removed for the gap
-        ports.append(dict(A=p - sg * 0.5 * gap * e, B=p + sg * 0.5 * gap * e, axis=ax, sign=sg, s=sb, delta=delta, p=p))
+        A = np.round(p - sg * 0.5 * gap * e, 3)                     # PORT_ROUND: exact in openEMS's XML export
+        B = np.round(p + sg * 0.5 * gap * e, 3)
+        ports.append(dict(A=A, B=B, axis=ax, sign=sg, s=sb, delta=delta, p=p))
     ports.sort(key=lambda q: q['s'])
     segs = []
     for k, q in enumerate(ports):
@@ -152,10 +159,10 @@ def planes_for(case):
             dict(name='coronal', axis=1, pos=float(y_cor), start=[-ext[0], float(y_cor), -ext[2]], stop=[ext[0], float(y_cor), ext[2]])]
 
 
-def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box):
+def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box, nrts=None):
     f0 = case['f0_Hz']
     fc = opt.fc_frac * f0
-    FDTD = openEMS(EndCriteria=opt.end_crit)
+    FDTD = openEMS(EndCriteria=opt.end_crit, NrTS=int(nrts or opt.max_ts))
     FDTD.SetGaussExcite(f0, fc)
     FDTD.SetBoundaryCond(['MUR'] * 6)
     CSX = ContinuousStructure()
@@ -212,6 +219,33 @@ def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box)
     return ports, ncells, time.time() - t0
 
 
+def preflight(case, opt, work, phantom_file, phantom_box, nports):
+    """Set the model up once with EVERY port excited and run 5 timesteps, capturing openEMS's console output.
+    openEMS only warns (it does not stop) when a port's excitation lands on no grid edge; such a run injects no
+    energy and never meets the end criterion. Abort before any long run if that warning appears."""
+    import tempfile
+    sp = os.path.join(work, 'preflight')
+    if os.path.isdir(sp):
+        shutil.rmtree(sp)
+    sys.stdout.flush(); sys.stderr.flush()
+    saved = os.dup(1), os.dup(2)
+    with tempfile.TemporaryFile(mode='w+b') as tmp:
+        os.dup2(tmp.fileno(), 1); os.dup2(tmp.fileno(), 2)
+        try:
+            build_and_run(case, list(range(nports)), sp, opt, [], phantom_file, phantom_box, nrts=5)
+        finally:
+            sys.stdout.flush(); sys.stderr.flush()
+            os.dup2(saved[0], 1); os.dup2(saved[1], 2)
+            os.close(saved[0]); os.close(saved[1])
+        tmp.seek(0)
+        log = tmp.read().decode('utf-8', 'replace')
+    shutil.rmtree(sp, ignore_errors=True)
+    bad = sorted(set(l.strip() for l in log.splitlines() if 'Unused primitive' in l))
+    if bad:
+        raise RuntimeError('preflight: openEMS dropped part of the model, run aborted: ' + '; '.join(bad))
+    print('preflight OK: every port excitation lands on the grid', flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('case')
@@ -222,6 +256,7 @@ def main():
     ap.add_argument('--end_crit', type=float, default=1e-4)
     ap.add_argument('--fc_frac', type=float, default=0.5)
     ap.add_argument('--nf', type=int, default=201)
+    ap.add_argument('--max_ts', type=float, default=2e6, help='timestep cap per run (MAX_TS, JUDG)')
     ap.add_argument('--wire', default='curve', choices=['curve', 'wire'], help='curve (default since v1.7 dev) or radius-aware wire')
     ap.add_argument('--superpose_check', action='store_true', help='audit M3: one extra run with ports 0 and 1 driven together')
     ap.add_argument('--tag', default='', help='suffix for the output folder (e.g. mesh-sensitivity runs)')
@@ -246,6 +281,7 @@ def main():
     Hplanes = {pl['name']: None for pl in planes}
     plane_mesh = {}
     meta_ports, runs = None, []
+    preflight(case, opt, work, phantom_file, phantom_box, nports)
     for j in range(nports):
         sp = os.path.join(work, 'run_%02d' % j)
         if os.path.isdir(sp):

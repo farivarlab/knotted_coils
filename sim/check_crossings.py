@@ -99,6 +99,30 @@ def main():
                   (e, k, np.linalg.norm(p1 - p2), tuple(s2[a] - s1[a] for a in range(3)), status))
     print('crossings at risk (same node or one grid edge apart):', bad)
 
+    # Port clearance: another element's wire, snapped to the grid, must not land on (or one edge from) a port gap's
+    # nodes, or the two coils would be joined through that port.
+    nodes = lambda a, b: {snap(a + t * (b - a)) for t in np.linspace(0, 1, 41)}
+    pbad = 0
+    for e, el in enumerate(case['elements']):
+        _, prt = R.cut_wire(el['wire'], el['breaks'], opt.gap)
+        for k, q in enumerate(prt):
+            gap_nodes = nodes(q['A'], q['B'])
+            for f, other in enumerate(case['elements']):
+                if f == e:
+                    continue
+                W = np.asarray(other['wire'], float)
+                wn = set()
+                for i in range(len(W)):
+                    a, b = W[i], W[(i + 1) % len(W)]
+                    if min(np.linalg.norm(a - q['p']), np.linalg.norm(b - q['p'])) < 15:
+                        wn |= nodes(a, b)
+                close = [g for g in gap_nodes for w in wn
+                         if sorted(abs(g[x] - w[x]) for x in range(3)) in ([0, 0, 0], [0, 0, 1])]
+                if close:
+                    pbad += 1
+                    print('element %d port %d: element %d wire snaps onto or next to the gap' % (e, k, f))
+    print('ports at risk from another element (same node or one grid edge apart):', pbad)
+
 
 if __name__ == '__main__':
     main()

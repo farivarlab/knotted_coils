@@ -4,6 +4,30 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-21 — FAILED RUN: pair_head_3T_d+0 ran 13.7 h with no signal (feed port silently dropped)
+- **What happened:**
+  - The first pair run (started 19:51) never injected energy: openEMS reported energy ~0 for 5.66 million timesteps.
+  - openEMS had printed "Unused primitive … port_excite_1" at setup, then carried on. Nothing in the pipeline read that warning.
+  - The openEMS timestep cap was its default of 10⁹, so nothing stopped the run.
+  - Found by Claude at 09:35 and killed. The queue had already started `pair_head_3T_d-4`, which had the same defect; it was killed too.
+  - No pair, 7T or 0.5 mm results exist yet.
+- **Cause, found by elimination:**
+  - Not crossing shorts, not the phantom, not the other coil's metal, not its ports, not mirror symmetry.
+  - openEMS's Python interface writes box corners to XML with **7 significant digits**, but grid lines at full precision. A port is a zero-width box (a line between two grid nodes), so it sits 1–2 nm off its own grid line after export.
+  - Whether openEMS then snaps such a box to an edge or drops it depends on the surrounding grid. In the two-coil grid it dropped 4 of 8 ports.
+  - In the single-coil cases (loop, trefoil air, trefoil head) the logs show no such warning, so those results stand.
+- **Fix, applied before any new run:**
+  1. Port terminals rounded to 1 µm (`PORT_ROUND`), so the exported box lies exactly on its grid line. Geometry change ≤ 0.5 µm, against a 1 mm cell.
+  2. **Preflight:** before the long runs, the model is set up once with every port excited for 5 timesteps. Any "Unused primitive" warning aborts the case.
+     - Negative control: with the old coordinates, preflight aborts and names ports 1, 3, 4 and 7.
+     - With the fix it passes.
+  3. Timestep cap `MAX_TS` 2×10⁶ (JUDG).
+- **Separate finding (geometry, not software):**
+  - In `pair_head_3T_d+4`, the other coil's wire passes 1.4 mm from each feed gap and snaps onto or next to the gap nodes. The two coils would be joined through the port.
+  - `check_crossings.py` now also checks port clearance against other elements. d+0, d−4 and the air pair are clear.
+  - V19 needs all three spacings. Whether to move the capacitor breaks in the pair cases is a decision for Reza, because it changes the setup of a pre-registered check (though not its criterion).
+  - The same issue would arise in real arrays. The app places breaks without regard to neighbouring elements' wires (open item).
+
 ### 2026-10-20 (night) — Audit M2 (crossing shorts on the grid): checked, no short found
 - **Trigger:** the `trefoil_air_3T` run hovered between −8 and −17 dB for roughly 60,000 timesteps. Energy that never decays is the signature of a closed metal loop with no port in it, which a shorted crossing would create.
 - **Check:** `sim/check_crossings.py` rebuilds the openEMS grid exactly as the run does, without running FDTD, and snaps both strands at every crossing to grid nodes.
