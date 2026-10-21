@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.8 (v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-21 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.9 (v1.9 = crossover bumps between overlapping coils, Reza 2026-10-21; v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-21 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -113,7 +113,21 @@ Higher p for the same q is also allowed, e.g. T(3,5) or T(3,7), giving more wind
 - **v1:** a parametric hemi-ellipsoid (semi-axes a, b, c) with a coverage boundary, i.e. the lowest elevation the array reaches and a face opening. The default dimensions are **placeholders**, tagged as such in the parameter registry until Reza supplies real former dimensions.
 - **v2:** import the real former as an STL file (a 3D mesh format).
 - **Placing an element on the surface:** the flat knot is defined in the tangent plane at the element's centre, then projected onto the surface along the surface normal. Crossing lift and the thickness offset (z, v1.8) are applied along the outward normal. This deforms the knot slightly; the deformation is measured and reported.
-- **Crossings between elements:** where wires from neighbouring overlapping elements cross, they need a lift too. The tool assigns over/under at these crossings and checks clearance.
+- **Crossings between elements:** where wires from neighbouring overlapping elements cross, they need a lift too. *(Stated since v1.0 but **not implemented until v1.9**: wires of overlapping coils could pass through each other. Found 2026-10-21 when a full-wave pair run shorted the two coils; see DECISIONS.)*
+- **v1.9 crossover bumps (Reza 2026-10-21: "at each crossing between two coils, one wire lifts outward over the other by at least wire + insulation over a short stretch; coils otherwise stay on the helmet").** Applied after the layout is solved, to the final wrapped wires:
+  1. **Who goes over:** for every pair of elements, the **higher-numbered element lifts over the lower-numbered one** at all their crossings. Elements are processed in index order, each against the final (already bumped) wires of all lower-numbered elements, so stacking is consistent where three or more coils meet.
+  2. **Where:** the points of element j closer than the target clearance to any lower-numbered wire are grouped into clusters (points within 3 mm of each other, JUDG).
+  3. **Shape:** each cluster gets a bump defined **in space**, not along the wire:
+     - every point of element j within r₀ of the cluster centre c moves outward along its surface normal by A;
+     - between r₀ and r₀ + W the move tapers as a raised cosine to 0;
+     - r₀ = cluster radius + target clearance (DERIVED);
+     - ramp W = 6 mm (JUDG);
+     - because the bump is spatial, both strands of element j's own nearby crossing move together, which keeps its own over/under clearance.
+  4. **Height:** A starts at the target clearance and increases in 0.1 mm steps until every point of element j in the bump is at least the target clearance from every lower-numbered wire. The cap is A_max = 10 mm (JUDG); if the cap is hit, the case is flagged.
+  5. **Target clearance:** 1.1 × (d_w + 2·t_i) (JUDG: a 10% margin over touching insulation, to absorb polyline sampling). The check requires ≥ d_w + 2·t_i.
+  - **Consequences:**
+    - Exact left–right symmetry is lost at crossings between mirror twins, because one wire must go over. V9 therefore applies to the **layout before bumps**; the asymmetry is measured in V24.
+    - The coupling matrix in the report is computed on the **bumped** wires. The pre-bump matrix is kept for V9 and for comparison.
 
 ## 5. Array layout and automatic decoupling
 
@@ -201,6 +215,8 @@ subject to wire-clearance constraints
 
 **Scope tonight:** a circular loop (validation), a single trefoil element (air and head, 3T and 7T), and a trefoil pair in the head at 3T across 3 spacings. Full arrays are expensive in FDTD (one run per port) and are left for later, via mariepy if it proves usable, or long openEMS runs.
 
+**Pre-run gate (v1.9):** before any openEMS case runs, `sim/check_crossings.py` must report zero risks for (1) each element's own crossings, (2) ports versus other elements, and (3) wires of different elements on the same or edge-adjacent grid nodes. openEMS's own preflight must also pass. A case that fails is not run.
+
 ## 7. Validation plan (pre-registered)
 
 Each check runs automatically in the test suite and appears in a validation report. **Pass criteria are fixed now.**
@@ -213,7 +229,7 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V4 | Convergence | Internal | k changes < 0.001 when the point count doubles |
 | V5 | Symmetry | Internal | M_ij = M_ji to machine precision; k invariant under rotating both elements by 2π/q |
 | V6 | Topology preserved under bloom | Internal | Crossing count and over/under pattern unchanged across β ∈ [β_min, β_max]; minimum self-clearance ≥ d_w + 2·t_i |
-| V9 *(v1.6, pre-registered)* | Exact left–right symmetry of ring layouts | Internal | Ring-mode arrays T(2,3) β=0.8 N=16 and T(2,5) β=0.8 m=2 N=24:<br>• every mirror pair's wires coincide with the mirror image to < 1e-9 mm;<br>• k is unchanged under the mirror swap to < 1e-9, for pairs without a midline element;<br>• < 1e-3 for pairs that include a midline element (its crossing lift is not mirror-symmetric) |
+| V9 *(v1.6, pre-registered; from v1.9 evaluated on the layout before crossover bumps, see §4)* | Exact left–right symmetry of ring layouts | Internal | Ring-mode arrays T(2,3) β=0.8 N=16 and T(2,5) β=0.8 m=2 N=24:<br>• every mirror pair's wires coincide with the mirror image to < 1e-9 mm;<br>• k is unchanged under the mirror swap to < 1e-9, for pairs without a midline element;<br>• < 1e-3 for pairs that include a midline element (its crossing lift is not mirror-symmetric) |
 | V10 *(v1.6, pre-registered)* | Capacitor break placement | Internal | All catalogue knots × β ∈ {0.4, 1.5} × m ∈ {1, 4} × breaks ∈ {4, 8} (core R = 30 mm, clearance 5 mm). Whenever the placer reports success:<br>• every break is ≥ 5 mm along the wire from every crossing pass;<br>• longest ÷ shortest segment ≤ 1.5.<br>Cases reported as infeasible are counted, not failed |
 | V11 *(v1.6, pre-registered)* | Capacitor value | Closed form C = n / (ω²L), using the verified ring self-inductance (Rosa & Grover eq. [62]) | Circular loop R = 50 mm, wire radius 0.5 mm, n = 4 and 8, at 3T and 7T: our per-capacitor value within 1% of the closed form |
 | V12 *(v1.6, pre-registered)* | Face exclusion zones respected | Internal | Arrays from every V9 and C2 configuration: zero final-report wire points inside any exclusion zone (zone boundary itself, margin excluded) |
@@ -229,6 +245,7 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V21 *(v1.8, pre-registered)* | Thickness control T | Internal | Every catalogue knot, β ∈ {0.4, 1.5}, m ∈ {1, 4}, core R = 30 mm, placeholder wire, T ∈ {0, 5, 10, 20, 40} mm:<br>(a) T = 0 gives points identical to the v1.7 construction (h = h_min, no offset), difference exactly 0;<br>(b) for T > 2·h_min: measured thickness max z − min z within 1% of T, and min z ≥ −h_min − 1e-9 mm (never deeper than v1.7);<br>(c) crossing count = q(p−1), over/under pattern equal to T = 0, minimum self-clearance ≥ d_w + 2·t_i;<br>(d) T < 2·h_min gives h = h_min and the clamp flag set |
 | V22 *(v1.8, pre-registered)* | B1 implementation on thick knots, Tier 1 | Magpylib 6.x, as V14 | Same harness and criterion as V14 (< 0.5% at every point ≥ 10 mm from any wire), on:<br>(d) one T(2,3), β = 0.8, core R = 30 mm, T = 30 mm;<br>(e) a solved 16-element free array, T(2,3) β 0.8, T = 15 mm |
 | V23 *(v1.8, pre-registered)* | Self-inductance of a non-flat wire (v1.8 offset correction) | Rotation invariance plus Rosa & Grover eq. [62] (VERIFIED, as V11) | Circle R = 50 mm, wire radius 0.5 mm, 400 points, tilted by 0°, 30°, 60°, 80° about the x axis, default offset direction z: L within 0.5% of the untilted value at every tilt, **and** within 2% of Rosa & Grover (as V2). The v1.7 method's values are reported alongside for information |
+| V24 *(v1.9, pre-registered)* | Crossover bumps separate overlapping coils | Internal | On:<br>• the two V9 ring arrays;<br>• a free N = 16 array (T(2,3) β 0.8, seed 1, fast);<br>• the same with T = 15 mm;<br>• the four pair simulation cases.<br>Criteria:<br>(a) the minimum centreline distance between wires of **different** elements, measured segment to segment, is ≥ d_w + 2·t_i;<br>(b) every displacement is along that point's outward surface normal with size ≥ 0; points outside all bump regions are unchanged exactly; no element is ever displaced by a crossing with a higher-numbered element;<br>(c) each element keeps its own minimum self-clearance ≥ d_w + 2·t_i and minimum bend radius ≥ the wire limit;<br>(d) no bump reaches A_max.<br>Reported for information: bump heights, fraction of wire bumped, max \|Δk\| between bumped and pre-bump wires for adjacent pairs, and mirror-pair wire asymmetry |
 | V8 *(added v1.5, pre-registered before running)* | B1 (Biot–Savart) field of a circular loop on its axis | Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in `core/field.js`) | Relative error < 0.5% at z = 0, 10, 20, 40, 80 mm for R = 50 mm, 400 points |
 | V7 *(added v1.3, pre-registered before running)* | Topology preserved under petal sharpness | Internal | Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i |
 
@@ -284,6 +301,12 @@ knotted_coils/
 | D7 | Mixed knots in one array | No for v1 (all elements the same knot); yes for v2 |
 
 ## 12. Changelog
+
+- **2026-10-21, v1.9 (Reza: "Use local bumps: at each crossing between two coils, one wire lifts outward over the other by at least wire + insulation over a short stretch; coils otherwise stay on the helmet. Make it a v1.9 design change with pre-registered checks, then rerun the pairs.").**
+  - §4: crossover bumps (rule, shape, height). The coupling report uses bumped wires.
+  - §7: V9 evaluated on the pre-bump layout; new **V24**.
+  - §6b: new **pre-run gate** for every full-wave case. `sim/check_crossings.py` must report no two *different* elements' wires on the same or edge-adjacent grid nodes, as well as the existing checks on self-crossings and ports.
+  - Trigger: the invalid pair run of 2026-10-21 (DECISIONS).
 
 - **2026-10-21, v1.8 (Reza: "add the height dimension to these knots, such that with one parameter, I could allow the knots to rise higher (total thickness of the whole knot) … while still calculating their B1 fields"; Reza chose "outward only").**
   - §3.1: total-thickness parameter T. h = max(h_min, T/2), z₀ = h − h_min; T = 0 reproduces v1.7 exactly.
