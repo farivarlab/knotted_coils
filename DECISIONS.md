@@ -23,6 +23,19 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 - **Quasi-static effect of the bumps (information):**
   - Pair d₀: k 0.0058 → 0.0061.
   - The upper coil's L rises 500 → 509 nH (longer wire).
+- **Later development fixes (harness and report, no design change):**
+  - The pre-bump k matrix used the bumped L for far pairs, which broke V9 (k mirror error 2e-4). Fixed: V9 PASS again.
+  - export_case's output-folder line was swallowed by a comment. Fixed.
+- **Development run of V24 (KC_ONLY, 2026-10-21): FAIL.**
+  - **All 4 pair simulation cases pass** every criterion: max bump 3.2 mm, 7–8 bumps.
+  - **All 4 arrays fail:**
+    - ring T(2,3) N16: wires 0.47 mm apart, own clearance 0.93 mm, bend 1.71 mm, capped;
+    - ring T(2,5) N24: 0.23 mm, 0.93 mm, bend 1.31 mm, capped;
+    - free N16: own clearance 0.58 mm, bend 1.56 mm, capped;
+    - free N16 with T = 15 mm: capped only, and just 32 bumps — thicker knots interleave far more easily.
+  - Bumps change adjacent k by up to 0.029.
+  - **Conclusion:** local bumps work for a pair but not for dense knot arrays, so array crossovers are an open design problem (Reza).
+  - The app now marks such arrays "NOT BUILDABLE AS DRAWN" in the report (app 0.5.0).
 
 ### 2026-10-21 — INVALID RUN: pair cases had the two coils touching (no separation at inter-element crossings)
 - **Found:** Claude, reviewing the first pair result (`pair_head_3T_d+0`, finished about 13:10). Mirror-twin elements gave different inductances (399 vs 596 nH, where 500 is expected). Also R_loop 916 Ω (expected about 8 Ω), S21 −3.6 dB, and M_eff −118 nH against +2.9 nH quasi-static.

@@ -235,7 +235,7 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 <script src="../validation/validation_status.js" onerror="window.KC_VALIDATION=null"></script>
 <script>
 'use strict';
-var APP_VERSION = '0.4.0';   // 0.4.0 = Design v1.8 (thickness T); 0.3.0 = v1.7 (audit D10)
+var APP_VERSION = '0.5.0';   // 0.5.0 = Design v1.9 (crossover bumps); 0.4.0 = v1.8 (thickness T); 0.3.0 = v1.7 (audit D10)
 var K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 function $(id) { return document.getElementById(id); }
 function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -715,6 +715,7 @@ function showArray() {
     ['Element wire length', fmt(r.element.wireLength, 0) + ' mm'],
     ['Element bend check', '<span class="flag ' + (r.element.bendOK ? 'ok' : 'bad') + '">' + fmt(r.element.minBendRadius, 2) + ' mm</span>'],
     ['Crossing lift feasible', verdict(r.liftFeasible)],
+    ['Crossovers between coils (v1.9)', r.crossovers ? (r.crossovers.capped ? '<span class="flag bad">' : '<span class="flag ok">') + r.crossovers.count + ' bumps, highest ' + fmt(r.crossovers.maxA, 1) + ' mm, ' + fmt(100 * r.crossovers.fractionBumped, 0) + '% of wire raised' + (r.crossovers.capped ? ' — NOT BUILDABLE AS DRAWN: some crossings could not be separated (10 mm cap); dense arrays are an open item (V24)' : '') + '</span>' : '—'],
     ['Element thickness (v1.8)', r.thickness != null ? fmt(r.thickness, 1) + ' mm' + (r.thicknessClamped ? ' (requested T below the minimum lift for some elements; minimum used)' : '') + (r.zOff > 0 ? ', raised outward' : '') : '—'],
     ['Max wrap distortion (wire length)', fmt(100 * r.wrapDistortion.max, 2) + '%'],
     ['Self-inductance L (range)', fmt(Math.min.apply(null, r.L), 0) + '–' + fmt(Math.max.apply(null, r.L), 0) + ' nH']

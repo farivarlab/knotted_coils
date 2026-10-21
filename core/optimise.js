@@ -557,7 +557,8 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
         if (!elLow[a]) elLow[a] = I.prep(O.buildElement(ctx, a, 120).points);
         if (!elLow[b]) elLow[b] = I.prep(O.buildElement(ctx, b, 120).points);
         k = I.mutual(elLow[a], elLow[b], ctx.c) / Math.sqrt(el[a].L * el[b].L);
-        kLay[a * N + b] = kLay[b * N + a] = k;   // far pairs never cross: no bumps between them
+        // far pairs never cross each other, but either element may carry bumps elsewhere: use the pre-bump L for the layout k
+        kLay[a * N + b] = kLay[b * N + a] = bumped[a] || bumped[b] ? I.mutual(elLow[a], elLow[b], ctx.c) / Math.sqrt(lay[a].L * lay[b].L) : k;
       }
       kM[a * N + b] = kM[b * N + a] = k;
       // ring1: nearest ring (v1.1 rule, free mode only); footprint: footprints overlap (v1.0); adjacent: Voronoi (v1.6)

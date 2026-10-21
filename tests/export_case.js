@@ -21,7 +21,8 @@ var KC = globalThis.KC, K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 var WIRE = { d: 1.0, tIns: 0.25, minBend: 2 };   // JUDG PLACEHOLDER (same as tests/run.js)
 var A = WIRE.d / 2, CLEAR = WIRE.d + 2 * WIRE.tIns, NB = 4, CAPCLEAR = 5;
 var ONLY_PAIRS = process.env.KC_EXPORT_ONLY === 'pairs';   // rewrite only the pair cases (single-coil results stay current)
-var outDir = process.env.KC_CASES_OUT ? path.resolve(process.env.KC_CASES_OUT) : path.join(root, 'sim', 'cases');   // KC_CASES_OUT: V24 harness if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+var outDir = process.env.KC_CASES_OUT ? path.resolve(process.env.KC_CASES_OUT) : path.join(root, 'sim', 'cases');   // KC_CASES_OUT: V24 harness
+if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 var H = JSON.parse(JSON.stringify(S.DEFAULTS));
 var HEAD = KC.field.head(H);                     // helmet - 10 mm (same placeholder head as the B1 view)
 
