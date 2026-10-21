@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.9 (v1.9 = crossover bumps between overlapping coils, Reza 2026-10-21; v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-21 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.10 (v1.10 = COMSOL interface, Reza 2026-10-21; v1.9 = crossover bumps between overlapping coils, Reza 2026-10-21; v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-21 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -217,6 +217,22 @@ subject to wire-clearance constraints
 
 **Pre-run gate (v1.9):** before any openEMS case runs, `sim/check_crossings.py` must report zero risks for (1) each element's own crossings, (2) ports versus other elements, and (3) wires of different elements on the same or edge-adjacent grid nodes. openEMS's own preflight must also pass. A case that fails is not run.
 
+## 6c. COMSOL interface (v1.10, Reza 2026-10-21: "add the COMSOL export (files + MPh build script, unvalidated)")
+
+- **Purpose:** a second full-wave solver that labs commonly have. It is driven from Python like openEMS, from the **same case JSON**, so both solvers model identical geometry: the same bumps, breaks and port gaps.
+- **Export:** `sim/export_comsol.py <case>` writes `sim/comsol/<case>/`, containing:
+  - one text file per wire segment between capacitor gaps (x y z in mm, one point per line);
+  - `ports.csv` (each gap's two terminals, axis, element, whether it is the feed);
+  - `phantom.json` (ellipsoid semi-axes, layer thicknesses, neck cut, tissue εr and σ at the case frequency, and their source label);
+  - `meta.json` (frequency, wire radius, units, source case file and its git hash).
+  - Port terminals and wire ends are taken from `sim/run_openems.py`'s `cut_all`, so they are identical to the openEMS model.
+- **Build script:** `sim/comsol_build_mph.py <case>` uses **MPh** (Python interface to COMSOL; v1.4.0, MIT licence, John Hennig; requires a licensed COMSOL with the RF Module).
+  - It builds the wires as perfect-conductor edges, each capacitor gap as a small rectangular lumped-port face, the three-layer head phantom and a scattering outer boundary.
+  - It solves a frequency sweep over every port and writes the port S-matrix to `sim/out/<case>_comsol/comsol.npz`, in the same format as openEMS's (freq, S, port metadata), so `sim/cosim.py` can choose the capacitors.
+  - `--dry-run` checks the files and prints the build plan without COMSOL.
+  - **Status: UNVALIDATED.** It was written without access to COMSOL. The COMSOL feature and property names come from the COMSOL API as recalled by Claude and are marked UNVERIFIED in the code. First use must be supervised in the COMSOL GUI.
+- **Not in v1.10:** B1 field export from COMSOL (S-parameters only); the co-simulation's B1 comparison stays openEMS-only.
+
 ## 7. Validation plan (pre-registered)
 
 Each check runs automatically in the test suite and appears in a validation report. **Pass criteria are fixed now.**
@@ -246,6 +262,7 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V22 *(v1.8, pre-registered)* | B1 implementation on thick knots, Tier 1 | Magpylib 6.x, as V14 | Same harness and criterion as V14 (< 0.5% at every point ≥ 10 mm from any wire), on:<br>(d) one T(2,3), β = 0.8, core R = 30 mm, T = 30 mm;<br>(e) a solved 16-element free array, T(2,3) β 0.8, T = 15 mm |
 | V23 *(v1.8, pre-registered)* | Self-inductance of a non-flat wire (v1.8 offset correction) | Rotation invariance plus Rosa & Grover eq. [62] (VERIFIED, as V11) | Circle R = 50 mm, wire radius 0.5 mm, 400 points, tilted by 0°, 30°, 60°, 80° about the x axis, default offset direction z: L within 0.5% of the untilted value at every tilt, **and** within 2% of Rosa & Grover (as V2). The v1.7 method's values are reported alongside for information |
 | V24 *(v1.9, pre-registered)* | Crossover bumps separate overlapping coils | Internal | On:<br>• the two V9 ring arrays;<br>• a free N = 16 array (T(2,3) β 0.8, seed 1, fast);<br>• the same with T = 15 mm;<br>• the four pair simulation cases.<br>Criteria:<br>(a) the minimum centreline distance between wires of **different** elements, measured segment to segment, is ≥ d_w + 2·t_i;<br>(b) every displacement is along that point's outward surface normal with size ≥ 0; points outside all bump regions are unchanged exactly; no element is ever displaced by a crossing with a higher-numbered element;<br>(c) each element keeps its own minimum self-clearance ≥ d_w + 2·t_i and minimum bend radius ≥ the wire limit;<br>(d) no bump reaches A_max.<br>Reported for information: bump heights, fraction of wire bumped, max \|Δk\| between bumped and pre-bump wires for adjacent pairs, and mirror-pair wire asymmetry |
+| V25 *(v1.10, pre-registered; can only be run where COMSOL is licensed)* | Second full-wave solver (COMSOL) agrees with openEMS | openEMS results of the same case files | Cases `loop_air_3T` and `trefoil_air_3T`, built by `sim/comsol_build_mph.py` from the committed case files, solved, then put through the same `sim/cosim.py` tuning:<br>(a) the COMSOL S-matrix passes V16 (passive ≤ 1.001, reciprocal ≤ 0.02);<br>(b) the tuned capacitor C_t is within 10% of openEMS's for both cases (as V20);<br>(c) the loop's first-pass resonance error has the same sign as openEMS's, and its size is reported. NOT EVALUABLE until run on a COMSOL machine; the COMSOL version, mesh settings and any manual corrections to the build script are recorded with the result |
 | V8 *(added v1.5, pre-registered before running)* | B1 (Biot–Savart) field of a circular loop on its axis | Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in `core/field.js`) | Relative error < 0.5% at z = 0, 10, 20, 40, 80 mm for R = 50 mm, 400 points |
 | V7 *(added v1.3, pre-registered before running)* | Topology preserved under petal sharpness | Internal | Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i |
 
@@ -301,6 +318,11 @@ knotted_coils/
 | D7 | Mixed knots in one array | No for v1 (all elements the same knot); yes for v2 |
 
 ## 12. Changelog
+
+- **2026-10-21, v1.10 (Reza: "add the COMSOL export (files + MPh build script, unvalidated) … add the COMSOL export first").**
+  - §6c: COMSOL export files and MPh build script from the same case JSON as openEMS.
+  - New check **V25** (COMSOL vs openEMS), NOT EVALUABLE until run where COMSOL is licensed.
+  - COMSOL is not installed on the development machine.
 
 - **2026-10-21, v1.9 (Reza: "Use local bumps: at each crossing between two coils, one wire lifts outward over the other by at least wire + insulation over a short stretch; coils otherwise stay on the helmet. Make it a v1.9 design change with pre-registered checks, then rerun the pairs.").**
   - §4: crossover bumps (rule, shape, height). The coupling report uses bumped wires.
