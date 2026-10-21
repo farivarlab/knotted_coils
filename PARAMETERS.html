@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Parameter Registry</title><style>
+<title>Parameter Registry — Knotted Coil Designer</title><style>
 :root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
 * { box-sizing: border-box; }
 body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
@@ -77,9 +77,9 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 <tr>
 <td>Lowest covered height zCut</td>
-<td>0 mm</td>
+<td><s>0 mm</s> <strong>superseded: −20 mm since v1.6</strong> (see v1.6 table)</td>
 <td>JUDG PLACEHOLDER</td>
-<td>Ellipsoid equator</td>
+<td>Ellipsoid equator (v1.0–v1.5)</td>
 <td><code>core/surface.js</code></td>
 </tr>
 <tr>
@@ -158,6 +158,377 @@ tr:nth-child(even) td { background: var(--panel); }
 <td>JUDG</td>
 <td>Reza 2026-10-20: rotation as a decoupling lever</td>
 <td><code>core/optimise.js</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Design v1.7: full-wave co-simulation (<code>sim/</code>)</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Tag</th>
+<th>Rationale / source</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Solver</td>
+<td>openEMS 0.37.0 (FDTD), Python 3.14 wheels</td>
+<td>CONV</td>
+<td>Verified install 2026-10-20; docs.openems.de</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Wire primitive</td>
+<td><code>AddCurve</code> (thin PEC curve)</td>
+<td>JUDG</td>
+<td><code>AddWire</code> with radius 0.5 mm <strong>disconnected</strong> on a 2 mm grid (see DECISIONS)</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Grid near wires</td>
+<td>1.0 mm</td>
+<td>JUDG</td>
+<td>Sensitivity runs at 0.5 / 1.0 / 2.0 mm</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Grid in phantom</td>
+<td>3.0 mm</td>
+<td>JUDG</td>
+<td>openEMS MRI tutorial uses 2 mm</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Port / capacitor gap</td>
+<td>2.0 mm</td>
+<td>JUDG</td>
+<td></td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Air spacer</td>
+<td>200 mm</td>
+<td>CONV</td>
+<td>openEMS MRI_Loop_Coil tutorial</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>End criterion</td>
+<td>1e-4</td>
+<td>CONV</td>
+<td>openEMS MRI_Loop_Coil tutorial</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Excitation half-band</td>
+<td>0.5 × f0</td>
+<td>JUDG</td>
+<td></td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Boundary</td>
+<td>MUR (all sides)</td>
+<td>CONV</td>
+<td>openEMS MRI_Loop_Coil tutorial</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Thin-wire effective radius a_eff</td>
+<td>calibrated per grid on the R = 40 mm loop</td>
+<td>DERIVED</td>
+<td>Inverts Rosa &amp; Grover eq. [62]; validated by V15b on the trefoil</td>
+<td><code>sim/cosim.py</code></td>
+</tr>
+<tr>
+<td>Copper conductivity</td>
+<td>5.8e7 S/m</td>
+<td>CONV</td>
+<td>Standard handbook value, <strong>not cited</strong></td>
+<td><code>sim/cosim.py</code></td>
+</tr>
+<tr>
+<td>Capacitor Q</td>
+<td>1000</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Until components are chosen</td>
+<td><code>sim/cosim.py</code></td>
+</tr>
+<tr>
+<td>Matching-inductor Q</td>
+<td>100</td>
+<td>JUDG PLACEHOLDER</td>
+<td></td>
+<td><code>sim/cosim.py</code></td>
+</tr>
+<tr>
+<td>Preamp input impedance</td>
+<td>2 Ω</td>
+<td>JUDG PLACEHOLDER</td>
+<td></td>
+<td><code>sim/cosim.py</code></td>
+</tr>
+<tr>
+<td>Tuning passes (arrays)</td>
+<td>3</td>
+<td>JUDG</td>
+<td></td>
+<td><code>sim/cosim.py</code></td>
+</tr>
+<tr>
+<td>Tissue 7T (brain / skull / skin εr, σ)</td>
+<td>52.7, 0.95 / 11.4, 0.29 / 38.9, 0.84</td>
+<td>CONV (secondary)</td>
+<td>openEMS bundled phantom, attributed to IT’IS/Gabriel; <strong>not independently verified</strong></td>
+<td><code>tests/export_case.js</code>, app</td>
+</tr>
+<tr>
+<td>Tissue 3T</td>
+<td>62.8, 0.66 / 12.5, 0.13 / 46.8, 0.58</td>
+<td><strong>APPROXIMATION</strong></td>
+<td>openEMS 128 MHz <em>body</em> phantom values mapped to head layers</td>
+<td>same</td>
+</tr>
+<tr>
+<td>Phantom layers</td>
+<td>skin 4 mm, skull 7 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td></td>
+<td><code>tests/export_case.js</code></td>
+</tr>
+<tr>
+<td>Test element</td>
+<td>T(2,3), β 0.8, Rf 45 mm, 4 breaks, posterior midline at 20° elevation</td>
+<td>JUDG</td>
+<td></td>
+<td><code>tests/export_case.js</code></td>
+</tr>
+<tr>
+<td>Crossover target clearance (v1.9)</td>
+<td>1.1 × (d_w + 2·t_i)</td>
+<td>JUDG</td>
+<td>10% margin over touching insulation, to absorb polyline sampling</td>
+<td><code>core/optimise.js</code> (O.crossovers)</td>
+</tr>
+<tr>
+<td>Crossover taper width W (v1.9)</td>
+<td>10 mm (pre-registered 6)</td>
+<td><strong>TUNED</strong></td>
+<td>Raised to keep the 2 mm bend limit on the pair cases (which V24 also tests); DECISIONS 2026-10-21</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Crossover A_max, height step, cluster gap, r0_max (v1.9)</td>
+<td>10 mm, 0.1 mm, 3 mm, 30 mm</td>
+<td>JUDG</td>
+<td>Search limits for bump height and plateau radius; reaching A_max is flagged (V24 d)</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Grid refinement at crossovers REFINE (v1.9)</td>
+<td>lines every 0.4 mm within ±3 mm</td>
+<td>JUDG</td>
+<td>Keeps two coils 1.65 mm apart several grid nodes apart (pre-run gate)</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>MIN_GAP / MIN_CELL (v1.9)</td>
+<td>0.2 mm / 0.15 mm</td>
+<td>JUDG</td>
+<td>No sliver cells (they shrink the FDTD timestep); a case with a smaller cell aborts</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>COMSOL air sphere margin AIR (v1.10)</td>
+<td>150 mm</td>
+<td>JUDG</td>
+<td>Distance from the farthest wire or tissue to the scattering boundary</td>
+<td><code>sim/comsol_build_mph.py</code></td>
+</tr>
+<tr>
+<td>COMSOL wire mesh size HMAX_WIRE (v1.10)</td>
+<td>1 mm</td>
+<td>JUDG</td>
+<td>Same scale as the openEMS grid near wires; the PEC-edge inductance depends on it (calibrate on the loop, as for openEMS)</td>
+<td><code>sim/comsol_build_mph.py</code></td>
+</tr>
+<tr>
+<td>COMSOL frequencies NF (v1.10)</td>
+<td>41 over f0 (1 ± 0.4)</td>
+<td>CONV (this project)</td>
+<td>Same band as openEMS, fewer points (one solve per port)</td>
+<td><code>sim/comsol_build_mph.py</code></td>
+</tr>
+<tr>
+<td>Total thickness T (v1.8, added 2026-10-21)</td>
+<td>0 mm default (= minimal lift, v1.7 geometry); app slider 0–60 mm</td>
+<td>User input (Reza’s design choice)</td>
+<td>h = max(h_min, T/2); extra thickness goes outward only (Reza’s choice). Slider range 0–60 mm is JUDG</td>
+<td><code>core/knot.js</code> (knot.height), app</td>
+</tr>
+<tr>
+<td>Pair break shift (added 2026-10-21)</td>
+<td>+0.100 × wire length (element 1), −0.100 (mirrored element 2)</td>
+<td>JUDG rule, DERIVED value</td>
+<td>Rule: largest worst-case port-gap-to-other-coil distance over all four pair cases, subject to break-to-crossing clearance ≥ 5 mm. Result: 7.3 mm (was 1.4 mm). Chosen on geometry only, before any pair result (DECISIONS 2026-10-21)</td>
+<td><code>tests/export_case.js</code></td>
+</tr>
+<tr>
+<td>Port terminal rounding PORT_ROUND (added 2026-10-21)</td>
+<td>1 µm</td>
+<td>DERIVED</td>
+<td>Makes openEMS’s 7-significant-digit XML export of the port box land exactly on its grid line</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>Timestep cap MAX_TS (added 2026-10-21)</td>
+<td>2 × 10⁶</td>
+<td>JUDG</td>
+<td>openEMS default is 10⁹ (no real cap). A run that hits the cap is not trusted</td>
+<td><code>sim/run_openems.py</code></td>
+</tr>
+<tr>
+<td>V18 depth</td>
+<td>along the ray from the head centre</td>
+<td>JUDG</td>
+<td>Not the true normal distance</td>
+<td><code>sim/cosim.py</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Design v1.6 additions</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Tag</th>
+<th>Rationale / source</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Face zones: eyes</td>
+<td>az ±17°, el +5°, half-widths 13° × 10°</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Rough adult proportions. Replace with measured landmarks or the ICBM152 eye mask</td>
+<td><code>core/surface.js</code></td>
+</tr>
+<tr>
+<td>Face zone: mouth</td>
+<td>az 0°, el −30°, half-widths 20° × 9°</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Same</td>
+<td><code>core/surface.js</code></td>
+</tr>
+<tr>
+<td>Zone margin for wires</td>
+<td>5 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Proposal default</td>
+<td><code>core/surface.js</code></td>
+</tr>
+<tr>
+<td>Lowest covered height zCut</td>
+<td>−20 mm (was 0)</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Lowered once zones protect the face</td>
+<td><code>core/surface.js</code></td>
+</tr>
+<tr>
+<td>Face wedge</td>
+<td>off (was on)</td>
+<td>JUDG</td>
+<td>Replaced by zones</td>
+<td><code>core/surface.js</code></td>
+</tr>
+<tr>
+<td>lambdaZone</td>
+<td>1 (was 0.05 in development)</td>
+<td>JUDG</td>
+<td>Wires entered zones at 0.05</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Coverage buffer around zones</td>
+<td>0.5 × footprint radius</td>
+<td>JUDG</td>
+<td>Stops the coverage term pulling wires into zones</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Footprint zone check</td>
+<td>97 points, 1.1 × Rf</td>
+<td>JUDG</td>
+<td>37 points at 1.0 × Rf missed zones; wrapped wires reach ~5% past Rf</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Multi-start jitter</td>
+<td>0.25 × spacing</td>
+<td>JUDG</td>
+<td></td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Adjacency tolerance</td>
+<td>2 × sample spacing</td>
+<td>DERIVED</td>
+<td>Voronoi border detection</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Ring count heuristic</td>
+<td>round(√(N/2.5)) rings</td>
+<td>JUDG</td>
+<td></td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Ring elevation range</td>
+<td>covered edge to 1.5 rad (start top at 1.3 rad)</td>
+<td>JUDG</td>
+<td></td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>Ring search points per element</td>
+<td>96</td>
+<td>JUDG</td>
+<td>Speed; final report uses 300</td>
+<td><code>core/optimise.js</code></td>
+</tr>
+<tr>
+<td>γ/2π (proton)</td>
+<td>42.577478461 MHz/T</td>
+<td><strong>LIT</strong></td>
+<td>CODATA 2022 via NIST; VERIFIED 2026-10-20, archived in <code>sources/</code></td>
+<td><code>core/knot.js</code></td>
+</tr>
+<tr>
+<td>Capacitor clearance from crossings</td>
+<td>5 mm</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Until the capacitor package size is known</td>
+<td>app</td>
+</tr>
+<tr>
+<td>Segment-length warning</td>
+<td>λ/10 (free space)</td>
+<td>JUDG</td>
+<td>Rule of thumb, not a cited value</td>
+<td><code>core/knot.js</code></td>
+</tr>
+<tr>
+<td>Break placement</td>
+<td>200 trial offsets; nudges up to ¼ segment</td>
+<td>JUDG</td>
+<td></td>
+<td><code>core/knot.js</code></td>
 </tr>
 </tbody>
 </table>
@@ -280,7 +651,7 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 <tr>
 <td>Self-L points</td>
-<td>300</td>
+<td>300 (solver); ≤ 800 (Element tab, thinned from the adaptive point count)</td>
 <td>JUDG</td>
 <td></td>
 <td><code>core/optimise.js</code></td>

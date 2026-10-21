@@ -1,0 +1,172 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Audit, step 3, area D: app, documentation, integrity, packaging</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Audit, step 3, area D: app, documentation, integrity, packaging</h1>
+<p><strong>Auditor:</strong> an independent agent (model: Fable), read-only. HEAD 2734546, 2026-10-20 (night). Its findings are below, with the fix status recorded in <code>DECISIONS.md</code> (“Audit actions”).</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Severity</th>
+<th>Status</th>
+<th>Location</th>
+<th>Finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D1</td>
+<td>High</td>
+<td>CONFIRMED</td>
+<td><code>validation/*</code>, <code>tests/run.js</code></td>
+<td>Committed report and status never regenerated after the V15–V20 aggregation (still V1–V14, git 5f60ace). The aggregation reads <code>sim/out/loop_air_3T/</code>, which did not exist yet, so V15 would read NOT RUN rather than FAIL</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>High</td>
+<td>CONFIRMED</td>
+<td><code>app/index.html</code></td>
+<td>The Pair explorer and the array solver share one worker. A solve or Cancel during a pair scan kills it silently, and <code>pairBusy</code> stays true for the session</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td><code>Design.md</code> §6, §6b, §7, §10</td>
+<td>Stale against the code: AddWire vs AddCurve; promised <code>report.html</code> not written; §10 outdated (V1–V6, no field.js or sim/, double-click claim); 400 vs 300 points; §7 “UNVALIDATED” label not implemented</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td>README, DEVELOPER_GUIDE, REQUEST_LOG, DESIGN_HISTORY, PROPOSAL_v2, AUDIT_BRAINSTORM_REVIEW, DECISIONS</td>
+<td>Stale or missing: README says v1.5, has an old validation table and no v1.7 section; REQUEST_LOG has no v1.7 or audit entries; DESIGN_HISTORY says V15–V19; PROPOSAL says “nothing built”; the “Audit actions” section is missing; the second V15 run and a_eff are undocumented</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td>docs</td>
+<td><code>.html</code> missing or older than its <code>.md</code> for several documents; PDFs missing</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td><code>dist/</code>, builder</td>
+<td><code>dist/</code> is v1.5; the builder omits newer docs; <code>dist/</code> is gitignored and unversioned</td>
+</tr>
+<tr>
+<td>D7</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td>NOTICE, README, SOURCES</td>
+<td>Licence inventory lists Three.js only (missing Magpylib BSD-2, openEMS GPL-3 / CSXCAD LGPL-3, mariepy GPL, numpy/scipy/h5py/torch); the NIST archive is missing from SOURCES.md</td>
+</tr>
+<tr>
+<td>D8</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td><code>sim/v20_mariepy.py</code>, <code>tests/run.js</code></td>
+<td>V20 script untracked; run.js copies its verdict instead of applying the 10% criterion itself</td>
+</tr>
+<tr>
+<td>D9</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td>app, <code>tests/export_case.js</code>, PARAMETERS</td>
+<td>Tissue and phantom constants duplicated; zMin untagged and absent from PARAMETERS; the app export always attaches a phantom</td>
+</tr>
+<tr>
+<td>D10</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>app</td>
+<td>APP_VERSION says v1.6; the co-sim card omits warnings, git hash, V-verdicts; no check that results match the current design</td>
+</tr>
+<tr>
+<td>D11</td>
+<td>Low</td>
+<td>LIKELY</td>
+<td>app load and exports</td>
+<td>Schema validated too late; missing fields become <code>undefined</code>; partial state on error; no try/catch in exports</td>
+</tr>
+<tr>
+<td>D12</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>paths, <code>.gitignore</code></td>
+<td>Hard-coded user paths (overridable); npz policy undocumented; pre-M10 cosim outputs have no git hash</td>
+</tr>
+<tr>
+<td>D13</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>app</td>
+<td>Accessibility: missing tab roles and labels; colour-only status; mouse-only 3D view</td>
+</tr>
+<tr>
+<td>D14</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>PARAMETERS</td>
+<td>Contradictory zCut rows; self-L points 300 vs ≤ 800</td>
+</tr>
+<tr>
+<td>D15</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>Design §7, DECISIONS</td>
+<td>Post-registration harness clarifications (M6, M13, M14) not logged in the project’s own records</td>
+</tr>
+<tr>
+<td>D16</td>
+<td>Info</td>
+<td>POSSIBLE</td>
+<td><code>docs/research_integrity/VALIDATION_PROTOCOL.md</code></td>
+<td>Cites hashes from another repository (Lab_3d)</td>
+</tr>
+</tbody>
+</table>
+<h2>Verified correct</h2>
+<ul>
+<li><strong>Provenance headers</strong> on all tracked source files.</li>
+<li><strong>Commit hashes:</strong> all 14 cited hashes resolve, and the pre-registration commits contain what they claim.</li>
+<li><strong>Schemas:</strong> the app’s case export matches <code>tests/export_case.js</code> and every field the sim scripts read; tissue numbers are identical everywhere, with 3T labelled as an approximation.</li>
+<li><strong>Index mapping:</strong> flat → wrapped mapping is sound (<code>S.wrap</code> keeps the point count).</li>
+<li><strong>Co-sim loader:</strong> its keys match <code>cosim.py</code>.</li>
+<li><strong>Banner:</strong> honest; any non-PASS is listed, and missing results read NOT RUN.</li>
+<li><strong>Workers:</strong> the element worker guards stale results; the B1 worker restarts.</li>
+<li><strong>Labels:</strong> exports carry exploratory labels.</li>
+<li><strong>Parameter tags:</strong> γ/2π is LIT with an archived source; placeholders are tagged; the calibration file is tracked.</li>
+</ul>
+</body></html>

@@ -1,0 +1,172 @@
+{
+ "case": "pair_head_3T_d+0",
+ "B0_T": 3,
+ "f0_MHz": 127.73243538299998,
+ "loaded": true,
+ "tissue_source": "APPROXIMATION: openEMS 0.37.0 phantom_body_128MHz.h5 values (Tissue->brain, Bone->skull, Skin->skin); verified 128 MHz head values are an open item",
+ "parameters": {
+  "SIGMA_CU": 58000000.0,
+  "Q_CAP": 1000.0,
+  "Q_IND": 100.0,
+  "Z_PRE": 2.0,
+  "PASSES": 3
+ },
+ "V16": {
+  "max_singular_value": 1.0025029043081235,
+  "max_reciprocity_error": 8.714195381942245e-05
+ },
+ "thin_wire_correction": {
+  "key": "res1.0_curve",
+  "a_eff_mm": 0.16938025074498786,
+  "dL_nH": [
+   100.5361629926933,
+   100.5361629926933
+  ]
+ },
+ "tuned": true,
+ "elements": [
+  {
+   "S11_neighbours_preamp_dB": -23.007058411066996,
+   "Ct_pF": 16.527879687365377,
+   "Cm_pF": 6.331652266870546,
+   "Lm_nH": 245.2002013839806,
+   "first_pass_Ct_pF": 12.412905852701444,
+   "S11_dB": -9.788521080204056,
+   "R_loop_ohm": 916.4999433880216,
+   "L_fullwave_corrected_nH": 399.372087963154,
+   "L_fullwave_raw_nH": 499.9082509558473,
+   "L_quasistatic_nH": 500.29297872814107
+  },
+  {
+   "S11_neighbours_preamp_dB": -32.43950715532929,
+   "Ct_pF": 15.866008686067724,
+   "Cm_pF": 5.581724104252377,
+   "Lm_nH": 278.14388205737777,
+   "first_pass_Ct_pF": 12.412905852701629,
+   "S11_dB": -9.287507847304239,
+   "R_loop_ohm": 1092.739555585966,
+   "L_fullwave_corrected_nH": 595.6418786408478,
+   "L_fullwave_raw_nH": 696.1780416335412,
+   "L_quasistatic_nH": 500.2929787281336
+  }
+ ],
+ "V15b": [
+  {
+   "element": 0,
+   "L_corrected_nH": 399.372087963154,
+   "L_quasistatic_nH": 500.29297872814107,
+   "rel_err": -0.20172358009411007
+  },
+  {
+   "element": 1,
+   "L_corrected_nH": 595.6418786408478,
+   "L_quasistatic_nH": 500.2929787281336,
+   "rel_err": 0.19058612446473724
+  }
+ ],
+ "V17": {
+  "max_S11_dB": -23.007058411066996,
+  "max_S11_neighbours_50ohm_dB": -9.287507847304239,
+  "all_positive": true
+ },
+ "coupling": {
+  "S21_dB": -3.612118810516906,
+  "loop_current_ratio_50ohm_dB": -6.199212466348307,
+  "loop_current_ratio_preamp_dB": -21.77563513384476,
+  "preamp_decoupling_gain_dB": 15.576422667496455,
+  "M_eff_nH": -117.73118389766658,
+  "R_mutual_ohm": -996.1220511666686,
+  "M_quasistatic_nH": 2.8972343280537327,
+  "k_quasistatic": 0.0057910753323366345,
+  "spacing_mm": 54.29719524242978,
+  "d0_flat_mm": 54.29719524242978,
+  "k_quasistatic_on_helmet": 0.0057910753323366345,
+  "sign_agrees_M_eff_vs_quasistatic": false
+ },
+ "B1": {
+  "axial": [
+   {
+    "element": 0,
+    "V18_max_rel_diff_within_20mm": 2.0363681024213487,
+    "breakdown_depth_mm": 0.0,
+    "n_points_within_20mm": 4754,
+    "info_footprint_max_rel_diff_within_20mm": 0.8026182504590618,
+    "info_worst_point_mm": [
+     -67.4381330950981,
+     -23.516619520439246,
+     35.560199999999995
+    ],
+    "info_worst_point_fullwave_norm": 0.007579059971550034,
+    "info_robust_max_rel_diff_within_20mm": 1.3630134074727793,
+    "info_robust_median_rel_diff_within_20mm": 0.19770267937013117
+   },
+   {
+    "element": 1,
+    "V18_max_rel_diff_within_20mm": 3.9048092841173085,
+    "breakdown_depth_mm": 0.0,
+    "n_points_within_20mm": 4754,
+    "info_footprint_max_rel_diff_within_20mm": 1.7138069212056732,
+    "info_worst_point_mm": [
+     -67.4381330950981,
+     -23.516619520439246,
+     35.560199999999995
+    ],
+    "info_worst_point_fullwave_norm": 0.013495293923632891,
+    "info_robust_max_rel_diff_within_20mm": 3.246365906859271,
+    "info_robust_median_rel_diff_within_20mm": 0.533395246485983
+   }
+  ],
+  "coronal": [
+   {
+    "element": 0,
+    "V18_max_rel_diff_within_20mm": 99.14829423143738,
+    "breakdown_depth_mm": 0.0,
+    "n_points_within_20mm": 7210,
+    "info_footprint_max_rel_diff_within_20mm": 0.9593125972383136,
+    "info_worst_point_mm": [
+     -44.718161119359095,
+     -69.26268181818182,
+     -21.896196300490047
+    ],
+    "info_worst_point_fullwave_norm": 0.00029089024753706444,
+    "info_robust_max_rel_diff_within_20mm": 110.63870920227723,
+    "info_robust_median_rel_diff_within_20mm": 0.29145094957814777
+   },
+   {
+    "element": 1,
+    "V18_max_rel_diff_within_20mm": 42.43500881865103,
+    "breakdown_depth_mm": 0.0,
+    "n_points_within_20mm": 7210,
+    "info_footprint_max_rel_diff_within_20mm": 2.185279248617585,
+    "info_worst_point_mm": [
+     22.831636363636377,
+     -69.26268181818182,
+     -30.83821635407687
+    ],
+    "info_worst_point_fullwave_norm": 0.000624072871633572,
+    "info_robust_max_rel_diff_within_20mm": 50.39940853841015,
+    "info_robust_median_rel_diff_within_20mm": 0.7500279372803882
+   }
+  ]
+ },
+ "git": "4e2bd85",
+ "git_dirty_code": true,
+ "openems_meta": {
+  "git": "4e2bd85",
+  "options": {
+   "case": "C:\\Users\\reza\\OneDrive - McGill University\\claude\\knotted_coils\\sim\\cases\\pair_head_3T_d+0.json",
+   "res": 1.0,
+   "res_phantom": 3.0,
+   "gap": 2.0,
+   "air": 200.0,
+   "end_crit": 0.0001,
+   "fc_frac": 0.5,
+   "nf": 201,
+   "max_ts": 2000000.0,
+   "wire": "curve",
+   "superpose_check": false,
+   "tag": ""
+  },
+  "openems_version": "0.37.0"
+ }
+}

@@ -1,0 +1,27 @@
+{
+ "magpylib_version": "6.0.0",
+ "numpy_version": "2.5.4",
+ "cases": [
+  {
+   "name": "(d) one T(2,3), beta 0.8, core R 30 mm, T = 30 mm (base plane z = 60 mm)",
+   "n_points": 1000,
+   "n_criterion_points": 782,
+   "worst_rel_diff_ge10mm": 1.320821917371786e-10,
+   "median_rel_diff_ge10mm": 1.3203270310209893e-10,
+   "worst_rel_diff_5to10mm_info": 1.3203556112234622e-10,
+   "n_5to10mm": 163,
+   "pass": true
+  },
+  {
+   "name": "(e) solved 16-element free array, T(2,3) beta 0.8, T = 15 mm (seed 1)",
+   "n_points": 1000,
+   "n_criterion_points": 763,
+   "worst_rel_diff_ge10mm": 1.3207154268035082e-10,
+   "median_rel_diff_ge10mm": 1.3203266448688026e-10,
+   "worst_rel_diff_5to10mm_info": 1.3203658667666235e-10,
+   "n_5to10mm": 145,
+   "pass": true
+  }
+ ],
+ "verdict": "PASS"
+}

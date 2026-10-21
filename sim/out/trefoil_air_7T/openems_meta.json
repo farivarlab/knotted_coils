@@ -1,0 +1,167 @@
+{
+ "case": "trefoil_air_7T",
+ "case_file": "C:\\Users\\reza\\OneDrive - McGill University\\claude\\knotted_coils\\sim\\cases\\trefoil_air_7T.json",
+ "git": "4e2bd85",
+ "git_dirty_code": true,
+ "openems_version": "0.37.0",
+ "options": {
+  "case": "C:\\Users\\reza\\OneDrive - McGill University\\claude\\knotted_coils\\sim\\cases\\trefoil_air_7T.json",
+  "res": 1.0,
+  "res_phantom": 3.0,
+  "gap": 2.0,
+  "air": 200.0,
+  "end_crit": 0.0001,
+  "fc_frac": 0.5,
+  "nf": 201,
+  "max_ts": 2000000.0,
+  "wire": "curve",
+  "superpose_check": false,
+  "tag": ""
+ },
+ "ports": [
+  {
+   "element": 0,
+   "k": 0,
+   "feed": true,
+   "axis": 2,
+   "sign": -1.0,
+   "A": [
+    -29.739,
+    -91.3,
+    41.286
+   ],
+   "B": [
+    -29.739,
+    -91.3,
+    39.286
+   ],
+   "p": [
+    -29.738971778779106,
+    -91.30021461035717,
+    40.28620065500193
+   ]
+  },
+  {
+   "element": 0,
+   "k": 1,
+   "feed": false,
+   "axis": 2,
+   "sign": 1.0,
+   "A": [
+    43.068,
+    -86.72,
+    28.159
+   ],
+   "B": [
+    43.068,
+    -86.72,
+    30.159
+   ],
+   "p": [
+    43.06772732729182,
+    -86.71960919923663,
+    29.158759525493707
+   ]
+  },
+  {
+   "element": 0,
+   "k": 2,
+   "feed": false,
+   "axis": 2,
+   "sign": -1.0,
+   "A": [
+    -42.54,
+    -86.022,
+    29.945
+   ],
+   "B": [
+    -42.54,
+    -86.022,
+    27.945
+   ],
+   "p": [
+    -42.54041854060673,
+    -86.0223287383862,
+    28.944983181354996
+   ]
+  },
+  {
+   "element": 0,
+   "k": 3,
+   "feed": false,
+   "axis": 2,
+   "sign": 1.0,
+   "A": [
+    29.201,
+    -90.214,
+    38.849
+   ],
+   "B": [
+    29.201,
+    -90.214,
+    40.849
+   ],
+   "p": [
+    29.200976361686315,
+    -90.21446014833802,
+    39.849428454354715
+   ]
+  }
+ ],
+ "runs": [
+  {
+   "port": 0,
+   "cells": 1579905,
+   "seconds": 187.70196413993835
+  },
+  {
+   "port": 1,
+   "cells": 1579905,
+   "seconds": 145.95082640647888
+  },
+  {
+   "port": 2,
+   "cells": 1579905,
+   "seconds": 157.8447971343994
+  },
+  {
+   "port": 3,
+   "cells": 1579905,
+   "seconds": 154.88145399093628
+  }
+ ],
+ "planes": [
+  {
+   "name": "axial",
+   "axis": 2,
+   "pos": 35.057828221632924,
+   "start": [
+    -120,
+    -140,
+    35.057828221632924
+   ],
+   "stop": [
+    120,
+    140,
+    35.057828221632924
+   ]
+  },
+  {
+   "name": "coronal",
+   "axis": 1,
+   "pos": -66.28662369715468,
+   "start": [
+    -120,
+    -66.28662369715468,
+    -150
+   ],
+   "stop": [
+    120,
+    -66.28662369715468,
+    150
+   ]
+  }
+ ],
+ "f0_Hz": 298042349.227,
+ "note": "S over band; H planes per run normalised to unit incident wave at the driven port (openEMS uf_inc)."
+}

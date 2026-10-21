@@ -1,0 +1,86 @@
+{
+ "case": "trefoil_air_7T",
+ "B0_T": 7,
+ "f0_MHz": 298.042349227,
+ "loaded": false,
+ "tissue_source": null,
+ "parameters": {
+  "SIGMA_CU": 58000000.0,
+  "Q_CAP": 1000.0,
+  "Q_IND": 100.0,
+  "Z_PRE": 2.0,
+  "PASSES": 3
+ },
+ "V16": {
+  "max_singular_value": 1.0013228784190897,
+  "max_reciprocity_error": 0.00031407943515071417
+ },
+ "thin_wire_correction": {
+  "key": "res1.0_curve",
+  "a_eff_mm": 0.16938025074498786,
+  "dL_nH": [
+   100.70062372242145
+  ]
+ },
+ "tuned": true,
+ "elements": [
+  {
+   "S11_neighbours_preamp_dB": -58.23428973778503,
+   "Ct_pF": 1.3425504322154704,
+   "Cm_pF": 43.942268959509896,
+   "Lm_nH": 6.489359431587591,
+   "first_pass_Ct_pF": 2.2800302071152343,
+   "S11_dB": -58.23428973778503,
+   "R_loop_ohm": 2.9535841389915896,
+   "L_fullwave_corrected_nH": 643.6881655438968,
+   "L_fullwave_raw_nH": 744.3887892663183,
+   "L_quasistatic_nH": 500.26912209824434
+  }
+ ],
+ "V15b": [
+  {
+   "element": 0,
+   "L_corrected_nH": 643.6881655438968,
+   "L_quasistatic_nH": 500.26912209824434,
+   "rel_err": 0.28668378100994896
+  }
+ ],
+ "V17": {
+  "max_S11_dB": -58.23428973778503,
+  "max_S11_neighbours_50ohm_dB": -58.23428973778503,
+  "all_positive": true
+ },
+ "B1": {
+  "axial": [
+   {
+    "element": 0
+   }
+  ],
+  "coronal": [
+   {
+    "element": 0
+   }
+  ]
+ },
+ "warning_air": "In air the loop resistance is copper only (2.95 ohm); FDTD noise in Re(Z) can dominate, so the air Cm/Lm values have low precision (audit M15).",
+ "git": "4e2bd85",
+ "git_dirty_code": true,
+ "openems_meta": {
+  "git": "4e2bd85",
+  "options": {
+   "case": "C:\\Users\\reza\\OneDrive - McGill University\\claude\\knotted_coils\\sim\\cases\\trefoil_air_7T.json",
+   "res": 1.0,
+   "res_phantom": 3.0,
+   "gap": 2.0,
+   "air": 200.0,
+   "end_crit": 0.0001,
+   "fc_frac": 0.5,
+   "nf": 201,
+   "max_ts": 2000000.0,
+   "wire": "curve",
+   "superpose_check": false,
+   "tag": ""
+  },
+  "openems_version": "0.37.0"
+ }
+}

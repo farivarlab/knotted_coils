@@ -20,6 +20,6 @@ fs.writeFileSync(path.join(dist, 'index.html'), html);
 ['knot', 'inductance', 'surface', 'layout', 'optimise', 'field', 'phantom'].forEach(m => copy('core/' + m + '.js'));
 ['three-0.149.0.min.js', 'three-LICENSE.txt'].forEach(f => copy('vendor/' + f));
 ['validation_status.js', 'validation_report.html', 'compare_worstpair.html'].forEach(f => copy('validation/' + f));
-['README.html', 'Design.html', 'DECISIONS.html', 'PARAMETERS.html', 'NOTICE.txt'].forEach(f => copy(f));
+['README.html', 'Design.html', 'DESIGN_HISTORY.html', 'DEVELOPER_GUIDE.html', 'DECISIONS.html', 'PARAMETERS.html', 'NOTICE.txt'].forEach(f => copy(f));
 console.log('dist/ built: rewrote ' + before + ' relative paths; files:');
 (function list(d, pre) { fs.readdirSync(d).forEach(f => { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) list(p, pre + f + '/'); else console.log('  ' + pre + f); }); })(dist, '');

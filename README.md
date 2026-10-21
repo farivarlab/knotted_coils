@@ -41,18 +41,33 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | `validation/` | Generated validation reports |
 | `vendor/` | Three.js 0.149.0 (MIT licence, `vendor/three-LICENSE.txt`) |
 
-## Validation status (run 6, 2026-10-20, Design v1.5)
+## Validation status (full run 2026-10-21 16:07, code bc374d0, Design v1.10)
+
+Pre-registered checks, applied mechanically. Full report: `validation/validation_report.html`.
 
 | Check | Verdict |
 |---|---|
 | V1 Maxwell coaxial mutual inductance | PASS (worst error 0.005%) |
 | V2 Loop self-inductance | PASS (worst error 0.66%) |
 | V3 Coplanar-circle null spacing | NOT EVALUABLE (reference unverified; computed 0.760 × diameter) |
-| V4 Convergence | PASS |
-| V5 Symmetry | PASS |
-| V6 Topology across bloom (β 0.02–3.0) | **FAIL** only below the wire-dependent bloom floor (β = 0.02, 0.05). It is a physical limit, shown in the app |
-| V7 Topology across petal sharpness | PASS (all 360 points). Earlier failures are kept on record: run 4 failed under the v1.3 definition, and run 5 failed at 1 of 360 points from a point-count artefact |
-| V8 B1 on-axis loop field | PASS (worst error 0.005%) |
+| V4 Convergence · V5 Symmetry | PASS |
+| V6 Topology across bloom (β 0.02–3.0) | **FAIL** only below the wire-dependent bloom floor (β = 0.02, 0.05), a physical limit shown in the app |
+| V7 Topology across petal sharpness | PASS |
+| V8 B1 on-axis loop field | PASS (0.002%) |
+| V9 Ring-layout symmetry (pre-bump layout) · V10 Capacitor breaks · V11 Capacitor value · V12 Face zones · V13 Reproducibility | PASS |
+| V14 B1 vs Magpylib (independent library) | PASS (< 0.0001%) |
+| V15 Full-wave loop resonance with first-pass capacitors | **FAIL** (−10.3%; thin-wire effective radius) |
+| V15b Thin-wire correction carries over (trefoil) | **FAIL** (+6.7% vs 5% limit) |
+| V16 S-matrices passive and reciprocal | **FAIL** on loop_air_3T (1.0011) and trefoil_air_7T (1.0013); other cases pass |
+| V17 Tuning and matching | PASS |
+| V18 Quick B1 map vs full-wave near the surface (3T, 7T) | **FAIL** at both (typical point 7–24% off; worst points at near-zero field) |
+| V19 Pair null survives capacitors and load | NOT RUN (pair simulations in progress; the first attempt was invalid, see DECISIONS.md) |
+| V20 Second solver (mariepy) | NOT EVALUABLE (not run) |
+| V21 Thickness control · V22 Thick-knot B1 vs Magpylib · V23 Tilted-circle self-inductance | PASS |
+| V24 Crossover bumps | **FAIL**: all 4 pair cases pass; all 4 test arrays fail (dense knot arrays cannot all be separated) |
+| V25 COMSOL vs openEMS | NOT EVALUABLE (COMSOL not installed on the development machine) |
+
+Ring vs free layouts (C2, pre-registered): the ring layout met none of its 3 criteria, so free layouts stay the default.
 
 Every failing run is kept in the git history; see DECISIONS.md.
 

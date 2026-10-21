@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Decision Log</title><style>
+<title>Decision Log — Knotted Coil Designer</title><style>
 :root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
 * { box-sizing: border-box; }
 body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
@@ -33,6 +33,411 @@ tr:nth-child(even) td { background: var(--panel); }
 </style></head><body><h1>Decision Log — Knotted Coil Designer</h1>
 <p>Dated entries: what was decided, why, who decided it, and what the alternatives were. Newest first.</p>
 <hr>
+<h3>2026-10-21 — Design v1.10 COMSOL interface (Reza), and a process slip during it</h3>
+<ul>
+<li><strong>Request:</strong> Reza asked whether the output was ready for COMSOL; on hearing it was not, chose “add the COMSOL export first”, then package.</li>
+<li><strong>What was built:</strong> export files plus an MPh build script, labelled UNVALIDATED. COMSOL is <strong>not installed</strong> on this machine, so the script was tested only in <code>--dry-run</code>, which checks the files and records the API calls.</li>
+<li><strong>Verified:</strong> MPh’s own entry points (<code>mph.start</code>, <code>client.create</code>, <code>model.java</code>, <code>model.save</code>, <code>model.evaluate</code>) against the MPh 1.4.0 wheel source, and MPh’s MIT licence and JPype dependency from its metadata.</li>
+<li><strong>Not verified:</strong> all COMSOL feature and property names, which are marked UNVERIFIED in the code. Check V25 was pre-registered first (e2763ae).</li>
+<li><strong>Design choices (Claude):</strong>
+<ol>
+<li>Both solvers cut wires with the same code, now <code>sim/wirecut.py</code>, moved unchanged out of <code>run_openems.py</code> (grid verified identical: same line counts and smallest cells).</li>
+<li>S is assembled from lumped-port V and I with the openEMS wave convention, rather than relying on COMSOL’s own S variables.</li>
+<li>Wires are modelled as PEC edges, so the COMSOL loop case calibrates its own thin-wire correction, as openEMS’s does.</li>
+</ol>
+</li>
+<li><strong>Process slip (Claude):</strong>
+<ul>
+<li>While testing V25 with a KC_ONLY run, Claude restored <code>validation/</code> with <code>git checkout</code> <strong>while the clean full validation run was still in progress</strong>.</li>
+<li>That reverted the freshly regenerated C2 comparison file mid-run, so V12 would have read stale arrays.</li>
+<li>Caught at once: the run was killed and restarted from C2 on the committed code (bc374d0).</li>
+<li>Lesson: never touch <code>validation/</code> while a full run is going.</li>
+</ul>
+</li>
+<li><strong>Timing:</strong> each pair port run takes about 29 min on the refined 8.2-million-cell grid, so about 3.8 h per case. The four pair cases are expected to finish around 05:30 on 2026-10-22.</li>
+</ul>
+<h3>2026-10-21 — Design v1.9 crossover bumps: development findings and fixes (before the official V24 run)</h3>
+<ul>
+<li><strong>Pre-registered:</strong> 8fa1bf7.</li>
+<li><strong>Development checks of the V24 criteria, which found problems and drove fixes:</strong>
+<ol>
+<li><strong>First version:</strong>
+<ul>
+<li><strong>Pair cases:</strong> coils separated (≥ 1.66 mm), but the bumped coil’s <em>own</em> clearance fell to 1.07 mm and its tightest bend to 1.38 mm. Cause: one of its own crossings sat on a bump’s taper, so its two strands rose by different amounts.</li>
+<li><strong>16-element array:</strong> bumps cascaded to A_max and wires still nearly touched (0.013 mm). Cause: a bump’s taper rose into a lower coil that was itself raised over a third coil.</li>
+</ul>
+</li>
+<li><strong>Fixes (Claude):</strong>
+<ul>
+<li><strong>r0 grows</strong> until any remaining clash, and both strands of any own crossing of the bumped coil, lie on the plateau rather than the taper.</li>
+<li><strong>Taper W TUNED from 6 to 10 mm</strong> (pre-registered value 6, JUDG). W = 6 still broke the 2 mm bend limit on pair d−4 (1.32 mm); W = 10 gives ≥ 2.37 mm. <strong>Tuned on the pair cases, which V24 also tests.</strong></li>
+</ul>
+</li>
+<li><strong>Result after the fixes:</strong>
+<ul>
+<li><strong>Pair cases (development):</strong> inter-coil ≥ 1.66 mm, own clearance 1.50 mm, bends ≥ 2.37 mm, max bump 3.15 mm, nothing capped; 24–34% of the upper coil’s wire is raised.</li>
+<li><strong>16-element array:</strong> still <strong>fails</strong> — bumps capped at 10 mm, own clearance down to 0.58 mm. Local bumps are not local in heavily overlapping knot arrays, so a better array algorithm is needed (open item). The official V24 run will report this as a FAIL.</li>
+</ul>
+</li>
+</ol>
+</li>
+<li><strong>Grid gate (v1.9 pre-run gate (3)):</strong>
+<ul>
+<li>With the coils 1.66 mm apart on the 1 mm grid, 1–3 spots per case had the two coils on edge-adjacent grid nodes, which fails the gate (none shared a node).</li>
+<li>The gate was <strong>not relaxed</strong>. Instead, the grid is refined locally: lines every 0.4 mm within ±3 mm of each crossover centre (REFINE, JUDG). All four pair cases now pass all three gate parts.</li>
+<li>Caveat: the thin-wire calibration assumed a uniform 1 mm grid.</li>
+</ul>
+</li>
+<li><strong>Quasi-static effect of the bumps (information):</strong>
+<ul>
+<li>Pair d₀: k 0.0058 → 0.0061.</li>
+<li>The upper coil’s L rises 500 → 509 nH (longer wire).</li>
+</ul>
+</li>
+<li><strong>Later development fixes (harness and report, no design change):</strong>
+<ul>
+<li>The pre-bump k matrix used the bumped L for far pairs, which broke V9 (k mirror error 2e-4). Fixed: V9 PASS again.</li>
+<li>export_case’s output-folder line was swallowed by a comment. Fixed.</li>
+</ul>
+</li>
+<li><strong>Development run of V24 (KC_ONLY, 2026-10-21): FAIL.</strong>
+<ul>
+<li><strong>All 4 pair simulation cases pass</strong> every criterion: max bump 3.2 mm, 7–8 bumps.</li>
+<li><strong>All 4 arrays fail:</strong>
+<ul>
+<li>ring T(2,3) N16: wires 0.47 mm apart, own clearance 0.93 mm, bend 1.71 mm, capped;</li>
+<li>ring T(2,5) N24: 0.23 mm, 0.93 mm, bend 1.31 mm, capped;</li>
+<li>free N16: own clearance 0.58 mm, bend 1.56 mm, capped;</li>
+<li>free N16 with T = 15 mm: capped only, and just 32 bumps — thicker knots interleave far more easily.</li>
+</ul>
+</li>
+<li>Bumps change adjacent k by up to 0.029.</li>
+<li><strong>Conclusion:</strong> local bumps work for a pair but not for dense knot arrays, so array crossovers are an open design problem (Reza).</li>
+<li>The app now marks such arrays “NOT BUILDABLE AS DRAWN” in the report (app 0.5.0).</li>
+</ul>
+</li>
+<li><strong>Aborted run (14:00, about 3 min): the refined grid had sliver cells.</strong>
+<ul>
+<li>The first queue-4 pair run showed a 1.1e-14 s timestep, about 30× smaller than before. The excitation needed more than MAX_TS steps, so it would have been truncated. The run was killed at once.</li>
+<li><strong>Causes</strong> (0.002–0.1 mm cells):
+<ol>
+<li>refinement lines next to existing lines;</li>
+<li>terminals of <em>different</em> ports within 0.005 mm of each other on one axis;</li>
+<li>phantom-box edge lines next to refinement lines.</li>
+</ol>
+</li>
+<li><strong>Fixes:</strong>
+<ol>
+<li>refinement lines are kept only ≥ MIN_GAP = 0.2 mm (JUDG) from every other line;</li>
+<li><code>cut_all</code>: port terminals within MIN_GAP on an axis snap to one shared coordinate (terminals and wire ends move &lt; 0.2 mm; shared by <code>run_openems.py</code> and <code>check_crossings.py</code>);</li>
+<li>phantom-box lines within MIN_GAP of an existing line are skipped;</li>
+<li><strong>new guard MIN_CELL = 0.15 mm (JUDG):</strong> a case whose smallest cell is below it aborts at setup, which the preflight catches. It caught (3) on <code>pair_head_3T_d-4</code> before any run.</li>
+</ol>
+</li>
+<li>All four pair cases and <code>trefoil_head_3T</code> now pass the gate and preflight.</li>
+<li>The single-coil results already obtained used the earlier mesh code; the snapping and phantom-line changes would alter their grids by &lt; 0.2 mm at most (not re-run).</li>
+</ul>
+</li>
+</ul>
+<h3>2026-10-21 — INVALID RUN: pair cases had the two coils touching (no separation at inter-element crossings)</h3>
+<ul>
+<li><strong>Found:</strong> Claude, reviewing the first pair result (<code>pair_head_3T_d+0</code>, finished about 13:10). Mirror-twin elements gave different inductances (399 vs 596 nH, where 500 is expected). Also R_loop 916 Ω (expected about 8 Ω), S21 −3.6 dB, and M_eff −118 nH against +2.9 nH quasi-static.</li>
+<li><strong>Cause:</strong>
+<ul>
+<li>The two coils’ wires pass within 0.03–0.05 mm of each other in every pair case, at the midline where the mirrored coils cross.</li>
+<li>Design §4 says that “where wires from neighbouring overlapping elements cross, they need a lift too”, but this was <strong>never implemented</strong>: neither the array solver nor the case export separates crossings between different elements.</li>
+<li><code>check_crossings.py</code> checked only crossings within each coil, plus port clearance.</li>
+<li>The quasi-static model was not visibly affected, because the kernel is softened near contact (DECISIONS “Kernel softening”). FDTD shorts the coils together.</li>
+</ul>
+</li>
+<li><strong>Same gap in app arrays:</strong> a 16-element free array (seed 1) has 32 of 48 overlapping pairs with wires closer than 1.5 mm (wire plus insulation); the closest is 0.3 mm.</li>
+<li><strong>Actions:</strong>
+<ul>
+<li>Pair queue killed; <code>pair_head_3T_d-4</code> was mid-run.</li>
+<li>The d+0 output was moved to <code>sim/out/_invalid/</code> so the validation runner ignores it. It was included in the 13:37 full-validation V16 line (1.0025); that report is not committed and will be regenerated.</li>
+<li>No pair runs until the separation is designed (Reza’s decision: how coils cross each other).</li>
+</ul>
+</li>
+<li><strong>Process lesson:</strong> pre-run geometry checks must include wire-to-wire clearance between <strong>all</strong> wires, not only within each element.</li>
+</ul>
+<h3>2026-10-21 — Design v1.8: knot thickness T (Reza), and a self-inductance correction found on the way</h3>
+<ul>
+<li><strong>Request:</strong> Reza: one parameter for the total thickness of the knot. Reza chose “outward only” over “straddle the helmet surface”.</li>
+<li><strong>Design (Claude):</strong>
+<ul>
+<li>h = max(h_min, T/2), and the whole knot is raised by z₀ = h − h_min.</li>
+<li>Consequences: T = 0 is bit-identical to v1.7, and the lowest wire never goes deeper than in v1.7.</li>
+<li>The alternative, offsetting by h (lowest point on the surface), would have moved every existing design by about 0.75 mm.</li>
+</ul>
+</li>
+<li><strong>Correction found while planning (Claude):</strong>
+<ul>
+<li>Self-inductance pairs the wire with a copy offset by the wire radius. Up to v1.7 the offset was along z or the helmet normal, which is perpendicular to the wire only when the wire is flat.</li>
+<li>For thick knots this would overestimate L. V23 information column: the v1.7 method gives +11% on a circle tilted 80°.</li>
+<li>Fixed by removing the tangent component of the offset direction.</li>
+<li>Effect on v1.7 shapes is small; V2 and V11 (circles) are unchanged.</li>
+</ul>
+</li>
+<li><strong>Checks:</strong> V21–V23 were pre-registered in 979b1fa before the code. Development run (KC_ONLY, 2026-10-21):
+<ul>
+<li><strong>V21 PASS:</strong> 32/126/160/2 evaluations of (a)/(b)/©/(d).</li>
+<li><strong>V22 PASS:</strong> worst difference &lt; 0.0001%.</li>
+<li><strong>V23 PASS:</strong> tilt changes L by ≤ 0.001%; 0.37% from Rosa &amp; Grover.</li>
+<li>V1, V2, V4, V5, V8 and V11 re-run: still PASS.</li>
+<li>The official report is regenerated in the next full validation run.</li>
+</ul>
+</li>
+<li><strong>First look (information, not a check):</strong> trefoil β 0.8, core 30 mm, 0.5 mm wire, as T goes 0 → 10 → 20 → 40 → 60 mm, L goes 623 → 602 → 591 → 600 → 634 nH. Separating the strands first lowers the inter-winding mutual inductance; then the longer wire raises L. Bends tighten above about 40 mm.</li>
+<li><strong>Not affected:</strong> the overnight and queued openEMS cases. They were exported with v1.7 geometry, which is identical at T = 0. Their quasi-static L values in the case files used the v1.7 offset; the difference is small for these nearly flat knots and will be stated when V15b is reported.</li>
+</ul>
+<h3>2026-10-21 — Pair cases: capacitor breaks shifted so every port clears the other coil (logged BEFORE any pair run)</h3>
+<ul>
+<li><strong>Decision:</strong> Reza, 2026-10-21: “shift the capacitor breaks by the same amount in all three pair cases (and the air pair) so every port is clear of the other coil; log it before running”.</li>
+<li><strong>What V19 keeps, and what changes:</strong>
+<ul>
+<li>V19’s criterion and spacings {d₀ − 4, d₀, d₀ + 4} are unchanged.</li>
+<li>Only the break positions in the pair test setup change.</li>
+<li>No pair result existed at the time of this entry: the only pair run so far was the dropped-port run, which produced no signal.</li>
+</ul>
+</li>
+<li><strong>Selection rule (Claude, fixed before scanning):</strong>
+<ul>
+<li>One shift for all four pair cases. The mirrored element is shifted the opposite way, so the pair stays mirror-symmetric.</li>
+<li>Maximise the worst-case distance from any port gap to the other coil’s wire.</li>
+<li>Constraint: every break stays ≥ 5 mm from a crossing (the V10 rule).</li>
+<li>Segment lengths stay equal, because the whole set of 4 breaks moves together.</li>
+</ul>
+</li>
+<li><strong>Scan:</strong>
+<ul>
+<li>Shifts 0 to 0.25 of the wire length in steps of 1/60, then refined by 0.004 around the best.</li>
+<li>Shifts that are multiples of 1/12 keep crossing clearance exactly (3-fold symmetry), but reach at most 2.1 mm, so they were not enough.</li>
+<li><strong>Chosen: 0.100 → 7.3 mm</strong> (was 1.4 mm). Crossing clearance 5.03 mm.</li>
+<li>Shifts above 0.100 up to 0.112 violate the 5 mm rule.</li>
+</ul>
+</li>
+<li><strong>Checks on the final cases:</strong>
+<ul>
+<li>Crossings: none at risk.</li>
+<li>Port clearance: no port at risk in any of the four cases (grid-snapping check).</li>
+<li>openEMS preflight passes (all ports on the grid).</li>
+<li>Mirror-symmetry error of the break sets: 0.</li>
+</ul>
+</li>
+<li><strong>Side observation:</strong> regenerating the cases with today’s code gives the same trefoil as the single-coil runs to 0.2 µm in position (L differs by 0.001 nH, floating-point noise in the lift solve). The single-coil case files were left as committed.</li>
+<li><strong>Caveat for interpretation:</strong> the pair’s capacitors are no longer at the same positions along the wire as the single-trefoil runs. Cross-comparisons of tuned capacitor values between single and pair runs carry that difference.</li>
+</ul>
+<h3>2026-10-21 — FAILED RUN: pair_head_3T_d+0 ran 13.7 h with no signal (feed port silently dropped)</h3>
+<ul>
+<li><strong>What happened:</strong>
+<ul>
+<li>The first pair run (started 19:51) never injected energy: openEMS reported energy ~0 for 5.66 million timesteps.</li>
+<li>openEMS had printed “Unused primitive … port_excite_1” at setup, then carried on. Nothing in the pipeline read that warning.</li>
+<li>The openEMS timestep cap was its default of 10⁹, so nothing stopped the run.</li>
+<li>Found by Claude at 09:35 and killed. The queue had already started <code>pair_head_3T_d-4</code>, which had the same defect; it was killed too.</li>
+<li>No pair, 7T or 0.5 mm results exist yet.</li>
+</ul>
+</li>
+<li><strong>Cause, found by elimination:</strong>
+<ul>
+<li>Not crossing shorts, not the phantom, not the other coil’s metal, not its ports, not mirror symmetry.</li>
+<li>openEMS’s Python interface writes box corners to XML with <strong>7 significant digits</strong>, but grid lines at full precision. A port is a zero-width box (a line between two grid nodes), so it sits 1–2 nm off its own grid line after export.</li>
+<li>Whether openEMS then snaps such a box to an edge or drops it depends on the surrounding grid. In the two-coil grid it dropped 4 of 8 ports.</li>
+<li>In the single-coil cases (loop, trefoil air, trefoil head) the logs show no such warning, so those results stand.</li>
+</ul>
+</li>
+<li><strong>Fix, applied before any new run:</strong>
+<ol>
+<li>Port terminals rounded to 1 µm (<code>PORT_ROUND</code>), so the exported box lies exactly on its grid line. Geometry change ≤ 0.5 µm, against a 1 mm cell.</li>
+<li><strong>Preflight:</strong> before the long runs, the model is set up once with every port excited for 5 timesteps. Any “Unused primitive” warning aborts the case.
+<ul>
+<li>Negative control: with the old coordinates, preflight aborts and names ports 1, 3, 4 and 7.</li>
+<li>With the fix it passes.</li>
+</ul>
+</li>
+<li>Timestep cap <code>MAX_TS</code> 2×10⁶ (JUDG).</li>
+</ol>
+</li>
+<li><strong>Separate finding (geometry, not software):</strong>
+<ul>
+<li>In <code>pair_head_3T_d+4</code>, the other coil’s wire passes 1.4 mm from each feed gap and snaps onto or next to the gap nodes. The two coils would be joined through the port.</li>
+<li><code>check_crossings.py</code> now also checks port clearance against other elements. d+0, d−4 and the air pair are clear.</li>
+<li>V19 needs all three spacings. Whether to move the capacitor breaks in the pair cases is a decision for Reza, because it changes the setup of a pre-registered check (though not its criterion).</li>
+<li>The same issue would arise in real arrays. The app places breaks without regard to neighbouring elements’ wires (open item).</li>
+</ul>
+</li>
+</ul>
+<h3>2026-10-20 (night) — Audit M2 (crossing shorts on the grid): checked, no short found</h3>
+<ul>
+<li><strong>Trigger:</strong> the <code>trefoil_air_3T</code> run hovered between −8 and −17 dB for roughly 60,000 timesteps. Energy that never decays is the signature of a closed metal loop with no port in it, which a shorted crossing would create.</li>
+<li><strong>Check:</strong> <code>sim/check_crossings.py</code> rebuilds the openEMS grid exactly as the run does, without running FDTD, and snaps both strands at every crossing to grid nodes.</li>
+<li><strong>Result:</strong>
+<ul>
+<li>Separation at the crossings is 1.57–1.69 mm on the 1 mm grid.</li>
+<li>No crossing shares a node, or sits one grid edge apart, in <code>trefoil_air_3T</code> or any of the three <code>pair_head_3T</code> cases.</li>
+<li>In <code>trefoil_air_3T</code>, one crossing has its two strands at diagonally neighbouring nodes, offset (0, 1, −1). No single grid edge joins those, so they cannot short.</li>
+</ul>
+</li>
+<li><strong>Outcome:</strong> the run then decayed past the −40 dB stop criterion (−45.9 dB at about 70,000 timesteps). This is a slow-ringing, high-Q (low-loss) coil in air, not a short.</li>
+<li><strong>Decision (Claude, overnight):</strong>
+<ul>
+<li>No mesh change mid-queue, so all cases keep the same mesh code.</li>
+<li>Margin is thin: half a cell (0.5 mm) less lift would put strands one edge apart. Any new case or grid must pass <code>check_crossings.py</code> before it is run.</li>
+<li>Adding a timestep cap stays an open item.</li>
+</ul>
+</li>
+</ul>
+<h3>2026-10-20 (night) — Audit actions (steps 2–4)</h3>
+<ul>
+<li><strong>Step 1:</strong> brainstorm, <code>docs/AUDIT_BRAINSTORM.md</code>.</li>
+<li><strong>Step 2:</strong> independent review (Fable), <code>docs/AUDIT_BRAINSTORM_REVIEW.md</code>. It added M1–M17.</li>
+<li><strong>Step 3:</strong> four independent area audits (Fable), <code>docs/AUDIT_REPORT_A.md</code> to <code>D.md</code>.</li>
+<li><strong>Fixed before any main simulation result existed</strong> (commit 4d67469):
+<ul>
+<li>M3: superposition check run;</li>
+<li>M5: air pair case;</li>
+<li>M6: S11 in both termination states. The V17 verdict uses the operating state (neighbours preamp-terminated). This is a harness clarification, chosen before any pair result existed; the criterion’s numbers are unchanged;</li>
+<li>M7: robust B1 normalisation, information only;</li>
+<li>M10: git hash and options recorded in every output;</li>
+<li>M13: coronal plane measured from the head surface. A harness clarification of V18’s plane, made before any V18 result;</li>
+<li>M14: depth also measured from the neck cut. A harness clarification of V18, made before any V18 result;</li>
+<li>M15: air-resistance warning.</li>
+</ul>
+</li>
+<li><strong>Fixed afterwards:</strong>
+<ul>
+<li>M1: V15–V20 aggregated into the report (commit 2734546);</li>
+<li>M17: registration pointers;</li>
+<li>D2: separate pair worker;</li>
+<li>D7: licence inventory;</li>
+<li>D8: V20 verdict computed in run.js; script tracked;</li>
+<li>D9: single <code>core/phantom.js</code>;</li>
+<li>D10: app version 0.3.0;</li>
+<li>D14: PARAMETERS rows.</li>
+</ul>
+</li>
+<li><strong>Audit A (core) fixes:</strong>
+<ul>
+<li><strong>A1 (high):</strong> clearance is now segment-to-segment. On the auditor’s repro, T(3,4): the lift from 200 points is now 0.868 mm, true clearance 1.503 mm (was 0.436 → 0.757 mm, under the 1.5 mm required). The report re-checks every final element shape (<code>liftFeasibleFinal</code>).
+<ul>
+<li>Tonight’s simulation cases (all p = 2) were unaffected, because their crossings fall on sampled points.</li>
+<li><strong>Arrays of p ≥ 3 knots designed before this fix may have had too little crossing lift.</strong></li>
+</ul>
+</li>
+<li><strong>A3:</strong> V11 labelled a consistency check (circular with respect to V2). Its verdict is unchanged.</li>
+<li><strong>A4:</strong> the capped clearance is shown as “≥”.</li>
+<li><strong>A5:</strong> the point-count rule accepts two equal counts at the ceiling.</li>
+<li><strong>A8:</strong> post-hoc PH3 checks the B1 vector direction (AGREES).</li>
+<li><strong>A9:</strong> comments updated.</li>
+<li><strong>A2 (documented, not changed):</strong> with zCut = −20 mm the mouth zone sits below the covered region, so it is inert, and V12 is vacuous for it. It becomes active if zCut is lowered. Whether coverage should reach the lower face is Reza’s call.</li>
+<li><strong>A6 (documented):</strong> self-inductance is about 0.4–0.6% low at 300 points (within V2’s 2%).</li>
+<li><strong>A7 (open, low):</strong> the radial-snap fallback in wrapping is not flagged.</li>
+</ul>
+</li>
+<li><strong>Audit B (optimiser) fixes:</strong>
+<ul>
+<li><strong>B1:</strong> in ring mode <code>ring1</code> and <code>decoupledRing1</code> are null; adjacent pairs are labelled “adjacent”.</li>
+<li><strong>B2/B5/B6:</strong> every distinct final element shape is re-checked; the panel shows the worst; <code>elements[]</code> carries <code>h</code>; <code>liftFeasible</code> comes from the final shapes.</li>
+<li><strong>B3:</strong> comment corrected.</li>
+<li><strong>B4:</strong> a warning when ringCounts don’t sum to N.</li>
+<li><strong>B7, B10:</strong> noted, not changed.</li>
+<li><strong>B9 (interpretation of C2):</strong> the free arm was best-of-4 on the primary metric, the ring arm a single start. That was pre-registered, but it favours free. C2’s “ring fails” should be read with this in mind.</li>
+<li><strong>B8:</strong> documentation, see the docs pass.</li>
+</ul>
+</li>
+<li><strong>Audit C (full-wave) fixes:</strong>
+<ul>
+<li><strong>C1:</strong> the quasi-static B1 map is evaluated on the plane where openEMS actually stores its dump (half a cell off).</li>
+<li><strong>C3:</strong> a footprint-restricted V18 metric and the worst-point location, information only; the registered verdict is unchanged.</li>
+<li><strong>C5:</strong> <code>cosim.py</code> refuses incomplete or stale openEMS outputs.</li>
+<li><strong>C6:</strong> roots must have a small residual, and the reference is the first-pass value.</li>
+<li><strong>C2:</strong> recorded. The official loop run repeats the thin-curve run: V15 = −10.3%, FAIL. V15b is the transfer test of the correction.</li>
+<li><strong>C7:</strong> gap parasitics are absorbed into a_eff; the gap fraction differs between loop and trefoil. Stated as a V15b limitation.</li>
+<li><strong>C8, C9:</strong> noted.</li>
+<li><strong>All official co-simulations are re-run with the final <code>cosim.py</code> after the queue</strong>, so every verdict comes from one code version. FDTD outputs are unchanged.</li>
+</ul>
+</li>
+<li><strong>Official loop with the final code:</strong> V15 −10.3% (FAIL); <strong>V16 1.0011 &gt; 1.001 (FAIL on this case</strong>, a 0.1% passivity excess); V17 −48.6 dB (pass).</li>
+<li><strong>Docs and app:</strong>
+<ul>
+<li>Design §5.1, §5.2, §6, §6b and §10 corrected (see changelog);</li>
+<li>the §7 “UNVALIDATED” label is implemented in the app;</li>
+<li>README, REQUEST_LOG (#20, #21), DESIGN_HISTORY, PROPOSAL status, NOTICE and DEVELOPER_GUIDE brought up to v1.7;</li>
+<li>D11 load validation; D13 tab roles.</li>
+</ul>
+</li>
+<li><strong>More fixes:</strong> listed below as they are made.</li>
+<li><strong>D16:</strong> the hashes <code>39ae3d4</code>/<code>ccfb5f5</code> in <code>docs/research_integrity/VALIDATION_PROTOCOL.md</code> belong to the Lab_3d repository. The path is shown there, and the file is a copy of Reza’s framework, so it is left unchanged.</li>
+</ul>
+<h3>2026-10-20 (night) — Thin-wire evidence: V15 runs on three grids</h3>
+<ul>
+<li><strong>Second V15 run:</strong> 1 mm grid, <code>AddCurve</code> thin curve. Resonance 114.6 MHz, <strong>−10.3% (FAIL)</strong>. Calibrated effective radius a_eff = 0.170 mm.</li>
+<li><strong>Third run:</strong> 0.5 mm grid. Resonance 108.0 MHz, <strong>−15.4%</strong>; a_eff = 0.084 mm.</li>
+<li><strong>What the scaling shows:</strong>
+<ul>
+<li>a_eff ≈ 0.17 × the grid cell, so refining the grid makes the raw model <em>worse</em>.</li>
+<li>The thin-wire relation predicts ΔL = (μ₀/2π)·ℓ·ln(0.170/0.084) = 35.4 nH between the two grids; openEMS gave 35.2 nH. This is independent evidence that the error is the effective-radius effect V15b corrects. It is not part of any pre-registered verdict.</li>
+</ul>
+</li>
+<li><strong>Side note:</strong> at 0.5 mm, V16 (passivity) was 1.0023, above its 1.001 limit, on a tagged sensitivity run (not official).</li>
+<li><strong>Official V15 verdict:</strong> comes from the untagged official loop run in the overnight queue.</li>
+</ul>
+<h3>2026-10-20 (night) — v1.7 full-wave pipeline: first findings</h3>
+<ul>
+<li><strong>Defaults taken while Reza was away:</strong>
+<ul>
+<li>field strengths 3T and 7T;</li>
+<li>matching = shunt C_m, series L_m, with preamp decoupling;</li>
+<li>installed openEMS 0.37.0 (Windows package, Python 3.14 wheels) in <code>C:\Users\reza\.solvers\openEMS</code>, plus an isolated Python 3.14 environment <code>C:\Users\reza\.venvs\kc_em</code> (numpy, scipy, h5py, matplotlib, magpylib 6.0.0, openEMS, mariepy);</li>
+<li>no permanent environment variables (no <code>setx</code>).</li>
+</ul>
+</li>
+<li><strong>mariepy:</strong> installed (0.0.0.dev106; pulled in PyTorch). Its repository contains AGENTS.md, CLAUDE.md and GEMINI.md, so it is probably at least partly AI-written. Cross-check only.</li>
+<li><strong>Tissue values:</strong>
+<ul>
+<li>7T: openEMS’s bundled head phantom (attributed to IT’IS/Gabriel; secondary source).</li>
+<li>3T: openEMS’s 128 MHz <em>body</em> values mapped to head layers, an APPROXIMATION.</li>
+<li>IT’IS’s own site serves values through a backend query and IFAC’s calculator is an interactive app, so neither could be read quickly. Verified values remain an open item.</li>
+</ul>
+</li>
+<li><strong>V15 FAILED (first run, 1 mm grid, <code>AddWire</code> with radius 0.5 mm):</strong> resonance at 115.6 MHz, −9.5% from the predicted 127.7 MHz (limit ±5%). The full-wave loop L was 274.6 nH against 223.8 nH quasi-static (+23%).</li>
+<li><strong>Root-cause finding:</strong> on a 2 mm grid, the radius-aware <code>AddWire</code> primitive <strong>disconnected the wire</strong> (port-to-port Z₀₁ ≈ 9 Ω vs 1,259 Ω at 1 mm). Only grid edges within the radius become metal, so a 0.5 mm wire on a coarse or oblique grid can break silently.</li>
+<li><strong>Change:</strong> wires now use <code>AddCurve</code> (a connected stair-step thin wire on the grid). Its effective radius depends on the grid and is corrected with the pre-registered V15b procedure: calibrated on the loop, validated on the trefoil.</li>
+<li><strong>Also fixed:</strong> openEMS changes the working directory during <code>Run()</code>, so the case path is now resolved before any run.</li>
+</ul>
+<h3>2026-10-20 — Design v1.6 development: failures found by the new checks (logged before the official run)</h3>
+<p>Development runs of the pre-registered v1.6 checks (<code>KC_ONLY=…</code>; not official runs) found two real problems. Both were fixed, and the criteria were not changed.</p>
+<ul>
+<li><strong>V14 FAILED (B1 vs Magpylib).</strong> Worst relative difference at points ≥ 10 mm from the wires:
+<ul>
+<li>(a) single trefoil: 0.29%;</li>
+<li><strong>(b) sharp T(2,5): 1.05%;</strong></li>
+<li><strong>© 16-element array: 0.60%.</strong></li>
+<li><strong>Cause:</strong> the midpoint rule on wires thinned to 200 points.</li>
+<li><strong>Fix:</strong> <code>core/field.js</code> now sums the exact closed-form field of each straight segment. After the fix: 0.0000% in all three cases.</li>
+<li><strong>What this means:</strong> the v1.5 B1 view had errors of up to about 1% near the wires. Deeper in the head the error was smaller (not separately quantified).</li>
+</ul>
+</li>
+<li><strong>V9 FAILED (symmetry).</strong> Pairs that include a midline element had k of equal size but <strong>opposite sign</strong> (difference 0.12).
+<ul>
+<li><strong>Cause:</strong> mirroring a loop point by point also reverses the direction its current circulates, so mirrored elements followed a different sign convention.</li>
+<li><strong>Fix:</strong> mirrored elements run their points in reverse order, so every element circulates the same way as seen from outside the head.</li>
+<li>The V9 harness now compares twins in reversed point order. That is the same curve, as the criterion describes, and the criterion itself is unchanged.</li>
+<li>After the fix: wires agree to 4e-14 mm; k to 6e-16 (non-midline pairs) and 5.8e-4 (midline pairs, from the crossing-lift handedness).</li>
+</ul>
+</li>
+<li><strong>Other development changes before any C2 run, prompted by wires entering exclusion zones:</strong>
+<ul>
+<li>lambdaZone raised from 0.05 to 1;</li>
+<li>the coverage target excludes a buffer around each zone;</li>
+<li>zones are now the first priority in free-mode moves;</li>
+<li>“rescue” jumps for elements trapped between the eyes;</li>
+<li>footprint check denser and 10% wider;</li>
+<li>lowest ring elevation bound relaxed.</li>
+</ul>
+</li>
+<li><strong>Tuning was kept off the C2 configurations</strong> where possible: 20 elements were used for development. One early ring test used 16 elements, which is also C2 configuration 1.</li>
+</ul>
 <h3>2026-10-20 — Validation run 6 (Design v1.5, point ceiling 102,400)</h3>
 <ul>
 <li><strong>Passed:</strong>

@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Knotted-Loop Array Designer — Design v1.5</title><style>
+<title>Knotted-Loop Receive Array Designer — Design Document</title><style>
 :root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
 * { box-sizing: border-box; }
 body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
@@ -31,7 +31,7 @@ tr:nth-child(even) td { background: var(--panel); }
   a { color: var(--navy); }
 }
 </style></head><body><h1>Knotted-Loop Receive Array Designer — Design Document</h1>
-<p><strong>Status:</strong> FROZEN v1.5 (v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · <strong>Date:</strong> 2026-10-20 · <strong>Owner:</strong> Reza Farivar · <strong>Drafted with:</strong> Claude (Anthropic), AI-assisted</p>
+<p><strong>Status:</strong> FROZEN v1.10 (v1.10 = COMSOL interface, Reza 2026-10-21; v1.9 = crossover bumps between overlapping coils, Reza 2026-10-21; v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · <strong>Date:</strong> 2026-10-21 · <strong>Owner:</strong> Reza Farivar · <strong>Drafted with:</strong> Claude (Anthropic), AI-assisted</p>
 <blockquote>
 <p><strong>Freezing rule.</strong> Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.</p>
 </blockquote>
@@ -116,12 +116,24 @@ tr:nth-child(even) td { background: var(--panel); }
 r(φ) = R · (1 + β · cos(q·φ))               ← v1.0 &quot;symmetric&quot; (kept as an option)
 x(φ) = r(φ) · cos(p·φ + θ)
 y(φ) = r(φ) · sin(p·φ + θ)
-z(φ) = h · sin(q·φ)          ← over/under at crossings only
+z(φ) = h · sin(q·φ) + z₀     ← over/under at crossings; thickness (v1.8)
+h  = max(h_min, T/2)          (v1.8)
+z₀ = h − h_min                (v1.8: extra thickness goes outward only)
 </code></pre>
+<p><em>(Since v1.3/v1.4 the angle inside sin and cos is the sharpness-warped ψ = qφ + (1 − 1/m)·sin qφ; shown here with m = 1.)</em></p>
 <ul>
 <li><strong>q</strong> = number of lobes; <strong>p</strong> = number of windings; <strong>gcd(p, q) = 1</strong> is required, otherwise the curve is a link of several separate loops rather than one knot.</li>
 <li><strong>R</strong> = core radius, which sets element size; <strong>θ</strong> = in-plane rotation.</li>
-<li><strong>h</strong> = crossing lift. It must be at least one wire diameter plus insulation. Its job is to keep the over/under topology; it is not 3D shape.</li>
+<li><strong>h</strong> = crossing lift. <strong>h_min</strong> is the smallest lift that keeps crossing strands at least one wire diameter plus insulation apart (solved numerically). Its job is to keep the over/under topology.</li>
+<li><strong>T = total thickness (v1.8, Reza 2026-10-21).</strong> The one-parameter height control: the knot’s total extent along z (top of the highest wire to bottom of the lowest, wire centrelines).
+<ul>
+<li>T = 0, the default, means “minimal”: h = h_min, z₀ = 0, so the geometry is identical to v1.7.</li>
+<li>T &gt; 2·h_min: h = T/2, and the whole knot is raised by z₀ = h − h_min. The lowest wire point therefore stays at −h_min, exactly as in v1.7. On the helmet, +z points away from the head, so <strong>a thicker knot never brings wire closer to the head</strong> (Reza’s choice: “outward only”).</li>
+<li>T &lt; 2·h_min is clamped to h_min and flagged.</li>
+<li>The z profile sin ψ is the out-of-plane profile of a true 3D torus knot, so T moves the element from a flat rosette towards the textbook 3D knot. T = β·R gives a round tube (equal in-plane and out-of-plane extent).</li>
+<li><strong>One shared T for all elements in an array (v1.8).</strong> Per-ring T is a possible v1.9.</li>
+</ul>
+</li>
 <li>Number of crossings in this projection = <strong>q·(p−1)</strong>.</li>
 <li>Footprint radius = R·(1+β) for both shapes. With the outward shape the innermost radius stays R, so lobes only grow outward.</li>
 </ul>
@@ -239,8 +251,33 @@ z(φ) = h · sin(q·φ)          ← over/under at crossings only
 <ul>
 <li><strong>v1:</strong> a parametric hemi-ellipsoid (semi-axes a, b, c) with a coverage boundary, i.e. the lowest elevation the array reaches and a face opening. The default dimensions are <strong>placeholders</strong>, tagged as such in the parameter registry until Reza supplies real former dimensions.</li>
 <li><strong>v2:</strong> import the real former as an STL file (a 3D mesh format).</li>
-<li><strong>Placing an element on the surface:</strong> the flat knot is defined in the tangent plane at the element’s centre, then projected onto the surface along the surface normal. Crossing lift is applied along the normal. This deforms the knot slightly; the deformation is measured and reported.</li>
-<li><strong>Crossings between elements:</strong> where wires from neighbouring overlapping elements cross, they need a lift too. The tool assigns over/under at these crossings and checks clearance.</li>
+<li><strong>Placing an element on the surface:</strong> the flat knot is defined in the tangent plane at the element’s centre, then projected onto the surface along the surface normal. Crossing lift and the thickness offset (z, v1.8) are applied along the outward normal. This deforms the knot slightly; the deformation is measured and reported.</li>
+<li><strong>Crossings between elements:</strong> where wires from neighbouring overlapping elements cross, they need a lift too. <em>(Stated since v1.0 but <strong>not implemented until v1.9</strong>: wires of overlapping coils could pass through each other. Found 2026-10-21 when a full-wave pair run shorted the two coils; see DECISIONS.)</em></li>
+<li><strong>v1.9 crossover bumps (Reza 2026-10-21: “at each crossing between two coils, one wire lifts outward over the other by at least wire + insulation over a short stretch; coils otherwise stay on the helmet”).</strong> Applied after the layout is solved, to the final wrapped wires:
+<ol>
+<li><strong>Who goes over:</strong> for every pair of elements, the <strong>higher-numbered element lifts over the lower-numbered one</strong> at all their crossings. Elements are processed in index order, each against the final (already bumped) wires of all lower-numbered elements, so stacking is consistent where three or more coils meet.</li>
+<li><strong>Where:</strong> the points of element j closer than the target clearance to any lower-numbered wire are grouped into clusters (points within 3 mm of each other, JUDG).</li>
+<li><strong>Shape:</strong> each cluster gets a bump defined <strong>in space</strong>, not along the wire:
+<ul>
+<li>every point of element j within r₀ of the cluster centre c moves outward along its surface normal by A;</li>
+<li>between r₀ and r₀ + W the move tapers as a raised cosine to 0;</li>
+<li>r₀ = cluster radius + target clearance (DERIVED);</li>
+<li>ramp W = 6 mm (JUDG);</li>
+<li>because the bump is spatial, both strands of element j’s own nearby crossing move together, which keeps its own over/under clearance.</li>
+</ul>
+</li>
+<li><strong>Height:</strong> A starts at the target clearance and increases in 0.1 mm steps until every point of element j in the bump is at least the target clearance from every lower-numbered wire. The cap is A_max = 10 mm (JUDG); if the cap is hit, the case is flagged.</li>
+<li><strong>Target clearance:</strong> 1.1 × (d_w + 2·t_i) (JUDG: a 10% margin over touching insulation, to absorb polyline sampling). The check requires ≥ d_w + 2·t_i.</li>
+</ol>
+<ul>
+<li><strong>Consequences:</strong>
+<ul>
+<li>Exact left–right symmetry is lost at crossings between mirror twins, because one wire must go over. V9 therefore applies to the <strong>layout before bumps</strong>; the asymmetry is measured in V24.</li>
+<li>The coupling matrix in the report is computed on the <strong>bumped</strong> wires. The pre-bump matrix is kept for V9 and for comparison.</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 <h2>5. Array layout and automatic decoupling</h2>
 <h3>5.1 The problem</h3>
@@ -254,10 +291,10 @@ z(φ) = h · sin(q·φ)          ← over/under at crossings only
 <pre><code>minimise   Σ_(i,j neighbours) k_ij²   +   λ_cov · (uncovered area)   +   λ_max · max |k_ij|
 subject to wire-clearance constraints
 </code></pre>
-<p><strong>Neighbours (v1.1):</strong> the <em>nearest ring</em> — pairs whose centres are closer than 1.35 × the pair-null spacing (the spacing at which two flat elements have k = 0). In a hexagonal layout the second ring sits at about 1.73 × that spacing, so it is excluded. <em>(v1.0 defined neighbours as pairs whose footprints overlap or touch, d &lt; 2 Rf. Knots null only at heavy overlap, about 1.14 Rf for a trefoil at β = 0.4, so under the v1.0 rule second-ring pairs also counted as neighbours and could not be nulled at the same time. The v1.0 rule stays selectable, and its verdict is always reported alongside.)</em> The max term is there so one bad pair can’t hide behind a good average. <strong>Not yet implemented — see §12, v1.1.</strong></p>
+<p><strong>Neighbours (v1.1):</strong> the <em>nearest ring</em> — pairs whose centres are closer than 1.35 × the pair-null spacing (the spacing at which two flat elements have k = 0). In a hexagonal layout the second ring sits at about 1.73 × that spacing, so it is excluded. <em>(v1.0 defined neighbours as pairs whose footprints overlap or touch, d &lt; 2 Rf. Knots null only at heavy overlap, about 1.14 Rf for a trefoil at β = 0.4, so under the v1.0 rule second-ring pairs also counted as neighbours and could not be nulled at the same time. The v1.0 rule stays selectable, and its verdict is always reported alongside.)</em> The max term is there so one bad pair can’t hide behind a good average. It was implemented after v1.1 as a smooth λ_max·k⁴/thr² term (v1.1 addendum, §12).</p>
 <h3>5.2 Solver strategy (two stages, so it stays interactive)</h3>
 <ol>
-<li><strong>Flat lookup stage.</strong> For the chosen (p, q, β, wire), precompute k between two coplanar elements as a function of centre distance d and both rotations, k(d, θ₁, θ₂). Elements of the same type share the table. The initial layout is a near-uniform spread of N centres over the region (a spherical spiral). The optimiser then adjusts positions, rotations and R using the table, which takes milliseconds per evaluation.</li>
+<li><strong>Flat lookup stage.</strong> For the chosen (p, q, β, wire), precompute k between two coplanar elements as a function of centre distance d and both rotations, k(d, θ₁, θ₂). Elements of the same type share the table. The initial layout is a near-uniform spread of N centres over the region (farthest-point sampling followed by 20 Lloyd relaxation steps; <code>core/layout.js</code>). The optimiser then adjusts positions, rotations and R using the table, which takes milliseconds per evaluation.</li>
 <li><strong>Full 3D refinement.</strong> Starting from stage 1, recompute k with the exact Neumann integral on the curved, projected wire paths and refine locally. This runs in a background worker so the page stays responsive.</li>
 </ol>
 <h3>5.3 What “decoupled” can and cannot mean</h3>
@@ -274,9 +311,102 @@ subject to wire-clearance constraints
 </ul>
 <h2>6. EM model</h2>
 <ul>
-<li><strong>Mutual inductance:</strong> the Neumann double integral, computed numerically over polyline wire paths. The default is 400 points per element, adaptive by convergence (§7, V4).</li>
-<li><strong>Self-inductance:</strong> Neumann with a finite-wire-radius correction, so the formula does not blow up where the wire meets itself. The method will be the standard thin-wire approach, with the reference verified before implementation.</li>
+<li><strong>Mutual inductance:</strong> the Neumann double integral, computed numerically over polyline wire paths. Points per element: 300 in the final report (V4 checks convergence there), 160 during the exact search stage, 128 in the lookup table, 96 in ring-mode search.</li>
+<li><strong>Self-inductance:</strong> Neumann with a finite-wire-radius correction, so the formula does not blow up where the wire meets itself. The method will be the standard thin-wire approach, with the reference verified before implementation.
+<ul>
+<li><strong>v1.8 correction:</strong> the wire is paired with a copy offset by the wire radius a. Up to v1.7 the offset was along z (or the helmet normal), which is perpendicular to the wire only if the wire is flat. From v1.8 the offset direction is that same vector <strong>with its component along the local wire tangent removed, then renormalised</strong>, so the offset is perpendicular to the wire everywhere.</li>
+<li>For flat wires this is unchanged (circles exactly). For the nearly flat v1.7 knots, L changes by a small fraction of a percent. The change is reported in the v1.8 validation run.</li>
+<li>V23 checks it.</li>
+</ul>
+</li>
 <li><strong>Singular points:</strong> where wires of different elements cross, the true 3D separation (lift plus wire radius) is used, never zero. The sensitivity of k to the lift value is reported.</li>
+</ul>
+<h2>6b. Full-wave capacitor co-simulation (v1.7)</h2>
+<p><strong>Purpose (Reza):</strong> choose capacitor values for a <strong>head-loaded</strong> coil, and measure how the capacitors change <strong>decoupling</strong> and <strong>B1</strong>. Python only, no MATLAB.</p>
+<p><strong>Pipeline</strong></p>
+<ol>
+<li><strong>Case export</strong> (<code>tests/export_case.js</code>, or the app’s “Export simulation case”). A JSON file with:
+<ul>
+<li>wire polylines in world mm;</li>
+<li>wire radius;</li>
+<li>capacitor breaks from <code>KC.knot.breaks</code> (position, tangent; the first break per element is the <strong>feed</strong>);</li>
+<li>B0 and Larmor frequency;</li>
+<li>phantom choice.</li>
+</ul>
+</li>
+<li><strong>Full-wave solve</strong> (<code>sim/run_openems.py</code>, openEMS 0.37.0 Python, FDTD).
+<ul>
+<li><strong>Model contents:</strong>
+<ul>
+<li>wires as thin PEC curves (<code>AddCurve</code>) on the grid. <code>AddWire</code> with the real radius disconnected on coarse grids; the real radius enters through the thin-wire correction (V15b);</li>
+<li>a 50 Ω lumped port in every break gap, aligned to the mesh axis closest to the wire tangent;</li>
+<li>a three-layer ellipsoidal head phantom (skin, skull, brain) shaped like our head model.</li>
+</ul>
+</li>
+<li><strong>Runs:</strong> one per port (that port excited, all others 50 Ω), giving the multiport S-matrix over a band around f0 and frequency-domain H-field planes at f0.</li>
+</ul>
+</li>
+<li><strong>Circuit co-simulation</strong> (<code>sim/cosim.py</code>, numpy/scipy). The capacitors are applied to the solved port matrix; no re-simulation is needed.
+<ul>
+<li><strong>Tuning:</strong> every non-feed break gets the same tuning capacitor C_t (per element).</li>
+<li><strong>Feed network:</strong> a shunt C_m across the feed gap, then a series inductor L_m to the receiver.</li>
+<li><strong>Matching and preamp decoupling, solved together:</strong> the feed-gap impedance Z_c = R + jX of the loop (all other gaps terminated) must satisfy <strong>X = √(50·R)</strong>. That fixes C_t by a 1-D root search, then <strong>C_m = 1/(ωX)</strong> and <strong>L_m = X/ω</strong>. With this choice the network matches 50 Ω, and <strong>L_m resonates with C_m</strong>, so a low-impedance preamp presents a high impedance in the loop (preamp decoupling). Derivation in <code>sim/cosim.py</code> (DERIVED, Claude).</li>
+<li><strong>Arrays:</strong> elements are tuned in turn, the others terminated by their preamp-decoupling networks; repeat 3 passes.</li>
+<li><strong>Losses:</strong>
+<ul>
+<li>copper skin-effect wire resistance, σ_Cu = 5.8e7 S/m (CONV, standard handbook value; not cited);</li>
+<li>capacitor ESR from Q_C = 1000 (JUDG PLACEHOLDER);</li>
+<li>inductor Q_L = 100 (JUDG PLACEHOLDER);</li>
+<li>preamp input impedance 2 Ω (JUDG PLACEHOLDER).</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>Evaluation (the “effect of the capacitors”)</strong>
+<ul>
+<li><strong>Capacitor values</strong> (C_t, C_m, L_m), loaded and unloaded, per element and per field strength.</li>
+<li><strong>S11</strong> of each tuned element.</li>
+<li><strong>Coupling:</strong>
+<ul>
+<li>S21 between receiver ports with 50 Ω terminations (what a bench would measure);</li>
+<li>the coupling that remains with preamp decoupling;</li>
+<li>effective mutual inductance M_eff = Im(Z_ij)/ω between element feed gaps with the tuning capacitors in place, compared with our quasi-static M.</li>
+</ul>
+</li>
+<li><strong>B1⁻ per element:</strong> fields from the port runs, superposed with the network solution (reciprocity: the element’s receiver port is driven, the others are preamp-terminated). Compared with our quasi-static uniform-current B1 on the same planes.</li>
+</ul>
+</li>
+<li><strong>Outputs:</strong> <code>sim/out/&lt;case&gt;/cosim.json</code>, plus PNG plots (S-parameters, B1 maps). The validation runner (<code>tests/run.js</code>) aggregates the V15–V20 verdicts. The app can load <code>cosim.json</code> (capacitor table, S21, coupling, B1 metrics).</li>
+</ol>
+<p><strong>Phantom tissue properties:</strong></p>
+<ul>
+<li><strong>7T (298 MHz):</strong> values from openEMS’s bundled <code>phantom_head_298MHz.h5</code>, which openEMS attributes to the IT’IS database (Gabriel model): brain εr 52.7, σ 0.95 S/m; skull 11.4, 0.29; skin 38.9, 0.84. <strong>Secondary source; not independently verified.</strong></li>
+<li><strong>3T (128 MHz):</strong> an <strong>approximation</strong>. openEMS’s 128 MHz <em>body</em> phantom values are mapped onto the head layers (“Tissue” → brain 62.8 / 0.66, bone → skull 12.5 / 0.13, skin 46.8 / 0.58). Verified 128 MHz head tissue values are an open item.</li>
+<li><strong>Layers:</strong> skin 4 mm, skull 7 mm (JUDG PLACEHOLDER), inside the head ellipsoid (helmet − 10 mm).</li>
+</ul>
+<p><strong>Scope tonight:</strong> a circular loop (validation), a single trefoil element (air and head, 3T and 7T), and a trefoil pair in the head at 3T across 3 spacings. Full arrays are expensive in FDTD (one run per port) and are left for later, via mariepy if it proves usable, or long openEMS runs.</p>
+<p><strong>Pre-run gate (v1.9):</strong> before any openEMS case runs, <code>sim/check_crossings.py</code> must report zero risks for (1) each element’s own crossings, (2) ports versus other elements, and (3) wires of different elements on the same or edge-adjacent grid nodes. openEMS’s own preflight must also pass. A case that fails is not run.</p>
+<h2>6c. COMSOL interface (v1.10, Reza 2026-10-21: “add the COMSOL export (files + MPh build script, unvalidated)”)</h2>
+<ul>
+<li><strong>Purpose:</strong> a second full-wave solver that labs commonly have. It is driven from Python like openEMS, from the <strong>same case JSON</strong>, so both solvers model identical geometry: the same bumps, breaks and port gaps.</li>
+<li><strong>Export:</strong> <code>sim/export_comsol.py &lt;case&gt;</code> writes <code>sim/comsol/&lt;case&gt;/</code>, containing:
+<ul>
+<li>one text file per wire segment between capacitor gaps (x y z in mm, one point per line);</li>
+<li><code>ports.csv</code> (each gap’s two terminals, axis, element, whether it is the feed);</li>
+<li><code>phantom.json</code> (ellipsoid semi-axes, layer thicknesses, neck cut, tissue εr and σ at the case frequency, and their source label);</li>
+<li><code>meta.json</code> (frequency, wire radius, units, source case file and its git hash).</li>
+<li>Port terminals and wire ends are taken from <code>sim/run_openems.py</code>’s <code>cut_all</code>, so they are identical to the openEMS model.</li>
+</ul>
+</li>
+<li><strong>Build script:</strong> <code>sim/comsol_build_mph.py &lt;case&gt;</code> uses <strong>MPh</strong> (Python interface to COMSOL; v1.4.0, MIT licence, John Hennig; requires a licensed COMSOL with the RF Module).
+<ul>
+<li>It builds the wires as perfect-conductor edges, each capacitor gap as a small rectangular lumped-port face, the three-layer head phantom and a scattering outer boundary.</li>
+<li>It solves a frequency sweep over every port and writes the port S-matrix to <code>sim/out/&lt;case&gt;_comsol/comsol.npz</code>, in the same format as openEMS’s (freq, S, port metadata), so <code>sim/cosim.py</code> can choose the capacitors.</li>
+<li><code>--dry-run</code> checks the files and prints the build plan without COMSOL.</li>
+<li><strong>Status: UNVALIDATED.</strong> It was written without access to COMSOL. The COMSOL feature and property names come from the COMSOL API as recalled by Claude and are marked UNVERIFIED in the code. First use must be supervised in the COMSOL GUI.</li>
+</ul>
+</li>
+<li><strong>Not in v1.10:</strong> B1 field export from COMSOL (S-parameters only); the co-simulation’s B1 comparison stays openEMS-only.</li>
 </ul>
 <h2>7. Validation plan (pre-registered)</h2>
 <p>Each check runs automatically in the test suite and appears in a validation report. <strong>Pass criteria are fixed now.</strong></p>
@@ -327,6 +457,114 @@ subject to wire-clearance constraints
 <td>Crossing count and over/under pattern unchanged across β ∈ [β_min, β_max]; minimum self-clearance ≥ d_w + 2·t_i</td>
 </tr>
 <tr>
+<td>V9 <em>(v1.6, pre-registered; from v1.9 evaluated on the layout before crossover bumps, see §4)</em></td>
+<td>Exact left–right symmetry of ring layouts</td>
+<td>Internal</td>
+<td>Ring-mode arrays T(2,3) β=0.8 N=16 and T(2,5) β=0.8 m=2 N=24:<br>• every mirror pair’s wires coincide with the mirror image to &lt; 1e-9 mm;<br>• k is unchanged under the mirror swap to &lt; 1e-9, for pairs without a midline element;<br>• &lt; 1e-3 for pairs that include a midline element (its crossing lift is not mirror-symmetric)</td>
+</tr>
+<tr>
+<td>V10 <em>(v1.6, pre-registered)</em></td>
+<td>Capacitor break placement</td>
+<td>Internal</td>
+<td>All catalogue knots × β ∈ {0.4, 1.5} × m ∈ {1, 4} × breaks ∈ {4, 8} (core R = 30 mm, clearance 5 mm). Whenever the placer reports success:<br>• every break is ≥ 5 mm along the wire from every crossing pass;<br>• longest ÷ shortest segment ≤ 1.5.<br>Cases reported as infeasible are counted, not failed</td>
+</tr>
+<tr>
+<td>V11 <em>(v1.6, pre-registered)</em></td>
+<td>Capacitor value</td>
+<td>Closed form C = n / (ω²L), using the verified ring self-inductance (Rosa &amp; Grover eq. [62])</td>
+<td>Circular loop R = 50 mm, wire radius 0.5 mm, n = 4 and 8, at 3T and 7T: our per-capacitor value within 1% of the closed form</td>
+</tr>
+<tr>
+<td>V12 <em>(v1.6, pre-registered)</em></td>
+<td>Face exclusion zones respected</td>
+<td>Internal</td>
+<td>Arrays from every V9 and C2 configuration: zero final-report wire points inside any exclusion zone (zone boundary itself, margin excluded)</td>
+</tr>
+<tr>
+<td>V13 <em>(v1.6, pre-registered)</em></td>
+<td>Reproducibility</td>
+<td>Internal</td>
+<td>The same configuration and seed solved twice (free fast; ring) gives identical centres, rotations and k matrix (difference = 0)</td>
+</tr>
+<tr>
+<td>V14 <em>(v1.6, pre-registered)</em></td>
+<td>B1 implementation, Tier 1</td>
+<td>Independent library: Magpylib 6.x <code>current.Polyline</code> (Ortner &amp; Coliado Bandeira 2020, SoftwareX 11:100466; licence and API verified 2026-10-20)</td>
+<td>Three cases, the identical thinned wire paths the app uses, about 1,000 points each:<br>(a) one flat trefoil;<br>(b) one T(2,5) element at β = 1.5, m = 4;<br>© a solved 16-element array.<br>|B_ours − B_magpylib| / |B_magpylib| &lt; 0.5% at every point ≥ 10 mm from any wire (the head gap). Points 5–10 mm away are reported for information only</td>
+</tr>
+<tr>
+<td>V15 <em>(v1.7, pre-registered)</em></td>
+<td>Full-wave model sanity: resonance</td>
+<td>Prediction from our validated L (V2) and first-pass C</td>
+<td>Circular loop R = 40 mm, wire radius 0.5 mm, 4 breaks, in air. Capacitors from <code>KC.knot.capacitor(L_ours, 4, 3 T)</code> applied to the openEMS port matrix give a resonance within ±5% of 127.73 MHz</td>
+</tr>
+<tr>
+<td>V15b <em>(v1.7, pre-registered after V15’s first run and BEFORE any trefoil run)</em></td>
+<td>Thin-wire correction carries over to a different geometry</td>
+<td>Our quasi-static L (Neumann; V1, V2, V4)</td>
+<td>openEMS models wires as thin curves on the grid (an effective radius set by the grid). The effective radius a_eff is calibrated on the circular loop by inverting Rosa &amp; Grover eq. [62]. Each element’s loop inductance is then corrected by ΔL = (μ₀/2π)·ℓ·ln(a/a_eff), where ℓ is the wire length (DERIVED, the thin-wire dependence of L on radius). For the single trefoil in air at 3T (same grid), the corrected full-wave L is within 5% of our quasi-static L</td>
+</tr>
+<tr>
+<td>V16 <em>(v1.7, pre-registered)</em></td>
+<td>Extracted S-matrix is physical</td>
+<td>Internal</td>
+<td>Every openEMS case, every frequency in the band: largest singular value of S ≤ 1.001 (passive), and |S_ij − S_ji| ≤ 0.02 (reciprocal)</td>
+</tr>
+<tr>
+<td>V17 <em>(v1.7, pre-registered)</em></td>
+<td>Co-simulation achieves tuning and matching</td>
+<td>Internal</td>
+<td>Every tuned element in every case: |S11(f0)| ≤ −20 dB; all chosen C_t, C_m, L_m are positive and finite</td>
+</tr>
+<tr>
+<td>V18 <em>(v1.7, pre-registered)</em></td>
+<td>B1 Tier 2: is the quasi-static map valid near the surface?</td>
+<td>openEMS full-wave with capacitors and phantom (exploratory; one solver)</td>
+<td>Single trefoil, head-loaded, per field strength: normalised |B1⁻| (each map scaled to its own maximum in the plane) agrees with the quasi-static map within 20% at every phantom point within 20 mm of the head surface, on the axial and coronal planes. <strong>Classification:</strong> PASS = the quasi-static map is valid near the surface for that case. The depth at which disagreement first exceeds 20% is reported either way</td>
+</tr>
+<tr>
+<td>V19 <em>(v1.7, pre-registered)</em></td>
+<td>Does the quasi-static null survive capacitors and load?</td>
+<td>openEMS + co-simulation</td>
+<td>Trefoil pair, head-loaded at 3T, centre spacings {d₀ − 4, d₀, d₀ + 4} mm, where d₀ is the quasi-static null (Pair explorer, rotations 0/0). PASS if |S21(f0)| with 50 Ω terminations ≤ −15 dB at d₀, <strong>and</strong> the smallest |S21| of the three is at d₀ (null bracketed)</td>
+</tr>
+<tr>
+<td>V20 <em>(v1.7, pre-registered)</em></td>
+<td>Second solver</td>
+<td>mariepy (MARIE port; immature)</td>
+<td>Single trefoil, head-loaded: capacitor values within 10% of openEMS’s. NOT EVALUABLE if mariepy cannot be installed or run on this machine</td>
+</tr>
+<tr>
+<td>V21 <em>(v1.8, pre-registered)</em></td>
+<td>Thickness control T</td>
+<td>Internal</td>
+<td>Every catalogue knot, β ∈ {0.4, 1.5}, m ∈ {1, 4}, core R = 30 mm, placeholder wire, T ∈ {0, 5, 10, 20, 40} mm:<br>(a) T = 0 gives points identical to the v1.7 construction (h = h_min, no offset), difference exactly 0;<br>(b) for T &gt; 2·h_min: measured thickness max z − min z within 1% of T, and min z ≥ −h_min − 1e-9 mm (never deeper than v1.7);<br>© crossing count = q(p−1), over/under pattern equal to T = 0, minimum self-clearance ≥ d_w + 2·t_i;<br>(d) T &lt; 2·h_min gives h = h_min and the clamp flag set</td>
+</tr>
+<tr>
+<td>V22 <em>(v1.8, pre-registered)</em></td>
+<td>B1 implementation on thick knots, Tier 1</td>
+<td>Magpylib 6.x, as V14</td>
+<td>Same harness and criterion as V14 (&lt; 0.5% at every point ≥ 10 mm from any wire), on:<br>(d) one T(2,3), β = 0.8, core R = 30 mm, T = 30 mm;<br>(e) a solved 16-element free array, T(2,3) β 0.8, T = 15 mm</td>
+</tr>
+<tr>
+<td>V23 <em>(v1.8, pre-registered)</em></td>
+<td>Self-inductance of a non-flat wire (v1.8 offset correction)</td>
+<td>Rotation invariance plus Rosa &amp; Grover eq. [62] (VERIFIED, as V11)</td>
+<td>Circle R = 50 mm, wire radius 0.5 mm, 400 points, tilted by 0°, 30°, 60°, 80° about the x axis, default offset direction z: L within 0.5% of the untilted value at every tilt, <strong>and</strong> within 2% of Rosa &amp; Grover (as V2). The v1.7 method’s values are reported alongside for information</td>
+</tr>
+<tr>
+<td>V24 <em>(v1.9, pre-registered)</em></td>
+<td>Crossover bumps separate overlapping coils</td>
+<td>Internal</td>
+<td>On:<br>• the two V9 ring arrays;<br>• a free N = 16 array (T(2,3) β 0.8, seed 1, fast);<br>• the same with T = 15 mm;<br>• the four pair simulation cases.<br>Criteria:<br>(a) the minimum centreline distance between wires of <strong>different</strong> elements, measured segment to segment, is ≥ d_w + 2·t_i;<br>(b) every displacement is along that point’s outward surface normal with size ≥ 0; points outside all bump regions are unchanged exactly; no element is ever displaced by a crossing with a higher-numbered element;<br>© each element keeps its own minimum self-clearance ≥ d_w + 2·t_i and minimum bend radius ≥ the wire limit;<br>(d) no bump reaches A_max.<br>Reported for information: bump heights, fraction of wire bumped, max |Δk| between bumped and pre-bump wires for adjacent pairs, and mirror-pair wire asymmetry</td>
+</tr>
+<tr>
+<td>V25 <em>(v1.10, pre-registered; can only be run where COMSOL is licensed)</em></td>
+<td>Second full-wave solver (COMSOL) agrees with openEMS</td>
+<td>openEMS results of the same case files</td>
+<td>Cases <code>loop_air_3T</code> and <code>trefoil_air_3T</code>, built by <code>sim/comsol_build_mph.py</code> from the committed case files, solved, then put through the same <code>sim/cosim.py</code> tuning:<br>(a) the COMSOL S-matrix passes V16 (passive ≤ 1.001, reciprocal ≤ 0.02);<br>(b) the tuned capacitor C_t is within 10% of openEMS’s for both cases (as V20);<br>© the loop’s first-pass resonance error has the same sign as openEMS’s, and its size is reported. NOT EVALUABLE until run on a COMSOL machine; the COMSOL version, mesh settings and any manual corrections to the build script are recorded with the result</td>
+</tr>
+<tr>
 <td>V8 <em>(added v1.5, pre-registered before running)</em></td>
 <td>B1 (Biot–Savart) field of a circular loop on its axis</td>
 <td>Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in <code>core/field.js</code>)</td>
@@ -368,13 +606,15 @@ subject to wire-clearance constraints
     layout.js      initial placement, neighbour detection
     optimise.js    two-stage decoupling solver
   app/index.html   browser UI (3D view via Three.js, a pinned copy stored locally so it works offline)
-  tests/           Node.js unit tests + validation checks V1–V6
+  core/field.js    exact-segment Biot–Savart B1; core/phantom.js  head phantom constants (v1.7)
+  sim/             full-wave pipeline (Python/openEMS): run_openems.py, cosim.py, v20_mariepy.py, run_queue.sh
+  tests/           validation suite V1–V20 + comparisons; export_case.js; b1_crosscheck.py
   validation/      generated validation reports
   PARAMETERS.md    parameter registry with origin tags
   Design.md / .html / .pdf
 </code></pre>
 <ul>
-<li>The app opens straight from OneDrive by double-clicking <code>index.html</code>, with no server and no install. The optimiser runs in a background worker created from inline code.</li>
+<li>The app is designed to open from OneDrive by double-clicking <code>index.html</code>. That is <strong>untested</strong>; serving it with <code>node tools/serve.js</code> is tested. Heavy maths runs in background workers created from inline code.</li>
 <li>Every source file carries an AI-authorship header, as required by the research-integrity framework.</li>
 </ul>
 <h2>11. Open decisions (to settle before freezing)</h2>
@@ -426,7 +666,100 @@ subject to wire-clearance constraints
 </table>
 <h2>12. Changelog</h2>
 <ul>
-<li><strong>2026-10-20, v1.5 (requested by Reza): quick B1 visualisation.</strong>
+<li>
+<p><strong>2026-10-21, v1.10 (Reza: “add the COMSOL export (files + MPh build script, unvalidated) … add the COMSOL export first”).</strong></p>
+<ul>
+<li>§6c: COMSOL export files and MPh build script from the same case JSON as openEMS.</li>
+<li>New check <strong>V25</strong> (COMSOL vs openEMS), NOT EVALUABLE until run where COMSOL is licensed.</li>
+<li>COMSOL is not installed on the development machine.</li>
+</ul>
+</li>
+<li>
+<p><strong>2026-10-21, v1.9 (Reza: “Use local bumps: at each crossing between two coils, one wire lifts outward over the other by at least wire + insulation over a short stretch; coils otherwise stay on the helmet. Make it a v1.9 design change with pre-registered checks, then rerun the pairs.”).</strong></p>
+<ul>
+<li>§4: crossover bumps (rule, shape, height). The coupling report uses bumped wires.</li>
+<li>§7: V9 evaluated on the pre-bump layout; new <strong>V24</strong>.</li>
+<li>§6b: new <strong>pre-run gate</strong> for every full-wave case. <code>sim/check_crossings.py</code> must report no two <em>different</em> elements’ wires on the same or edge-adjacent grid nodes, as well as the existing checks on self-crossings and ports.</li>
+<li>Trigger: the invalid pair run of 2026-10-21 (DECISIONS).</li>
+</ul>
+</li>
+<li>
+<p><strong>2026-10-21, v1.8 (Reza: “add the height dimension to these knots, such that with one parameter, I could allow the knots to rise higher (total thickness of the whole knot) … while still calculating their B1 fields”; Reza chose “outward only”).</strong></p>
+<ul>
+<li>§3.1: total-thickness parameter T. h = max(h_min, T/2), z₀ = h − h_min; T = 0 reproduces v1.7 exactly.</li>
+<li>§4: the offset goes along the outward normal.</li>
+<li>§6: self-inductance offset made perpendicular to the wire, a correction found while planning this change. It matters for thick knots and is negligible for v1.7 shapes.</li>
+<li>Shared T across an array.</li>
+<li>Checks V21–V23 pre-registered before their code.</li>
+<li>Unaffected by construction: B1, mutual inductance, the solver and the simulation export already use full 3D wire paths; T only changes the paths.</li>
+</ul>
+</li>
+<li>
+<p><strong>2026-10-20 (night), v1.7 audit corrections (documentation only; no design change).</strong> Fixed after the independent audit (<code>docs/AUDIT_REPORT_*.md</code>):</p>
+<ul>
+<li>§5.1: the λ_max term <em>is</em> implemented.</li>
+<li>§5.2: initial layout method described correctly.</li>
+<li>§6: point counts.</li>
+<li>§6b: thin curves plus thin-wire correction (not <code>AddWire</code>); outputs are <code>cosim.json</code> and PNGs.</li>
+<li>§10: architecture.</li>
+<li>The double-click launch is untested.</li>
+<li>The §7 promise that every EM output is labelled “UNVALIDATED” when a check fails is now <strong>implemented</strong> in the app.</li>
+</ul>
+</li>
+<li>
+<p><strong>2026-10-20 (evening), v1.7 (Reza: “implement the full capacitance modelling, including choosing the capacitors and also evaluating the effect of the capacitor in the decoupling and the B1 field”; earlier: head-loaded values, Python not MATLAB).</strong></p>
+<ul>
+<li><strong>New:</strong> §6b pipeline: openEMS full-wave model with ports at the capacitor breaks; Python circuit co-simulation that chooses C_t, C_m and L_m with preamp decoupling; evaluation of capacitor effects on coupling and B1.</li>
+<li><strong>Checks V15–V20</strong> pre-registered before their code.</li>
+<li><strong>Defaults taken because Reza was unavailable</strong> (logged in DECISIONS.md):
+<ul>
+<li>both 3T and 7T;</li>
+<li>matching = shunt-C, series-L with preamp decoupling;</li>
+<li>installing openEMS 0.37.0 (Windows package and its Python 3.14 wheels) and mariepy, outside OneDrive.</li>
+</ul>
+</li>
+<li><strong>Results from earlier versions</strong> (v1.6 official: C2 → free stays default; V7–V14 PASS) are in DESIGN_HISTORY.md.</li>
+</ul>
+</li>
+<li>
+<p><strong>2026-10-20, v1.6 (Reza: “Okay, let’s do the major update!” — approving <code>docs/PROPOSAL_v2.md</code> with its proposed defaults).</strong></p>
+<ul>
+<li><strong>Field strength:</strong> Reza did not choose one, so capacitor values are selectable (1.5 / 3 / 7 T), default 3T.</li>
+<li><strong>WP6 solver link:</strong> deferred; the solver survey is in <code>docs/SOLVER_OPTIONS.md</code>.</li>
+<li><strong>Scope:</strong>
+<ul>
+<li><strong>WP3 multi-start:</strong> K starts; seed 1 keeps v1.5 behaviour; seeds ≥ 2 jitter the start positions; the best is chosen by worst adjacent |k| in the exact final report, and the spread is reported. Selection cannot be worse than seed 1 on that metric, so there is no comparison test.</li>
+<li><strong>WP11 head and zones:</strong> a parametric head (helmet − 10 mm) with elliptical exclusion zones for the eyes and mouth (angular, centred on the helmet), with a 5 mm wire margin.
+<ul>
+<li>Default coverage changes: the face wedge is off and zCut is −20 mm. All zone values are placeholders (JUDG).</li>
+<li>Zones are respected both in coverage and in the solver: footprint samples are tested in the fast stage, exact wire points in the exact stage and the final report.</li>
+</ul>
+</li>
+<li><strong>WP1/WP2 ring mode:</strong>
+<ul>
+<li>Elements sit in rings (plus an optional top cap), mirror-symmetric about x = 0 by construction.</li>
+<li>Per-ring parameters: elevation, spacing, rotation, and size / bloom / sharpness, each either fixed or optimised per ring.</li>
+<li>Mirrored elements use the mirror-image knot. Midline elements are restricted to mirror-compatible rotations.</li>
+<li>Ring mode evaluates exact Neumann coupling on wrapped wires directly, with no lookup table, because element shapes differ.</li>
+</ul>
+</li>
+<li><strong>New neighbour definition, “adjacent”:</strong> pairs whose regions touch, judged from which two elements are nearest to each helmet sample point (Voronoi adjacency, i.e. pairs whose zones of closest helmet points share a border).
+<ul>
+<li>It is reported for every mode and is the optimisation target in ring mode, because the v1.1 rule (1.35 × pair-null spacing) assumes one shared shape.</li>
+<li>Free mode keeps the v1.1 rule as its target and reports both.</li>
+</ul>
+</li>
+<li><strong>Regularity score:</strong> coefficient of variation of nearest-neighbour centre distances.</li>
+<li><strong>WP4:</strong> load a saved design.</li>
+<li><strong>WP5:</strong> capacitor breaks, placed by wire length with a crossing clearance; first-pass values C = n/(ω²L); Larmor frequency from γ/2π = 42.577 MHz/T (to verify against CODATA before citing); segment-length warning against λ/10, a rule of thumb (JUDG, not a cited value).</li>
+<li><strong>WP12 Tier 1:</strong> check V14.</li>
+</ul>
+</li>
+<li><strong>New checks:</strong> V9–V14, plus comparison C2 (<code>validation/COMPARE_ring_vs_free_PROTOCOL.md</code>), all committed before the code that they test.</li>
+</ul>
+</li>
+<li>
+<p><strong>2026-10-20, v1.5 (requested by Reza): quick B1 visualisation.</strong></p>
 <ul>
 <li><strong>Request (Reza):</strong> “I just want a quick visualization that’s reasonable. We will do simulations later.”</li>
 <li><strong>What it shows:</strong> the quasi-static magnetic field per unit current (Biot–Savart) of the solved wires, either per element or combined as root-sum-of-squares √Σ|B1ᵢ|².</li>
@@ -436,7 +769,8 @@ subject to wire-clearance constraints
 <li><strong>New check:</strong> V8 (§7), pre-registered.</li>
 </ul>
 </li>
-<li><strong>2026-10-20, v1.4: sharpness redefined after V7 FAILED (run 4, git 2188ab0).</strong>
+<li>
+<p><strong>2026-10-20, v1.4: sharpness redefined after V7 FAILED (run 4, git 2188ab0).</strong></p>
 <ul>
 <li><strong>Why v1.3 failed:</strong> its power-law profile ((1+cos qφ)/2)^m added paired crossings to the flat drawing.</li>
 <li><strong>New definition:</strong> sharpness warps the lobe angle, ψ = qφ + a·sin(qφ) with a = 1 − 1/m. The same ψ drives both radius and lift, r = R(1 + β(1 + cos ψ)/2) and z = h·sin ψ.</li>
@@ -451,7 +785,8 @@ subject to wire-clearance constraints
 <li><strong>V7 criterion and grid unchanged;</strong> re-run on v1.4.</li>
 </ul>
 </li>
-<li><strong>2026-10-20, v1.3 (requested by Reza): petal sharpness.</strong>
+<li>
+<p><strong>2026-10-20, v1.3 (requested by Reza): petal sharpness.</strong></p>
 <ul>
 <li><strong>Request (Reza):</strong> “Add a petal-sharpness control that narrows each lobe, with the same topology checks.”</li>
 <li><strong>§3.1 outward shape becomes</strong> r = R(1 + β·((1 + cos qφ)/2)^m), with sharpness m ≥ 1.
@@ -465,7 +800,8 @@ subject to wire-clearance constraints
 <li><strong>New check V7 (§7):</strong> pre-registered and committed before it was run.</li>
 </ul>
 </li>
-<li><strong>2026-10-20, v1.2 (requested by Reza): bloom extends the lobes instead of pinching.</strong>
+<li>
+<p><strong>2026-10-20, v1.2 (requested by Reza): bloom extends the lobes instead of pinching.</strong></p>
 <ul>
 <li><strong>Request (Reza):</strong> “currently, ‘bloom’ is just pinching a portion of the loop. I want ‘bloom’ to make the lobes more extended, such that each lobe’s aspect ratio would increase as I increase ‘bloom’.”</li>
 <li><strong>New default §3.1 shape (“outward”):</strong> r = R(1 + β(1 + cos qφ)/2).
@@ -481,7 +817,8 @@ subject to wire-clearance constraints
 <li><strong>Earlier results used the symmetric shape:</strong> validation run 2 and the worst-pair comparison were both done before v1.2.</li>
 </ul>
 </li>
-<li><strong>2026-10-20, v1.1 addendum: worst-pair term implemented.</strong>
+<li>
+<p><strong>2026-10-20, v1.1 addendum: worst-pair term implemented.</strong></p>
 <ul>
 <li>The λ_max·max|k| term of §5.1 is now implemented as a smooth stand-in: λ_max·k⁴/thr² per neighbour pair, with λ_max = 1.</li>
 <li>It was made the default by a pre-registered paired comparison (<code>validation/COMPARE_worstpair_PROTOCOL.md</code>, git 6d96721): all three criteria were met.</li>
@@ -489,7 +826,8 @@ subject to wire-clearance constraints
 <li>The validation criteria V1–V6 are unchanged.</li>
 </ul>
 </li>
-<li><strong>2026-10-20, v1.1 (approved by Reza).</strong>
+<li>
+<p><strong>2026-10-20, v1.1 (approved by Reza).</strong></p>
 <ul>
 <li><strong>§5.1 / §5.3, definition of “decoupled”:</strong> now means the <em>nearest ring</em> of neighbours (closer than 1.35 × the pair-null spacing). The v1.0 footprint-overlap rule remains a selectable option, and its verdict is always reported alongside.</li>
 <li><strong>Reason:</strong> knotted elements null only at heavy overlap, so under the v1.0 rule second-ring pairs counted as neighbours, and they cannot be nulled together with the first ring. Evidence is in DECISIONS.md: on a 16-element trefoil test, nearest-ring |k| reached about 0.01 while second-ring |k| reached about 0.08.</li>
@@ -497,7 +835,11 @@ subject to wire-clearance constraints
 <li><strong>Implementation deviation, disclosed at the same time (found by Claude while making this change):</strong> the λ_max·max|k| term of the §5.1 cost function was <strong>not implemented</strong> in the solver as built (git b21c784). The solver minimises Σ w·k² + λ_cov·gaps only. The worst pair is reported but not targeted. This is still open; whether to implement it is Reza’s call.</li>
 </ul>
 </li>
-<li><strong>2026-10-20, v1.0 — FROZEN.</strong> Reza approved all proposed defaults in §11 (D1–D7). Wire spec (D5) and helmet dimensions (D4) to follow from Reza; placeholders are used and labelled until then. Parameter tags follow the research-integrity code standard (LIT / CONV / JUDG / TUNED / DERIVED); “placeholder” values are tagged JUDG with the word PLACEHOLDER. The project also keeps <code>DECISIONS.md</code> and a README with a provenance and AI-use statement.</li>
-<li><strong>2026-10-20, v0.1:</strong> first draft from design conversation. Bloom = lobe amplitude with knot topology preserved; flat knots; wire loops (not PCB); helmet former; unlimited N with automatic decoupling.</li>
+<li>
+<p><strong>2026-10-20, v1.0 — FROZEN.</strong> Reza approved all proposed defaults in §11 (D1–D7). Wire spec (D5) and helmet dimensions (D4) to follow from Reza; placeholders are used and labelled until then. Parameter tags follow the research-integrity code standard (LIT / CONV / JUDG / TUNED / DERIVED); “placeholder” values are tagged JUDG with the word PLACEHOLDER. The project also keeps <code>DECISIONS.md</code> and a README with a provenance and AI-use statement.</p>
+</li>
+<li>
+<p><strong>2026-10-20, v0.1:</strong> first draft from design conversation. Bloom = lobe amplitude with knot topology preserved; flat knots; wire loops (not PCB); helmet former; unlimited N with automatic decoupling.</p>
+</li>
 </ul>
 </body></html>

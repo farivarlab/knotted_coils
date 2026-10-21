@@ -1,0 +1,120 @@
+{
+ "case": "trefoil_head_7T",
+ "B0_T": 7,
+ "f0_MHz": 298.042349227,
+ "loaded": true,
+ "tissue_source": "openEMS 0.37.0 resources/phantoms/phantom_head_298MHz.h5 (openEMS attributes values to IT'IS database, Gabriel model); not independently verified",
+ "parameters": {
+  "SIGMA_CU": 58000000.0,
+  "Q_CAP": 1000.0,
+  "Q_IND": 100.0,
+  "Z_PRE": 2.0,
+  "PASSES": 3
+ },
+ "V16": {
+  "max_singular_value": 0.9998031625579165,
+  "max_reciprocity_error": 0.0005809949219775076
+ },
+ "thin_wire_correction": {
+  "key": "res1.0_curve",
+  "a_eff_mm": 0.16938025074498786,
+  "dL_nH": [
+   100.70062372242145
+  ]
+ },
+ "tuned": true,
+ "elements": [
+  {
+   "S11_neighbours_preamp_dB": -47.264480313123435,
+   "Ct_pF": 1.416447960360412,
+   "Cm_pF": 12.219809334286309,
+   "Lm_nH": 23.335648676420906,
+   "first_pass_Ct_pF": 2.2800302071152343,
+   "S11_dB": -47.264480313123435,
+   "R_loop_ohm": 38.19314694370021,
+   "L_fullwave_corrected_nH": 627.2911461558973,
+   "L_fullwave_raw_nH": 727.9917698783188,
+   "L_quasistatic_nH": 500.26912209824434
+  }
+ ],
+ "V15b": [
+  {
+   "element": 0,
+   "L_corrected_nH": 627.2911461558973,
+   "L_quasistatic_nH": 500.26912209824434,
+   "rel_err": 0.2539073839394549
+  }
+ ],
+ "V17": {
+  "max_S11_dB": -47.264480313123435,
+  "max_S11_neighbours_50ohm_dB": -47.264480313123435,
+  "all_positive": true
+ },
+ "B1": {
+  "axial": [
+   {
+    "element": 0,
+    "V18_max_rel_diff_within_20mm": 5.888521696919866,
+    "breakdown_depth_mm": 0.0,
+    "n_points_within_20mm": 3370,
+    "info_footprint_max_rel_diff_within_20mm": 0.7799057690906779,
+    "info_worst_point_mm": [
+     -32.20073076923077,
+     77.64916010758877,
+     35.26460356273234
+    ],
+    "info_worst_point_fullwave_norm": 0.0010204222099936349,
+    "info_robust_max_rel_diff_within_20mm": 6.519323625503673,
+    "info_robust_median_rel_diff_within_20mm": 0.24373648976008644
+   }
+  ],
+  "coronal": [
+   {
+    "element": 0,
+    "V18_max_rel_diff_within_20mm": 20.095605392922185,
+    "breakdown_depth_mm": 0.0,
+    "n_points_within_20mm": 7716,
+    "info_footprint_max_rel_diff_within_20mm": 1.4174726703853628,
+    "info_worst_point_mm": [
+     14.715745762711865,
+     -74.21076740278079,
+     -8.605100933090267
+    ],
+    "info_worst_point_fullwave_norm": 0.005045408471845107,
+    "info_robust_max_rel_diff_within_20mm": 20.760579556472226,
+    "info_robust_median_rel_diff_within_20mm": 0.18327666391042535
+   }
+  ]
+ },
+ "V18": {
+  "max_rel_diff_within_20mm": 20.095605392922185,
+  "breakdown_depths_mm": {
+   "axial": [
+    0.0
+   ],
+   "coronal": [
+    0.0
+   ]
+  }
+ },
+ "git": "4e2bd85",
+ "git_dirty_code": true,
+ "openems_meta": {
+  "git": "4e2bd85",
+  "options": {
+   "case": "C:\\Users\\reza\\OneDrive - McGill University\\claude\\knotted_coils\\sim\\cases\\trefoil_head_7T.json",
+   "res": 1.0,
+   "res_phantom": 3.0,
+   "gap": 2.0,
+   "air": 200.0,
+   "end_crit": 0.0001,
+   "fc_frac": 0.5,
+   "nf": 201,
+   "max_ts": 2000000.0,
+   "wire": "curve",
+   "superpose_check": false,
+   "tag": ""
+  },
+  "openems_version": "0.37.0"
+ }
+}

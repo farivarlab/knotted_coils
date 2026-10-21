@@ -1,0 +1,239 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Field-solver options for a programmatic link (decision document)</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Field-solver options for a programmatic link (decision document)</h1>
+<p><strong>Date:</strong> 2026-10-20 · <strong>Requested by:</strong> Reza (“I’d want something we could link to programmatically.”) · <strong>Status:</strong> recommendation; Reza decides.</p>
+<p><strong>How this was checked:</strong></p>
+<ul>
+<li><strong>Release and licence facts</strong> come from each project’s official repository: GitHub API, release pages, and the LICENSE files.</li>
+<li><strong>Features</strong> come from official documentation or repository files.</li>
+<li><strong>Papers</strong> were checked against Crossref (the DOI registry) metadata. Only abstracts and metadata were read, not full texts.</li>
+<li>Items marked <strong>UNVERIFIED</strong> could not be confirmed. Items marked <em>inference</em> are reasoning from the numerical method, not documented claims.</li>
+</ul>
+<h2>The two jobs</h2>
+<ul>
+<li><strong>A. Coils in air.</strong>
+<ul>
+<li>Inputs: wire currents, lumped tuning capacitors at the break positions our tool exports.</li>
+<li>Outputs: self-resonance and multiport S-parameters (the coupling actually measured between ports).</li>
+</ul>
+</li>
+<li><strong>B. Coils plus a head.</strong>
+<ul>
+<li>Inputs: a tissue model, either homogeneous or voxel-based (a body model built from 3D pixels).</li>
+<li>Outputs: B1 maps and loaded S-parameters.</li>
+</ul>
+</li>
+</ul>
+<h2>Summary table</h2>
+<table>
+<thead>
+<tr>
+<th>Solver</th>
+<th>Licence</th>
+<th>Activity (as seen 2026-10-20)</th>
+<th>Programmatic interface</th>
+<th>Windows</th>
+<th>Fit for A</th>
+<th>Fit for B</th>
+<th>MRI-coil evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MARIE 3.0</strong> (cloudmrhub/marie-tools)</td>
+<td>MIT</td>
+<td>last commit 2026-08-28; no tagged releases</td>
+<td>MATLAB scripts; input JSON + Gmsh mesh; results as MATLAB data</td>
+<td>native (needs MATLAB R2023a+)</td>
+<td>very good: wire integral equations, lumped elements per port, tuning</td>
+<td>very good: wire + surface + volume integral equations, voxel bodies</td>
+<td>ships example 8-, 16- and 31-channel wire head receive arrays. 3.0 paper UNVERIFIED</td>
+</tr>
+<tr>
+<td><strong>openEMS</strong></td>
+<td>GPL-3.0 (CSXCAD LGPL-3.0)</td>
+<td>v0.37.0, 2026-10-09</td>
+<td>Python and MATLAB/Octave, headless; HDF5 output</td>
+<td>native</td>
+<td>good: lumped RLC elements and ports</td>
+<td>good: voxel body in the official tutorial</td>
+<td>official 7T “MRI Loop Coil” tutorial; Liebig et al. 2013, doi:10.1002/jnm.1875</td>
+</tr>
+<tr>
+<td><strong>NEC-2 / necpp (PyNEC)</strong></td>
+<td>GPL</td>
+<td>necpp v2.2.1 (2026-07-24); PyNEC 2.3.4</td>
+<td>C, C++, Python, <strong>plus a WebAssembly build that Node can call</strong></td>
+<td>no Windows wheels; cross-compile</td>
+<td>excellent for thin wires (LD cards = RLC loads)</td>
+<td><strong>none</strong> (one uniform medium)</td>
+<td>none found</td>
+</tr>
+<tr>
+<td><strong>COMSOL RF</strong> + LiveLink for MATLAB / MPh</td>
+<td>commercial (MPh itself is MIT)</td>
+<td>current</td>
+<td>full MATLAB scripting; Python via MPh</td>
+<td>native</td>
+<td>very good: lumped ports and capacitors</td>
+<td>head phantom (2 domains in the official example); voxel import UNVERIFIED</td>
+<td>official “MRI Birdcage Coil” model</td>
+</tr>
+<tr>
+<td>Palace (AWS)</td>
+<td>Apache-2.0</td>
+<td>v0.18.1, 2026-09-21</td>
+<td>command line + JSON config</td>
+<td>Linux/macOS/WSL; native Windows UNVERIFIED</td>
+<td>fair: no thin-wire model (<em>inference</em>)</td>
+<td>possible with tetrahedral tissue meshes (<em>inference</em>)</td>
+<td>none found</td>
+</tr>
+<tr>
+<td>Elmer FEM</td>
+<td>LGPL/GPL</td>
+<td>release-26.2</td>
+<td>text input; headless</td>
+<td>native</td>
+<td>weak: no documented lumped capacitor</td>
+<td>tetrahedral meshes (<em>inference</em>)</td>
+<td>none found</td>
+</tr>
+<tr>
+<td>Meep</td>
+<td>GPL-2.0</td>
+<td>v1.35.0</td>
+<td>Python</td>
+<td>WSL only</td>
+<td>poor: no lumped RLC port found</td>
+<td>voxel grid possible</td>
+<td>none found</td>
+</tr>
+<tr>
+<td>scuff-em</td>
+<td>GPL-2.0</td>
+<td>dormant since 2018</td>
+<td>command line, C++/Python</td>
+<td>UNVERIFIED</td>
+<td>surfaces, not thin wires (<em>inference</em>)</td>
+<td>no voxels (<em>inference</em>)</td>
+<td>none found</td>
+</tr>
+</tbody>
+</table>
+<h2>Recommendation</h2>
+<p><strong>Job B (coil + head): MARIE 3.0 first, openEMS second.</strong></p>
+<ul>
+<li><strong>Why MARIE:</strong>
+<ul>
+<li>It is built for exactly this problem: wire receive head arrays, lumped elements with Q, voxel heads, B1 maps and S-parameters.</li>
+<li>Its input (JSON + a Gmsh 2.2 line mesh) is something our tool can write directly.</li>
+<li>It runs in MATLAB on Windows, which you already have (R2025b is installed on this machine).</li>
+</ul>
+</li>
+<li><strong>Risk:</strong>
+<ul>
+<li>no tagged releases;</li>
+<li>documentation marked “Coming Soon”;</li>
+<li>the repository warns the code “may contain bugs”;</li>
+<li>no verified peer-reviewed 3.0 paper.</li>
+</ul>
+</li>
+<li><strong>Mitigation:</strong> cross-solve the two-element test case in openEMS, and compare both with a bench S21 measurement.</li>
+</ul>
+<p><strong>Job A (coils in air): NEC-2 via WebAssembly, inside our app.</strong></p>
+<ul>
+<li><strong>Why:</strong>
+<ul>
+<li>It is a true thin-wire method of moments, which solves for the wire currents directly.</li>
+<li>It has capacitor loads.</li>
+<li>It is fast enough to run inside the design loop.</li>
+<li>Its WebAssembly build drops into the browser tool with no install.</li>
+</ul>
+</li>
+<li><strong>Risk:</strong> near the knot crossings (about 1 mm apart) the thin-wire assumption is strained, and necpp rejects wires that are too close (<em>inference</em>). It needs testing on our crossings before we trust it there.</li>
+</ul>
+<p><strong>COMSOL:</strong> only if a licence with LiveLink is already available. Not needed otherwise.</p>
+<h2>Independent B1 cross-check: Magpylib (in use)</h2>
+<ul>
+<li><strong>Version:</strong> Magpylib 6.0.0 (released 2026-10-19).</li>
+<li><strong>Licence:</strong> BSD-2-Clause per the LICENSE file. PyPI metadata says BSD-3; we follow the file.</li>
+<li><strong>Function used:</strong> <code>current.Polyline</code>, which computes the field of line currents between vertices, in SI units (verified from its own docstring).</li>
+<li><strong>Reference:</strong> Ortner &amp; Coliado Bandeira, <em>SoftwareX</em> 11:100466 (2020), doi:10.1016/j.softx.2020.100466.</li>
+<li><strong>Use here:</strong> check V14.</li>
+<li><strong>Alternative:</strong> ABSCAB (Apache-2.0; <em>Comput. Phys. Commun.</em> 287:108692, 2023, doi:10.1016/j.cpc.2023.108692), a second independent check focused on edge cases.</li>
+</ul>
+<h2>Head models (for exclusion zones and phantoms)</h2>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Terms</th>
+<th>Good for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MNI ICBM152 2009</strong> (McGill)</td>
+<td>Permissive: use “for any purpose and without fee”, keeping the copyright notice</td>
+<td>Includes <strong>eye and face masks</strong>, which suit our exclusion zones. Scalp surface by isosurfacing. No electromagnetic tissue properties</td>
+</tr>
+<tr>
+<td>MIDA (IT’IS/FDA)</td>
+<td>Free, but <strong>no redistribution</strong>, faces must be disguised in published figures, citation required</td>
+<td>High-detail phantom for simulation; cannot be bundled with the tool</td>
+</tr>
+<tr>
+<td>Virtual Population (Duke, Ella…)</td>
+<td>Terms UNVERIFIED; openEMS says Ella needs an IT’IS licence</td>
+<td>Simulation phantoms</td>
+</tr>
+<tr>
+<td>IT’IS tissue database v5.0</td>
+<td>Described as free (doi:10.13099/VIP21000-05-0)</td>
+<td>Tissue properties to pair with any segmentation</td>
+</tr>
+<tr>
+<td>IEEE SAM head</td>
+<td>Distributed through a paid standard; homogeneous shell</td>
+<td>Not recommended here</td>
+</tr>
+</tbody>
+</table>
+<h2>Proposed next step (WP6)</h2>
+<ol>
+<li>Export a <strong>two-element test case</strong> (wires, ports, capacitors) from the Pair explorer into MARIE.</li>
+<li>Pre-register: our predicted zero-coupling spacing against MARIE’s S21 null, then openEMS, then a bench measurement.</li>
+<li>If MARIE handles it cleanly, extend to full arrays with the ICBM152-derived head.</li>
+</ol>
+</body></html>

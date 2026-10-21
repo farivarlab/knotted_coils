@@ -1,43 +1,60 @@
-<!doctype html><html><head><meta charset='utf-8'><title>Research Integrity</title><style>
-:root{--fg:#1a1a1a;--muted:#666;--rule:#e2e2e2;--accent:#2b5e8c;--code:#f4f5f7}
-*{box-sizing:border-box}
-body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--fg);
- line-height:1.6;max-width:820px;margin:40px auto;padding:0 24px;font-size:16px}
-h1{font-size:28px;line-height:1.2;margin:0 0 4px;border-bottom:3px solid var(--accent);padding-bottom:10px}
-h2{font-size:21px;margin:32px 0 8px;color:var(--accent)}
-h3{font-size:16px;margin:20px 0 6px;color:var(--muted);font-weight:600}
-p,li{font-size:15.5px}
-code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:13.5px}
-strong{color:#000}
-em{color:var(--muted)}
-hr{border:0;border-top:1px solid var(--rule);margin:28px 0}
-table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
-th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
-th{background:#f0f4f8}
-tr:nth-child(even) td{background:#fafbfc}
-blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;color:var(--muted);background:#f8f9fb}
-@media print{body{margin:0;max-width:none;font-size:11pt}h2{page-break-after:avoid}table{page-break-inside:avoid}}
-</style></head><body><h1 id="research-integrity-charter-ai-assisted-research-in-reza-farivars-workspace">Research Integrity Charter — AI-assisted research in Reza Farivar's workspace</h1>
-<p><strong>Version 1.0 · 2026-09-18</strong> · Drafted by Claude Code (Anthropic Claude Opus 5) for Reza Farivar · <strong>Status: DRAFT, awaiting Reza's review</strong></p>
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Research Integrity Charter — AI-assisted research in Reza Farivar's workspace</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Research Integrity Charter — AI-assisted research in Reza Farivar’s workspace</h1>
+<p><strong>Version 1.0 · 2026-09-18</strong> · Drafted by Claude Code (Anthropic Claude Opus 5) for Reza Farivar · <strong>Status: DRAFT, awaiting Reza’s review</strong></p>
 <p>This charter governs all research work done with Claude in this workspace: code, analyses, figures, citations, reports, grant text and shared packages. Every policy claim below refers to a source whose text was checked against the original. The quotes and sources are in <a href="POLICY_SOURCES_VERIFIED.html"><code>POLICY_SOURCES_VERIFIED</code></a>, cited as <strong>[V§n]</strong>.</p>
-<p>Companion documents:
-- <a href="VALIDATION_PROTOCOL.html"><code>VALIDATION_PROTOCOL</code></a>: how to prove the code is right
-- <a href="CODE_DOCUMENTATION_STANDARD.html"><code>CODE_DOCUMENTATION_STANDARD</code></a>: how the code must explain itself
-- <a href="CITATION_VERIFICATION.html"><code>CITATION_VERIFICATION</code></a>: how to cite without fabricating
-- <a href="PARAMETER_REGISTRY.xlsx"><code>PARAMETER_REGISTRY</code></a>: every analysis choice and where it came from</p>
-<hr />
-<h2 id="1-who-is-accountable">1. Who is accountable</h2>
-<p><strong>Reza Farivar is accountable for everything produced here, including every line Claude writes.</strong> The sources agree on this:
-- The Tri-Agency AI guidance: "The named applicant is ultimately accountable for the complete contents of their application" <strong>[V§6]</strong>.
-- COPE: authors "are fully responsible for the content of their manuscript, even those parts produced by an AI tool" <strong>[V§3]</strong>.
-- ICMJE: "humans are responsible for any submitted material that included the use of AI-assisted technologies" <strong>[V§4]</strong>.</p>
-<p><strong>Claude is a tool, not an author or a contributor.</strong> AI "cannot take responsibility for the submitted work" <strong>[V§3]</strong>. It follows that Claude's job is to make Reza's accountability <em>workable</em>: every result must be traceable, checkable and explainable in plain language.</p>
-<h2 id="2-why-i-didnt-know-the-code-was-wrong-is-not-a-defence">2. Why "I didn't know the code was wrong" is not a defence</h2>
-<p>The Tri-Agency Framework: "it is not relevant to consider whether a breach was intentional or a result of honest error. However, intent is a consideration in deciding on the severity of the recourse" <strong>[V§2, §3.1]</strong>. Falsification includes "omitting data … without appropriate acknowledgement, such that the research record is not accurately represented" <strong>[V§2]</strong>.</p>
+<p>Companion documents:</p>
+<ul>
+<li><a href="VALIDATION_PROTOCOL.html"><code>VALIDATION_PROTOCOL</code></a>: how to prove the code is right</li>
+<li><a href="CODE_DOCUMENTATION_STANDARD.html"><code>CODE_DOCUMENTATION_STANDARD</code></a>: how the code must explain itself</li>
+<li><a href="CITATION_VERIFICATION.html"><code>CITATION_VERIFICATION</code></a>: how to cite without fabricating</li>
+<li><a href="PARAMETER_REGISTRY.xlsx"><code>PARAMETER_REGISTRY</code></a>: every analysis choice and where it came from</li>
+</ul>
+<hr>
+<h2>1. Who is accountable</h2>
+<p><strong>Reza Farivar is accountable for everything produced here, including every line Claude writes.</strong> The sources agree on this:</p>
+<ul>
+<li>The Tri-Agency AI guidance: “The named applicant is ultimately accountable for the complete contents of their application” <strong>[V§6]</strong>.</li>
+<li>COPE: authors “are fully responsible for the content of their manuscript, even those parts produced by an AI tool” <strong>[V§3]</strong>.</li>
+<li>ICMJE: “humans are responsible for any submitted material that included the use of AI-assisted technologies” <strong>[V§4]</strong>.</li>
+</ul>
+<p><strong>Claude is a tool, not an author or a contributor.</strong> AI “cannot take responsibility for the submitted work” <strong>[V§3]</strong>. It follows that Claude’s job is to make Reza’s accountability <em>workable</em>: every result must be traceable, checkable and explainable in plain language.</p>
+<h2>2. Why “I didn’t know the code was wrong” is not a defence</h2>
+<p>The Tri-Agency Framework: “it is not relevant to consider whether a breach was intentional or a result of honest error. However, intent is a consideration in deciding on the severity of the recourse” <strong>[V§2, §3.1]</strong>. Falsification includes “omitting data … without appropriate acknowledgement, such that the research record is not accurately represented” <strong>[V§2]</strong>.</p>
 <p>A silent bug that drops or distorts data is therefore a compliance risk, not just a technical nuisance. <strong>Validation (the <a href="VALIDATION_PROTOCOL.html">protocol</a>) is mandatory for any result that will be reported.</strong> It is not optional polish.</p>
-<p>McGill defines "Honest Error" as a mistake "made in good faith while using a normal degree of care and attention" <strong>[V§7]</strong>. Documented validation is how we show that care was taken. (This is our interpretation, not the policy's wording.)</p>
-<p>Reasonable, documented judgement is protected. McGill's regulation excludes "differences of interpretation or judgment relating to Data or results that are reasonable in light of the circumstances" <strong>[V§1, §1.14(i)]</strong>. So <strong>document every judgement call.</strong> Undocumented tuning is where the exposure lies.</p>
-<h2 id="3-rules-claude-must-follow-non-negotiable">3. Rules Claude must follow (non-negotiable)</h2>
+<p>McGill defines “Honest Error” as a mistake “made in good faith while using a normal degree of care and attention” <strong>[V§7]</strong>. Documented validation is how we show that care was taken. (This is our interpretation, not the policy’s wording.)</p>
+<p>Reasonable, documented judgement is protected. McGill’s regulation excludes “differences of interpretation or judgment relating to Data or results that are reasonable in light of the circumstances” <strong>[V§1, §1.14(i)]</strong>. So <strong>document every judgement call.</strong> Undocumented tuning is where the exposure lies.</p>
+<h2>3. Rules Claude must follow (non-negotiable)</h2>
 <table>
 <thead>
 <tr>
@@ -49,7 +66,7 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 <tbody>
 <tr>
 <td><strong>R1</strong></td>
-<td><strong>Never fabricate.</strong> No invented data, results, citations, quotes, page numbers, DOIs, authors or "typical values". If something is unknown, say "unknown".</td>
+<td><strong>Never fabricate.</strong> No invented data, results, citations, quotes, page numbers, DOIs, authors or “typical values”. If something is unknown, say “unknown”.</td>
 <td>Fabrication <strong>[V§2]</strong>; McGill GPS warning on AI-invented references <strong>[V§5]</strong></td>
 </tr>
 <tr>
@@ -85,11 +102,11 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 <tr>
 <td><strong>R8</strong></td>
 <td><strong>Attribute AI-written code before sharing it.</strong> Each AI-written source file carries a provenance header, and each package README carries an AI-use statement. Third-party code and data are credited and their licences respected.</td>
-<td>McGill GPS "very high risk" item <strong>[V§5]</strong>; plagiarism <strong>[V§1, V§2]</strong></td>
+<td>McGill GPS “very high risk” item <strong>[V§5]</strong>; plagiarism <strong>[V§1, V§2]</strong></td>
 </tr>
 <tr>
 <td><strong>R9</strong></td>
-<td><strong>Disclose AI use as each venue requires.</strong> Papers: in the methods section (COPE/ICMJE/ALLEA). Grants: accuracy is required, and disclosure was not required as of the 2026-01-06 Tri-Agency guidance. Theses: McGill's GPS statement is recommended as of 2026-05-01 and may become mandatory. Re-check before every submission. <em>ALLEA lists "hiding the use of AI or automated tools" as an unacceptable practice.</em></td>
+<td><strong>Disclose AI use as each venue requires.</strong> Papers: in the methods section (COPE/ICMJE/ALLEA). Grants: accuracy is required, and disclosure was not required as of the 2026-01-06 Tri-Agency guidance. Theses: McGill’s GPS statement is recommended as of 2026-05-01 and may become mandatory. Re-check before every submission. <em>ALLEA lists “hiding the use of AI or automated tools” as an unacceptable practice.</em></td>
 <td><strong>[V§3, V§4, V§6, V§8, V§9]</strong></td>
 </tr>
 <tr>
@@ -109,7 +126,7 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 </tr>
 </tbody>
 </table>
-<h2 id="4-roles">4. Roles</h2>
+<h2>4. Roles</h2>
 <table>
 <thead>
 <tr>
@@ -141,8 +158,8 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 </tr>
 </tbody>
 </table>
-<h2 id="5-disclosure-wording-templates-adapt-dont-copy-blindly">5. Disclosure wording (templates — adapt, don't copy blindly)</h2>
-<p><strong>Structure for any disclosure.</strong> This follows McGill GPS's five-part framework <strong>[V§8]</strong>, and satisfies COPE, ICMJE and ALLEA <strong>[V§3, §4, §9]</strong>:</p>
+<h2>5. Disclosure wording (templates — adapt, don’t copy blindly)</h2>
+<p><strong>Structure for any disclosure.</strong> This follows McGill GPS’s five-part framework <strong>[V§8]</strong>, and satisfies COPE, ICMJE and ALLEA <strong>[V§3, §4, §9]</strong>:</p>
 <table>
 <thead>
 <tr>
@@ -161,7 +178,7 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 </tr>
 <tr>
 <td>3. Extent of Use</td>
-<td><strong>High</strong>: essentially all code was AI-written under the researcher's direction</td>
+<td><strong>High</strong>: essentially all code was AI-written under the researcher’s direction</td>
 </tr>
 <tr>
 <td>4. Human Oversight and Verification</td>
@@ -177,11 +194,11 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 <blockquote>
 <p>Analysis code was written with the assistance of Claude Code (Anthropic; models [list]), an AI coding assistant, under the direction of the authors. The authors specified all analyses, and they verified the implementation against independent reference implementations ([list]) and analytic test cases (see Supplementary validation report). The authors take full responsibility for the code and results.</p>
 </blockquote>
-<p><strong>README of a shared package.</strong> See the "Provenance and AI-use statement" sections in <code>Lab_3d/gso_shape_explorer/README.md</code> and <code>Lab_3d/shape_forge/README.md</code>.</p>
+<p><strong>README of a shared package.</strong> See the “Provenance and AI-use statement” sections in <code>Lab_3d/gso_shape_explorer/README.md</code> and <code>Lab_3d/shape_forge/README.md</code>.</p>
 <p><strong>Source-file header.</strong> Two comment lines at the top of every AI-written file:
 <code># Provenance: written with Claude Code (Anthropic AI coding assistant) under the direction of</code>
 <code># Reza Farivar (McGill University), who is accountable for it. See README 'Provenance and AI-use statement'.</code></p>
-<h2 id="6-before-anything-leaves-the-workspace">6. Before anything leaves the workspace</h2>
+<h2>6. Before anything leaves the workspace</h2>
 <p>Tick every item before sharing, submitting or publishing.</p>
 <ul>
 <li>[ ] Results reported only at their validation tier (<a href="VALIDATION_PROTOCOL.html">protocol</a>); exploratory results labelled</li>
@@ -193,7 +210,7 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 <li>[ ] No confidential material in any file, prompt or repository (secret scan run)</li>
 <li>[ ] Reza has read, and can explain, the methods section</li>
 </ul>
-<h2 id="7-keeping-this-current">7. Keeping this current</h2>
+<h2>7. Keeping this current</h2>
 <p>Policies change. Re-verify the sources in [V] <strong>once a year</strong> and <strong>before every grant or paper submission</strong>. Record the date of re-verification here.</p>
 <table>
 <thead>
@@ -210,4 +227,5 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 <td>Initial version</td>
 </tr>
 </tbody>
-</table></body></html>
+</table>
+</body></html>

@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Knotted Coil Designer — README</title><style>
+<title>Knotted Coil Designer</title><style>
 :root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
 * { box-sizing: border-box; }
 body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
@@ -83,7 +83,19 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 <tr>
 <td><code>Design.md</code></td>
-<td>Frozen design v1.5. The changelog records every version: v1.0 pre-registered V1–V6; V7 and V8 were added before they ran</td>
+<td>Frozen design v1.10 (v1.8 = knot thickness T; v1.9 = crossover bumps between overlapping coils; v1.10 = COMSOL interface). The changelog records every version; checks V1–V25 were each pre-registered before their code ran</td>
+</tr>
+<tr>
+<td><code>DESIGN_HISTORY.md</code></td>
+<td>One-page history of every version, trigger, check and outcome</td>
+</tr>
+<tr>
+<td><code>sim/</code></td>
+<td>Full-wave capacitor co-simulation (Python + openEMS), v1.7; pre-run geometry gate <code>sim/check_crossings.py</code> (v1.9)</td>
+</tr>
+<tr>
+<td><code>docs/AUDIT_*.md</code></td>
+<td>The night-of-2026-10-20 audit: brainstorm, independent review, four area audits</td>
 </tr>
 <tr>
 <td><code>DECISIONS.md</code></td>
@@ -123,7 +135,8 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 </tbody>
 </table>
-<h2>Validation status (run 6, 2026-10-20, Design v1.5)</h2>
+<h2>Validation status (full run 2026-10-21 16:07, code bc374d0, Design v1.10)</h2>
+<p>Pre-registered checks, applied mechanically. Full report: <code>validation/validation_report.html</code>.</p>
 <table>
 <thead>
 <tr>
@@ -145,28 +158,115 @@ tr:nth-child(even) td { background: var(--panel); }
 <td>NOT EVALUABLE (reference unverified; computed 0.760 × diameter)</td>
 </tr>
 <tr>
-<td>V4 Convergence</td>
-<td>PASS</td>
-</tr>
-<tr>
-<td>V5 Symmetry</td>
+<td>V4 Convergence · V5 Symmetry</td>
 <td>PASS</td>
 </tr>
 <tr>
 <td>V6 Topology across bloom (β 0.02–3.0)</td>
-<td><strong>FAIL</strong> only below the wire-dependent bloom floor (β = 0.02, 0.05). It is a physical limit, shown in the app</td>
+<td><strong>FAIL</strong> only below the wire-dependent bloom floor (β = 0.02, 0.05), a physical limit shown in the app</td>
 </tr>
 <tr>
 <td>V7 Topology across petal sharpness</td>
-<td>PASS (all 360 points). Earlier failures are kept on record: run 4 failed under the v1.3 definition, and run 5 failed at 1 of 360 points from a point-count artefact</td>
+<td>PASS</td>
 </tr>
 <tr>
 <td>V8 B1 on-axis loop field</td>
-<td>PASS (worst error 0.005%)</td>
+<td>PASS (0.002%)</td>
+</tr>
+<tr>
+<td>V9 Ring-layout symmetry (pre-bump layout) · V10 Capacitor breaks · V11 Capacitor value · V12 Face zones · V13 Reproducibility</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>V14 B1 vs Magpylib (independent library)</td>
+<td>PASS (&lt; 0.0001%)</td>
+</tr>
+<tr>
+<td>V15 Full-wave loop resonance with first-pass capacitors</td>
+<td><strong>FAIL</strong> (−10.3%; thin-wire effective radius)</td>
+</tr>
+<tr>
+<td>V15b Thin-wire correction carries over (trefoil)</td>
+<td><strong>FAIL</strong> (+6.7% vs 5% limit)</td>
+</tr>
+<tr>
+<td>V16 S-matrices passive and reciprocal</td>
+<td><strong>FAIL</strong> on loop_air_3T (1.0011) and trefoil_air_7T (1.0013); other cases pass</td>
+</tr>
+<tr>
+<td>V17 Tuning and matching</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>V18 Quick B1 map vs full-wave near the surface (3T, 7T)</td>
+<td><strong>FAIL</strong> at both (typical point 7–24% off; worst points at near-zero field)</td>
+</tr>
+<tr>
+<td>V19 Pair null survives capacitors and load</td>
+<td>NOT RUN (pair simulations in progress; the first attempt was invalid, see DECISIONS.md)</td>
+</tr>
+<tr>
+<td>V20 Second solver (mariepy)</td>
+<td>NOT EVALUABLE (not run)</td>
+</tr>
+<tr>
+<td>V21 Thickness control · V22 Thick-knot B1 vs Magpylib · V23 Tilted-circle self-inductance</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>V24 Crossover bumps</td>
+<td><strong>FAIL</strong>: all 4 pair cases pass; all 4 test arrays fail (dense knot arrays cannot all be separated)</td>
+</tr>
+<tr>
+<td>V25 COMSOL vs openEMS</td>
+<td>NOT EVALUABLE (COMSOL not installed on the development machine)</td>
 </tr>
 </tbody>
 </table>
+<p>Ring vs free layouts (C2, pre-registered): the ring layout met none of its 3 criteria, so free layouts stay the default.</p>
 <p>Every failing run is kept in the git history; see DECISIONS.md.</p>
+<p><strong>New in v1.10 (COMSOL interface, 2026-10-21) — UNVALIDATED:</strong></p>
+<ul>
+<li><code>python sim/export_comsol.py sim/cases/&lt;case&gt;.json</code> writes plain files for COMSOL into <code>sim/comsol/&lt;case&gt;/</code>: wire segments between capacitor gaps (x y z, mm), a ports table, the head phantom and metadata. It needs numpy only.</li>
+<li><code>python sim/comsol_build_mph.py &lt;case&gt;</code> builds, solves and extracts the model through MPh (Python ↔ COMSOL). It needs a licensed COMSOL with the RF Module.
+<ul>
+<li>Then <code>python sim/cosim.py &lt;case&gt; --solver comsol</code> chooses the capacitors exactly as for openEMS.</li>
+<li><code>--dry-run</code> checks the files and writes the planned COMSOL calls without COMSOL.</li>
+</ul>
+</li>
+<li><strong>Written without access to COMSOL.</strong> The COMSOL API names in the build script are marked UNVERIFIED. Check the first build in the COMSOL GUI, then run check V25 (COMSOL vs openEMS).</li>
+</ul>
+<p><strong>New in v1.9 (crossover bumps, 2026-10-21):</strong></p>
+<ul>
+<li>Where two coils cross, the higher-numbered coil now hops outward over the other, by wire + insulation plus a 10% margin, over a short smooth bump. Coupling and B1 are computed on the bumped wires.</li>
+<li>Before v1.9 the wires of overlapping coils could pass through each other. This was found when a full-wave pair simulation shorted the two coils (DECISIONS.md).</li>
+<li><strong>Known limitation:</strong> this works for pairs, but in dense knot arrays bumps stack up and some crossings cannot be separated (check V24 fails on arrays). The app then flags the array <strong>“NOT BUILDABLE AS DRAWN”</strong>.</li>
+</ul>
+<p><strong>New in v1.8 (knot thickness, 2026-10-21):</strong></p>
+<ul>
+<li>A “Total thickness T” slider lets the knot rise out of its plane like a 3D torus knot, with a side view. Extra height goes outward only.</li>
+<li>T = 0 is identical to earlier versions.</li>
+<li>Self-inductance is now correct for non-flat wires (V23).</li>
+</ul>
+<p><strong>New in v1.7 (full-wave capacitor co-simulation):</strong></p>
+<ul>
+<li>Python scripts run openEMS (FDTD) with ports in every capacitor break and a three-layer head phantom.</li>
+<li>A circuit co-simulation then chooses tuning capacitors and a matching network with preamp decoupling.</li>
+<li>It reports how the capacitors change coupling (S21, mutual inductance) and B1, compared with the quasi-static model.</li>
+<li>Workflow: DEVELOPER_GUIDE “v1.7”.</li>
+<li>Every result is <strong>exploratory</strong>: one solver (plus a mariepy cross-check), placeholder phantom and component values, no bench data.</li>
+<li>The current validation verdicts are shown in the app banner and in <code>validation/validation_report.html</code>. Failures are listed there, including V15 (raw FDTD loop resonance −10%, explained by the thin-wire effective radius and handled by the V15b correction).</li>
+</ul>
+<p><strong>New in v1.6:</strong></p>
+<ul>
+<li><strong>Head and face zones:</strong> a head model with editable eye and mouth exclusion zones. No wire is allowed inside them.</li>
+<li><strong>Symmetric rings:</strong> a ring layout mode, mirror-symmetric left–right, with per-ring size, bloom and sharpness.</li>
+<li><strong>Multi-start solving.</strong></li>
+<li><strong>Capacitor breaks:</strong> placed away from crossings, with first-pass values at 1.5, 3 or 7 T, and port export.</li>
+<li><strong>Save and load</strong> designs.</li>
+<li><strong>B1:</strong> exact-segment field, cross-checked against Magpylib (V14).</li>
+</ul>
+<p>Solver options for the next step (simulation) are in <code>docs/SOLVER_OPTIONS.md</code>.</p>
 <p><strong>B1 quick look (Array tab):</strong> shows the quasi-static Biot–Savart field of the solved wires.</p>
 <ul>
 <li><strong>Views:</strong> on a placeholder head surface, or as an axial, coronal or sagittal slice.</li>
@@ -196,5 +296,5 @@ tr:nth-child(even) td { background: var(--panel); }
 <li>Failures are recorded in <code>DECISIONS.md</code> and in the git history.</li>
 <li>Any use of results in publications must disclose AI assistance as the venue requires (COPE/ICMJE for journals; current Tri-Agency guidance for grants).</li>
 </ul>
-<p><strong>Third-party code:</strong> Three.js 0.149.0, © three.js authors, MIT licence.</p>
+<p><strong>Third-party code:</strong> Three.js 0.149.0 (MIT) is bundled. Used by scripts but not bundled: openEMS 0.37.0 (GPL-3.0) / CSXCAD (LGPL-3.0), mariepy (GPL-3.0+), Magpylib 6.0.0 (BSD-2), numpy/scipy/h5py/matplotlib, PyTorch. See NOTICE.txt.</p>
 </body></html>

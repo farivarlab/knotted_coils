@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Developer Guide</title><style>
+<title>Developer Guide — Knotted Coil Designer</title><style>
 :root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
 * { box-sizing: border-box; }
 body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
@@ -84,11 +84,19 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 <tr>
 <td><code>tests/run.js</code></td>
-<td>Validation checks V1–V8 (pre-registered) plus labelled post-hoc checks. Writes <code>validation/</code></td>
+<td>Validation checks V1–V20 (pre-registered; V15–V20 read from <code>sim/out/*/cosim.json</code>) plus labelled post-hoc checks. Writes <code>validation/</code></td>
 </tr>
 <tr>
 <td><code>tests/compare_worstpair.js</code></td>
 <td>Pre-registered paired solver comparison (protocol in <code>validation/</code>)</td>
+</tr>
+<tr>
+<td><code>tests/compare_ring_vs_free.js</code></td>
+<td>Pre-registered comparison C2: ring vs free layouts (v1.6). Run before <code>tests/run.js</code>, because V12 reads its arrays</td>
+</tr>
+<tr>
+<td><code>tests/b1_crosscheck.py</code></td>
+<td>V14: our B1 against Magpylib 6.0.0 on identical wires. Needs a Python environment with <code>magpylib==6.0.0</code>; set <code>KC_PYTHON</code> to its python.exe (default <code>C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe</code>)</td>
 </tr>
 <tr>
 <td><code>tools/serve.js</code></td>
@@ -135,6 +143,87 @@ tr:nth-child(even) td { background: var(--panel); }
 <li>x = r·cos(pφ + θ), y = r·sin(pφ + θ), z = h·sin ψ.</li>
 <li>The v1.0 “symmetric” shape (r = R(1 + β cos qφ)) is still selectable.</li>
 </ul>
+</li>
+</ul>
+<h3>v1.6 features, and where they live</h3>
+<ul>
+<li><strong>Face exclusion zones:</strong> <code>KC.surface.zoneHit</code> and <code>zonePoints</code>. Zones are angular ellipses seen from the helmet centre; defaults are in <code>surface.DEFAULTS.zones</code>.
+<ul>
+<li>The solver keeps wires out with disc samples in the fast stage and real wires in the exact stage. Zones take priority in free-mode moves.</li>
+<li><code>covSamples</code> drops coverage demands next to zones.</li>
+</ul>
+</li>
+<li><strong>Ring mode:</strong> <code>KC.opt.ringSetup</code>, <code>ringLayout</code> and <code>ringOptimise</code>.
+<ul>
+<li>Each element’s parameters come from <code>ctx.elemFn(i)</code>.</li>
+<li>Left twins use <code>mirror: true</code>: a reflected knot, with <strong>points in reverse order</strong> so current circulates the same way on every element.</li>
+<li>Midline elements get rotations that are multiples of π/q.</li>
+</ul>
+</li>
+<li><strong>Multi-start:</strong> <code>KC.opt.run</code> with <code>opts.starts</code>. The best start is chosen by worst <em>adjacent</em> |k| in the exact report.</li>
+<li><strong>Adjacency:</strong> <code>KC.opt.adjacency</code>. Two elements are adjacent when some helmet sample lies on the border between their regions (Voronoi).</li>
+<li><strong>Capacitor breaks:</strong> <code>KC.knot.breaks</code> places them; <code>KC.knot.capacitor</code> gives values (γ/2π from CODATA 2022). The app exports them as ports.</li>
+<li><strong>B1:</strong> <code>KC.field.vector</code> uses the exact finite-segment formula, not the midpoint rule; V14 checks it against Magpylib.</li>
+</ul>
+<h3>v1.7 full-wave capacitor co-simulation (<code>sim/</code>)</h3>
+<ul>
+<li><strong>Setup (Windows, outside OneDrive):</strong>
+<ul>
+<li>openEMS 0.37.0 unpacked to <code>C:\Users\reza\.solvers\openEMS</code>; override with <code>KC_OPENEMS_DIR</code>.</li>
+<li>Python 3.14 environment <code>C:\Users\reza\.venvs\kc_em</code> with numpy, scipy, h5py, matplotlib, magpylib 6.0.0, and the openEMS/CSXCAD wheels from <code>openEMS\python</code>.</li>
+<li>The scripts set <code>CSXCAD_INSTALL_PATH</code> for their own process; no permanent <code>setx</code> is used.</li>
+<li>Large working files go to <code>C:\Users\reza\.solvers\work</code> (<code>KC_SIM_WORK</code>).</li>
+</ul>
+</li>
+<li><strong>Workflow:</strong>
+<ol>
+<li><code>node tests/export_case.js</code>, or the app’s “Export simulation case”, writes <code>sim/cases/*.json</code>.</li>
+<li><code>python sim/run_openems.py sim/cases/&lt;case&gt;.json</code> runs one FDTD simulation per capacitor break and writes <code>sim/out/&lt;case&gt;/openems.npz</code> and <code>openems_meta.json</code>.</li>
+<li><code>python sim/cosim.py &lt;case&gt;</code> chooses the capacitors and evaluates coupling and B1. It writes <code>cosim.json</code> and PNGs.</li>
+<li><strong>Run <code>loop_air_3T</code> first at each grid resolution:</strong> it calibrates the thin-wire correction (<code>sim/out/thinwire_calibration.json</code>), which every other case uses.</li>
+</ol>
+</li>
+<li><strong>Matching topology:</strong> shunt C_m across the feed gap, series L_m to the preamp. The tuning condition is X = √(Z₀R) (derivation in the <code>sim/cosim.py</code> header). L_m·C_m resonance gives preamp decoupling.</li>
+</ul>
+<h3>v1.8 thickness and v1.9 crossovers</h3>
+<ul>
+<li><strong>Thickness T:</strong> <code>KC.knot.height(prm, clear, n)</code> returns <code>{h, zOff, hMin, thickness, clamped}</code>. Points take <code>h</code> and <code>zOff</code> (<code>z = h sin ψ + zOff</code>). Arrays use <code>knot.height</code> in <code>cfg.knot</code>.</li>
+<li><strong>Crossovers:</strong> <code>KC.opt.crossovers(wires, normals, clear)</code> bumps higher-numbered elements outward over lower ones.
+<ul>
+<li><code>O.report</code> applies it. The report carries <code>wires</code> (bumped), <code>layoutWires</code> (pre-bump), <code>kMatrix</code> (bumped), <code>kMatrixLayout</code> and <code>crossovers</code>.</li>
+<li>V9 uses the layout fields; V24 checks the bumps.</li>
+</ul>
+</li>
+<li><strong>Full-wave pre-run gate:</strong> <code>python sim/check_crossings.py sim/cases/&lt;case&gt;.json</code> must report zero risks before <code>run_openems.py</code>. <code>run_openems.py</code> also aborts on dropped ports (preflight) and on grid cells &lt; 0.15 mm.</li>
+</ul>
+<h3>v1.10 COMSOL interface (UNVALIDATED)</h3>
+<ul>
+<li><strong>Shared geometry:</strong> <code>sim/wirecut.py</code> (numpy only) cuts wires at capacitor gaps for both solvers, so openEMS and COMSOL see identical ports and wire ends.</li>
+<li><strong>Export:</strong> <code>sim/export_comsol.py &lt;case.json&gt;</code> writes <code>sim/comsol/&lt;case&gt;/</code>:
+<ul>
+<li><code>seg_e&lt;element&gt;_&lt;k&gt;.txt</code>;</li>
+<li><code>ports.csv</code> (A, B terminals; face direction u);</li>
+<li><code>phantom.json</code>;</li>
+<li><code>meta.json</code>.</li>
+</ul>
+</li>
+<li><strong>Build:</strong> <code>sim/comsol_build_mph.py &lt;case&gt;</code> uses MPh 1.4.0 (MIT; <code>pip install mph</code>, which needs JPype and a licensed COMSOL with the RF Module).
+<ul>
+<li><strong>Model:</strong> PEC edges for wires, a lumped-port face per gap, nested-ellipsoid phantom, air sphere with a scattering boundary, frequency study.</li>
+<li><strong>Solve:</strong> one solve per excited port; S is assembled from lumped-port V and I as in openEMS.</li>
+<li><strong>Output:</strong> <code>sim/out/&lt;case&gt;_comsol/{comsol.npz, comsol_meta.json, model.mph}</code>.</li>
+<li><code>--dry-run</code> needs no COMSOL; <code>--no-solve</code> builds and saves only.</li>
+</ul>
+</li>
+<li><strong>First use on a COMSOL machine:</strong>
+<ol>
+<li><code>--no-solve</code>, then open <code>model.mph</code> in the GUI.</li>
+<li>Check that every wire is one PEC edge set, every port face bridges its gap, and each port’s direction runs A → B.</li>
+<li>Check the tissue domains and the mesh on the wires.</li>
+<li>Fix any API name the script got wrong and <strong>record the fix</strong>.</li>
+<li>Solve <code>loop_air_3T</code> first: it calibrates the PEC-edge thin-wire correction, just as for openEMS.</li>
+<li>Solve <code>trefoil_air_3T</code>, run <code>cosim.py ... --solver comsol</code>, then <code>node tests/run.js</code> for <strong>V25</strong>.</li>
+</ol>
 </li>
 </ul>
 <h2>4. Common extensions — where to start</h2>
@@ -198,11 +287,12 @@ tr:nth-child(even) td { background: var(--panel); }
 <p>Builds <code>dist/</code>, a flat copy of the app for hosting.</p>
 <h2>7. Known limitations and open items (as of 2026-10-20)</h2>
 <ul>
-<li><strong>Quasi-static thin-wire model only.</strong> No capacitors, tissue, wave effects or preamplifier decoupling.</li>
+<li><strong>The design tool is quasi-static.</strong> The v1.7 full-wave path (<code>sim/</code>) adds capacitors, tissue, wave effects and preamplifier decoupling, but only for small cases, and is unvalidated against measurement.</li>
 <li><strong>Placeholders:</strong> wire spec and helmet dimensions (PARAMETERS.md).</li>
 <li><strong>V3:</strong> cannot be evaluated until Roemer et al. 1990 is read (paywalled).</li>
 <li><strong>V6:</strong> fails below the wire-dependent bloom floor. It is a known physical limit, shown in the UI.</li>
 <li><strong>Solver:</strong> seed-sensitive. No 32-element test array met |k| &lt; 0.01 for all nearest pairs.</li>
+<li><strong>Crossovers in dense arrays (v1.9):</strong> bumps work for pairs, but in heavily overlapping knot arrays they stack up to the 10 mm cap and some crossings cannot be separated (V24 FAIL on arrays). Such arrays are flagged “not buildable as drawn”. Thicker knots (T) need far fewer bumps. Open design problem.</li>
 <li><strong>Very sharp petals</strong> (high m, 3–5 windings) need crossing lifts of several mm.</li>
 <li><strong>Untested:</strong> opening the app from <code>file://</code> (double-click). The local server is tested.</li>
 </ul>

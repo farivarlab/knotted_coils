@@ -1,0 +1,89 @@
+{
+ "case": "trefoil_air_3T",
+ "B0_T": 3,
+ "f0_MHz": 127.73243538299998,
+ "loaded": false,
+ "tissue_source": null,
+ "parameters": {
+  "SIGMA_CU": 58000000.0,
+  "Q_CAP": 1000.0,
+  "Q_IND": 100.0,
+  "Z_PRE": 2.0,
+  "PASSES": 3
+ },
+ "V16": {
+  "max_singular_value": 1.0007152354074285,
+  "max_reciprocity_error": 3.287500083002115e-05
+ },
+ "thin_wire_correction": {
+  "key": "res1.0_curve",
+  "a_eff_mm": 0.16938025074498786,
+  "dL_nH": [
+   100.70062372242145
+  ]
+ },
+ "tuned": true,
+ "elements": [
+  {
+   "S11_neighbours_preamp_dB": -53.21367491830518,
+   "Ct_pF": 8.903586647726906,
+   "Cm_pF": 144.71351282030378,
+   "Lm_nH": 10.728247699009426,
+   "first_pass_Ct_pF": 12.413497794294058,
+   "S11_dB": -53.21367491830518,
+   "R_loop_ohm": 1.482687758720475,
+   "L_fullwave_corrected_nH": 533.8395978849559,
+   "L_fullwave_raw_nH": 634.5402216073774,
+   "L_quasistatic_nH": 500.26912209824434
+  }
+ ],
+ "V15b": [
+  {
+   "element": 0,
+   "L_corrected_nH": 533.8395978849559,
+   "L_quasistatic_nH": 500.26912209824434,
+   "rel_err": 0.06710483278661934
+  }
+ ],
+ "V17": {
+  "max_S11_dB": -53.21367491830518,
+  "max_S11_neighbours_50ohm_dB": -53.21367491830518,
+  "all_positive": true
+ },
+ "B1": {
+  "axial": [
+   {
+    "element": 0
+   }
+  ],
+  "coronal": [
+   {
+    "element": 0
+   }
+  ]
+ },
+ "warning_air": "In air the loop resistance is copper only (1.48 ohm); FDTD noise in Re(Z) can dominate, so the air Cm/Lm values have low precision (audit M15).",
+ "check_superposition_rel_err": {
+  "axial": 1.6301158200642675e-05,
+  "coronal": 1.6525975577418134e-05
+ },
+ "git": "8a352af",
+ "git_dirty_code": true,
+ "openems_meta": {
+  "git": "8a352af",
+  "options": {
+   "case": "C:\\Users\\reza\\OneDrive - McGill University\\claude\\knotted_coils\\sim\\cases\\trefoil_air_3T.json",
+   "res": 1.0,
+   "res_phantom": 3.0,
+   "gap": 2.0,
+   "air": 200.0,
+   "end_crit": 0.0001,
+   "fc_frac": 0.5,
+   "nf": 201,
+   "wire": "curve",
+   "superpose_check": true,
+   "tag": ""
+  },
+  "openems_version": "0.37.0"
+ }
+}

@@ -1,0 +1,128 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Audit, step 3, area B: layout and decoupling optimiser</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Audit, step 3, area B: layout and decoupling optimiser</h1>
+<p><strong>Auditor:</strong> an independent agent (model: Fable), read-only, with scratch test scripts. HEAD 2734546. <strong>No critical or high-severity bug found.</strong> Fix status is in <code>DECISIONS.md</code> (“Audit actions”).</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Severity</th>
+<th>Status</th>
+<th>Finding</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B1</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td>In ring mode, <code>tableZero</code> is null, so every pair gets <code>ring1: false</code> and <code>kind: 'next'</code>. “Beyond nearest ring” then equals the adjacent set, <code>decoupledRing1</code> is always false, and the pair table labels adjacent pairs “next”</td>
+<td>N=16 ring: 33 adjacent pairs labelled ‘next’; next.max = adjacent.max</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td>Ring-mode <code>element</code> panel, <code>coreRadius</code> and <code>h</code> describe ring 0 only; <code>elements[]</code> has no <code>h</code></td>
+<td>N=24 ring: panel Rf 33.5 vs ring Rfs 33.5 / 37.0 / 38.5</td>
+</tr>
+<tr>
+<td>B3</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>Comment says a top ring of 1–2 becomes a cap; the code only treats n = 1 that way</td>
+<td>N=6 → [2,4] with no cap</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>User <code>ringCounts</code> whose sum ≠ N silently replaces N</td>
+<td>N=16 with [2,6,10] → N=18</td>
+</tr>
+<tr>
+<td>B5</td>
+<td>Low</td>
+<td>LIKELY</td>
+<td><code>liftFeasible</code> set false permanently by any rejected trial; never re-evaluated for the final rings</td>
+<td>Code reading</td>
+</tr>
+<tr>
+<td>B6</td>
+<td>Low</td>
+<td>LIKELY</td>
+<td>Free mode: shared Rf unbounded; lift solved once at Rf₀; clearance not re-checked at the final Rf</td>
+<td>Benign in tests (lift saturates at c/2)</td>
+</tr>
+<tr>
+<td>B7</td>
+<td>Low</td>
+<td>POSSIBLE</td>
+<td>Ring-mode cost over a Voronoi set recomputed per trial, so the objective is discontinuous</td>
+<td>No escape observed; adjacency stable at 0.5–2× tolerance</td>
+</tr>
+<tr>
+<td>B8</td>
+<td>Low</td>
+<td>CONFIRMED (docs)</td>
+<td>Design §5.1 “not yet implemented” is stale; §5.2 says “spherical spiral” (code: farthest-point sampling + Lloyd); duplicated zCut rows</td>
+<td>grep</td>
+</tr>
+<tr>
+<td>B9</td>
+<td>Low</td>
+<td>POSSIBLE</td>
+<td>C2: free arm is best of 4 starts on the primary metric, ring arm a single start, so selection favours free (pre-registered that way)</td>
+<td>Protocol</td>
+</tr>
+<tr>
+<td>B10</td>
+<td>Low</td>
+<td>POSSIBLE</td>
+<td>Two different pair-null estimators (free: tableZero; ring: last pairScan zero)</td>
+<td>They agree to 3 decimals for 4 knots</td>
+</tr>
+</tbody>
+</table>
+<h2>Verified correct</h2>
+<ul>
+<li><strong>Lookup angle convention:</strong> worst error 1.0 nH on |M| up to 123 nH; the alternative convention would be off by up to 19 nH.</li>
+<li><strong>Index handling:</strong> lookup wrapping and indices; ring twin indices and mirror flags for N = 2 to 64; count allocation always sums to N.</li>
+<li><strong>Caches:</strong> keys are sufficient (no stale reuse).</li>
+<li><strong>Sample sets:</strong> adjacency and coverage use consistent samples; adjacency is robust to tolerance ×0.5 and ×2.</li>
+<li><strong>Search moves:</strong> zone-first acceptance, rescue jumps, size steps and locked-rotation steps are sound.</li>
+<li><strong>Multi-start:</strong> reproducible; the chosen start re-runs exactly.</li>
+<li><strong>Verdict logic:</strong> “decoupled” ⇔ all |k| &lt; 0.01; verdicts are false, not vacuously true, when a category is empty.</li>
+</ul>
+</body></html>

@@ -1,0 +1,108 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Pre-registered comparison C2: ring layout vs free layout</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Pre-registered comparison C2: ring layout vs free layout</h1>
+<p><strong>Written 2026-10-20, before the ring-mode code exists, and committed to git before any run.</strong> Context: Reza said placement “still doesn’t look great” and asked for head-symmetric arrays (Design v1.6).</p>
+<h2>Arms</h2>
+<ul>
+<li><strong>Free:</strong> the current solver (fast mode, target = nearest ring per v1.1, worst-pair term on), <strong>multi-start best of 4</strong> (WP3).</li>
+<li><strong>Ring:</strong> ring mode, mirror-symmetric.
+<ul>
+<li>Ring counts are allocated automatically from N.</li>
+<li>Per-ring elevation, spacing, rotation and <strong>size</strong> are optimised.</li>
+<li>Bloom and sharpness are fixed at the same values as the free arm, so only the layout differs.</li>
+</ul>
+</li>
+</ul>
+<p>Both arms use the same defaults: helmet, face exclusion zones, placeholder wire, threshold 0.01.</p>
+<h2>Configurations (4)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Knot</th>
+<th>β</th>
+<th>m</th>
+<th>N</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>T(2,3)</td>
+<td>0.8</td>
+<td>1</td>
+<td>16</td>
+</tr>
+<tr>
+<td>2</td>
+<td>T(2,3)</td>
+<td>0.8</td>
+<td>1</td>
+<td>24</td>
+</tr>
+<tr>
+<td>3</td>
+<td>T(2,3)</td>
+<td>0.8</td>
+<td>1</td>
+<td>32</td>
+</tr>
+<tr>
+<td>4</td>
+<td>T(2,5)</td>
+<td>0.8</td>
+<td>2</td>
+<td>24</td>
+</tr>
+</tbody>
+</table>
+<h2>Outcomes</h2>
+<p>All outcomes come from the common exact final report, so both arms are scored identically:</p>
+<ul>
+<li><strong>worst adjacent |k|</strong>, the worst coupling among Voronoi-adjacent pairs (the v1.6 definition);</li>
+<li><strong>regularity CV</strong>, the coefficient of variation of nearest-neighbour centre distances (lower = more even);</li>
+<li><strong>coverage</strong>;</li>
+<li><strong>zone violations.</strong></li>
+</ul>
+<p>Reported for information: median adjacent |k|, second-ring worst |k|, runtime.</p>
+<h2>Decision rule (applied mechanically)</h2>
+<p>Ring becomes the <strong>default layout mode</strong> only if <strong>all three</strong> hold:</p>
+<ol>
+<li>Ring regularity CV is lower than free in <strong>≥ 3 of 4</strong> configurations.</li>
+<li>The median over configurations of (ring worst adjacent |k|) ÷ (free worst adjacent |k|) is <strong>≤ 1.10</strong>, meaning ring is not more than 10% worse.</li>
+<li>Ring coverage is <strong>≥ 0.97</strong> in all four configurations, with <strong>zero zone violations.</strong></li>
+</ol>
+<p>Otherwise free stays the default, and ring mode stays available as an option.</p>
+<h2>Status</h2>
+<p>Exploratory: placeholder helmet, zones and wire; these configurations only.</p>
+</body></html>

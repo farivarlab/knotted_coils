@@ -25,11 +25,11 @@
   {
    "name": "(c) solved 16-element array (free, fast, seed 1)",
    "n_points": 1000,
-   "n_criterion_points": 771,
-   "worst_rel_diff_ge10mm": 1.320752794352514e-10,
-   "median_rel_diff_ge10mm": 1.320326402011295e-10,
-   "worst_rel_diff_5to10mm_info": 1.3203670536762594e-10,
-   "n_5to10mm": 134,
+   "n_criterion_points": 773,
+   "worst_rel_diff_ge10mm": 1.3205831164791625e-10,
+   "median_rel_diff_ge10mm": 1.320327352737163e-10,
+   "worst_rel_diff_5to10mm_info": 1.320383823534573e-10,
+   "n_5to10mm": 135,
    "pass": true
   }
  ],

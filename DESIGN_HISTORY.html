@@ -1,0 +1,154 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Design History — Knotted Coil Designer</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Design History — Knotted Coil Designer</h1>
+<p>One place to see how the design evolved: every version, who asked for it and why, what changed, which checks were added, and what the checks found, failures included. Detailed rationale is in <code>DECISIONS.md</code>; Reza’s requests, quoted, are in <code>docs/REQUEST_LOG.md</code>; the current specification is <code>Design.md</code>. Git hashes refer to this repository.</p>
+<p>All work was done on 2026-10-20 unless a date is shown.</p>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Trigger</th>
+<th>Main change</th>
+<th>Checks added (pre-registered)</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>v1.0</strong> (git 39a4e83)</td>
+<td>Reza: knotted receive loops, bloom, automatic decoupling, helmet, wire loops, up to 8 lobes</td>
+<td>Torus-knot elements T(p,q); bloom = lobe amplitude (symmetric shape); Neumann-formula M and L; two-stage decoupling solver; browser app</td>
+<td>V1 Maxwell coaxial M; V2 ring self-L; V3 coplanar-circle null; V4 convergence; V5 symmetry; V6 topology under bloom</td>
+<td>Run 1: V1, V2, V4, V5 PASS; V3 NOT EVALUABLE (Roemer 1990 unread); <strong>V6 FAIL</strong> (bloom floor below 0.02, a point-count error, and a test-harness bug). Run 2: V6 FAIL only below the physical floor</td>
+</tr>
+<tr>
+<td><em>(no version)</em></td>
+<td>Reza: in-plane rotation as a lever</td>
+<td>Rotation modes (free / locked / fixed) exposed</td>
+<td>—</td>
+<td>Free rotation lowered the worst nearest-ring |k| (one test)</td>
+</tr>
+<tr>
+<td><strong>v1.1</strong> (git ea9f761)</td>
+<td>Reza: “Make nearest-ring the default definition of decoupled”</td>
+<td>“Decoupled” = nearest ring; footprint verdict still reported. <strong>Disclosed:</strong> the λ_max worst-pair cost term had never been implemented</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>v1.1 addendum (git 6ce049e)</td>
+<td>Reza: implement the worst-pair term and compare</td>
+<td>Smooth k⁴ worst-pair term</td>
+<td>Paired comparison (35 runs)</td>
+<td>All 3 criteria met, so it became the default. Trade-off: the median |k| rose</td>
+</tr>
+<tr>
+<td><strong>v1.2</strong> (git 738072d)</td>
+<td>Reza: bloom should lengthen lobes, not pinch</td>
+<td>“Outward” bloom: fixed base circle, lobes extend; β up to 3</td>
+<td>V6 re-run over 0.02–3.0</td>
+<td>V6 FAIL only below the (doubled) bloom floor</td>
+</tr>
+<tr>
+<td><strong>v1.3</strong> (git 30d6fa1)</td>
+<td>Reza: petal sharpness, with the same topology checks</td>
+<td>Power-law lobe profile</td>
+<td><strong>V7</strong> topology under sharpness</td>
+<td><strong>V7 FAIL</strong> (run 4): extra paired crossings in the flat drawing</td>
+</tr>
+<tr>
+<td><strong>v1.4</strong> (git 7d7b6bf)</td>
+<td>Fix after the V7 failure</td>
+<td>Angle-warp sharpness (keeps q(p−1) crossings); grid crossing and clearance search; stricter point-count rule</td>
+<td>—</td>
+<td>Run 5: V7 FAIL at 1 of 360 points (resolution); run 6 with a higher point ceiling: <strong>V7 PASS</strong></td>
+</tr>
+<tr>
+<td><strong>v1.5</strong> (git ff1a40e)</td>
+<td>Reza: “a quick visualization that’s reasonable”</td>
+<td>Quick B1 view (Biot–Savart; head surface and slices); dB coupling plot</td>
+<td><strong>V8</strong> on-axis loop B1</td>
+<td>V8 PASS</td>
+</tr>
+<tr>
+<td><strong>v1.6</strong> (git 91c4df5 pre-registration; 5f60ace implementation; f120e53 results)</td>
+<td>Reza: symmetric arrays, better placement, controllable bloom and size, face zones, independent B1 check, “let’s do the major update”</td>
+<td>Face exclusion zones (eyes, mouth); ring mode (mirror-symmetric, per-ring size/bloom/sharpness); multi-start; Voronoi adjacency; regularity score; capacitor breaks and first-pass values; save/load; <strong>exact-segment B1</strong></td>
+<td><strong>V9</strong> symmetry, <strong>V10</strong> break placement, <strong>V11</strong> capacitor value, <strong>V12</strong> zones, <strong>V13</strong> reproducibility, <strong>V14</strong> B1 vs Magpylib; comparison <strong>C2</strong> ring vs free</td>
+<td>Development runs: <strong>V14 FAIL</strong> (midpoint rule, about 1%), fixed with exact segments; <strong>V9 FAIL</strong> (current-direction sign convention), fixed. Official: V7–V14 PASS. <strong>C2: ring failed all 3 criteria, so free stays the default</strong></td>
+</tr>
+<tr>
+<td><strong>v1.7</strong> (this version)</td>
+<td>Reza: “implement the full capacitance modelling, including choosing the capacitors and also evaluating the effect of the capacitor in the decoupling and the B1 field” (head-loaded, Python, no MATLAB)</td>
+<td>Full-wave co-simulation pipeline: openEMS (Python), lumped ports at the capacitor breaks, three-layer head phantom, circuit co-simulation that picks capacitor values with preamp decoupling, then capacitor effects on coupling and B1</td>
+<td>V15–V20 and V15b (Design.md §7)</td>
+<td>V15 FAIL (raw FDTD resonance −10%: thin-wire effective radius ≈ 0.17 × grid cell, confirmed across 3 grids); other results in the validation report</td>
+</tr>
+<tr>
+<td><strong>v1.8</strong> (git 979b1fa pre-registration; implementation and results in the following commit), 2026-10-21</td>
+<td>Reza: “add the height dimension to these knots, such that with one parameter, I could allow the knots to rise higher (total thickness of the whole knot)”; chose “outward only”</td>
+<td>Total-thickness parameter T: h = max(h_min, T/2), whole knot raised by h − h_min so the lowest wire stays where it was (T = 0 = v1.7 exactly); app slider + side view; shared T in arrays. <strong>Found while planning:</strong> the self-inductance offset was not perpendicular to non-flat wires; fixed</td>
+<td><strong>V21</strong> thickness/topology, <strong>V22</strong> thick-knot B1 vs Magpylib, <strong>V23</strong> tilted-circle self-L</td>
+<td>Development run: V21, V22, V23 PASS; V1, V2, V4, V5, V8, V11 re-run, still PASS. The v1.7 self-L method gave +11% at 80° tilt (V23, information)</td>
+</tr>
+<tr>
+<td><strong>v1.10</strong> (git e2763ae pre-registration; bc374d0 implementation), 2026-10-21</td>
+<td>Reza: is the output ready for COMSOL? “add the COMSOL export … first”</td>
+<td>COMSOL export files from the same case JSON as openEMS (shared <code>sim/wirecut.py</code>); MPh build/solve/extract script (UNVALIDATED, written without COMSOL; dry-run tested); <code>cosim.py --solver comsol</code></td>
+<td><strong>V25</strong> COMSOL vs openEMS</td>
+<td>NOT EVALUABLE (no COMSOL here)</td>
+</tr>
+<tr>
+<td><strong>v1.9</strong> (git 8fa1bf7 pre-registration; fb79dee, 2c4af52, cbbf6db implementation and fixes), 2026-10-21</td>
+<td>Invalid pair simulation: the two coils’ wires touched where they cross (Design §4 lift never implemented). Reza chose “local bumps”</td>
+<td>Crossover bumps: higher-numbered coil lifts outward over lower ones with a smooth spatial bump; coupling on bumped wires; V9 on the pre-bump layout; local grid refinement at crossovers, port-terminal snapping, minimum-cell guard; inter-element pre-run gate</td>
+<td><strong>V24</strong> crossover bumps</td>
+<td>Development: 4 pair simulation cases PASS; <strong>4 arrays FAIL</strong> (bumps cap at 10 mm in dense knot arrays — open design problem). Taper width TUNED 6 → 10 mm on the pair cases (bend limit). One aborted run (sliver grid cells, killed after 3 min)</td>
+</tr>
+<tr>
+<td>v1.7 audit (night)</td>
+<td>Reza: full audit in 4 steps</td>
+<td>Brainstorm → independent review (Fable) → 4 area audits (Fable) → fixes. Main fixes: A1 clearance bug (lift too small for p ≥ 3 knots); M1 V15–V20 now in the report; C1 B1 plane offset; D2 pair-worker race; B1/B2 ring-mode report; licences; docs</td>
+<td>PH3 (signed B1, post-hoc)</td>
+<td>See <code>DECISIONS.md</code> “Audit actions”</td>
+</tr>
+</tbody>
+</table>
+<h2>Persistent open items (all versions)</h2>
+<ul>
+<li><strong>Placeholders:</strong> wire spec, helmet dimensions, face-zone positions, decoupling threshold, and the tissue properties at 3T.</li>
+<li><strong>V3:</strong> cannot be evaluated until Roemer et al. 1990 is read.</li>
+<li><strong>V6:</strong> fails below the wire-dependent bloom floor, a physical limit shown in the app.</li>
+<li><strong>No bench validation of anything yet:</strong> every EM result is exploratory.</li>
+</ul>
+</body></html>

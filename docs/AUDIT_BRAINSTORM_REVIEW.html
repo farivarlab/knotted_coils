@@ -1,0 +1,223 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Audit, step 2: independent review of the brainstorm</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Audit, step 2: independent review of the brainstorm</h1>
+<p><strong>Reviewer:</strong> a fresh agent (model: Fable), read-only, 2026-10-20 (night). It did not write the code. Below is its report in full, followed by the actions taken in response.</p>
+<h2>Verified correct by the reviewer (no finding)</h2>
+<ul>
+<li><strong>Matching derivation:</strong> Z_in = X_m² / (Z_c − jX_m), so X = √(Z₀R), C_m = 1/(ωX), L_m = X/ω.</li>
+<li><strong>Network maths:</strong> <code>s2z</code>; <code>reduce()</code> (Schur complement); the shunt-C / series-L network in <code>external()</code>.</li>
+<li><strong>Quasi-static maths:</strong> the AGM elliptic integrals and Maxwell’s formula; the μ₀/4π unit constants.</li>
+<li><strong>openEMS interfaces:</strong>
+<ul>
+<li>the phantom HDF5 layout matches openEMS’s own writer;</li>
+<li>the incident wave <code>uf_inc = 0.5(U + I·Z_ref)</code> matches the co-simulation’s a = (V + Z₀I)/2;</li>
+<li>port direction and wire order are consistent;</li>
+<li>the feed is the same break in <code>K.breaks</code> and <code>cut_wire</code>.</li>
+</ul>
+</li>
+<li><strong>Thin-wire correction:</strong> sign and a_eff inversion are arithmetically consistent (a_eff 0.17 mm from L_raw 278.6 nH).</li>
+</ul>
+<h2>Missed failure modes (M1–M17)</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Failure mode</th>
+<th>Why it matters</th>
+<th>Detect / test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1</td>
+<td>V15–V20 are not in the test suite; the app banner and <code>validation_status.js</code> say “all pass” while <strong>V15 failed</strong></td>
+<td>False validation status; integrity claim untrue</td>
+<td>Aggregate <code>sim/out/*/cosim.json</code> into the report</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>Stair-stepped <code>AddCurve</code> strands can short at crossings (1.5 mm apart on a 1 mm grid)</td>
+<td>Knot topology destroyed in FDTD; V15b would fail with the wrong diagnosis</td>
+<td>Trefoil at 0.5 vs 1.0 mm; crossing connectivity</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>Frequency-domain dump vs port-probe normalisation across runs</td>
+<td>Every B1 superposition (V18)</td>
+<td>Compare a time-domain dump transformed in Python with the FD dump, or a superposed field with a direct run</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>V19’s d₀ is the <em>flat, unmirrored</em> null; the case is wrapped and mirrored</td>
+<td>V19 tests a different configuration than registered</td>
+<td>Report on-helmet k_qs; bracket the on-helmet null</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>No air pair case; the sign of M_eff vs M_qs is never checked</td>
+<td>Tissue, wrapping and capacitor effects cannot be separated</td>
+<td>Add <code>pair_air_3T_d+0</code>; check the signs</td>
+</tr>
+<tr>
+<td>M6</td>
+<td>V17 evaluated with neighbours on 50 Ω; tuning used preamp terminations</td>
+<td>V17 can fail for reasons unrelated to tuning</td>
+<td>Report S11 under both terminations</td>
+</tr>
+<tr>
+<td>M7</td>
+<td>V18 normalises to the in-plane maximum (the noisiest point)</td>
+<td>One voxel sets the comparison</td>
+<td>Report a robust normalisation alongside</td>
+</tr>
+<tr>
+<td>M8</td>
+<td>V10 and V12 are self-reported (circular)</td>
+<td>A reporting bug passes its own test</td>
+<td>Recompute independently in the test</td>
+</tr>
+<tr>
+<td>M9</td>
+<td>V14 compares thinned wires with thinned wires</td>
+<td>Thinning error untested</td>
+<td>Compare thinned vs full-wire field</td>
+</tr>
+<tr>
+<td>M10</td>
+<td>Calibration file untracked, keyed only by grid; sim outputs carry no git hash; outputs came from uncommitted code</td>
+<td>Not reproducible</td>
+<td>Record hash and options; track the calibration</td>
+</tr>
+<tr>
+<td>M11</td>
+<td><code>dist/</code> is stale</td>
+<td>The shared package runs older code</td>
+<td>Rebuild; check builder consistency</td>
+</tr>
+<tr>
+<td>M12</td>
+<td>Design §6b says <code>AddWire</code>; the code uses <code>AddCurve</code></td>
+<td>Documentation and code disagree</td>
+<td>Update the document</td>
+</tr>
+<tr>
+<td>M13</td>
+<td>The coronal plane is “15 mm inside the head” measured from the helmet, so only about 5 mm into the skin</td>
+<td>V18 near-surface points are the worst stair-stepped ones</td>
+<td>Define the plane from the head surface</td>
+</tr>
+<tr>
+<td>M14</td>
+<td>The phantom’s neck cut is ignored in the depth calculation</td>
+<td>Points misclassified near zMin</td>
+<td>depth = min(ellipsoid depth, z − zMin)</td>
+</tr>
+<tr>
+<td>M15</td>
+<td>In air, Re(Z) of a PEC loop is at noise level</td>
+<td>Air C_m and L_m reported with false precision</td>
+<td>Flag when R_loop is tiny</td>
+</tr>
+<tr>
+<td>M16</td>
+<td><code>sources/</code> PDFs and the GPL imports in a package meant for sharing; NOTICE lists Three.js only</td>
+<td>Licence and copyright exposure</td>
+<td>Licence inventory</td>
+</tr>
+<tr>
+<td>M17</td>
+<td><code>tests/run.js</code> header says “V1–V6, git 39a4e83”</td>
+<td>Readers can’t trace registrations</td>
+<td>Add a per-check <code>registered_in</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Mis-rated brainstorm items</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Reviewer’s correction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C5</td>
+<td>Should be <em>Partial</em> (rests on the solver’s own self-report)</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>V9 has limited coverage: no cap, odd-N or midline-heavy case</td>
+</tr>
+<tr>
+<td>B12</td>
+<td>The singular branch is untested</td>
+</tr>
+<tr>
+<td>C12</td>
+<td>Low risk</td>
+</tr>
+<tr>
+<td>D1</td>
+<td>Understated: V15b is non-circular only through its transfer to the trefoil</td>
+</tr>
+<tr>
+<td>A14</td>
+<td>V18 compares a circularly polarised component with a linear magnitude; this is a physics difference the check will count against the quasi-static model</td>
+</tr>
+<tr>
+<td>E4</td>
+<td>Should be <em>Open</em></td>
+</tr>
+<tr>
+<td>B8</td>
+<td>The <code>z.imag &gt; 0</code> filter is vacuous</td>
+</tr>
+</tbody>
+</table>
+<h2>Reviewer’s top 10</h2>
+<ol>
+<li>M1</li>
+<li>M2</li>
+<li>M3</li>
+<li>A7 / V15</li>
+<li>M4 / M5</li>
+<li>A9 / A10</li>
+<li>M10 / C14</li>
+<li>M8</li>
+<li>M6 / M7</li>
+<li>M11 / M12</li>
+</ol>
+<h2>Actions (filled in as they are done)</h2>
+<p>See DECISIONS.md, “Audit actions”.</p>
+</body></html>

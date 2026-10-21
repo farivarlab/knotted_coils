@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
-<title>Request Log</title><style>
+<title>Request Log — how this design came about</title><style>
 :root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
 * { box-sizing: border-box; }
 body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
@@ -118,6 +118,17 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 </tbody>
 </table>
+<p>| 16 | “what else should this package do? … the array should be symmetric with regards to the head … placement … could be more optimized … the bloom parameter and size of the loop could also be controlled?” | <code>docs/PROPOSAL_v2.md</code> (WP1–WP10) |
+| 17 | “how does openEMS compare with COMSOL …?” · “how would things look if we modelled capacitor breaks …? … can you link our app to COMSOL?” · “is openEMS the only system …?” · “I’d want something we could link to programmatically.” | Verified solver survey → <code>docs/SOLVER_OPTIONS.md</code> (MARIE 3.0 for coil + head; NEC-2 WebAssembly for coils in air) |
+| 18 | “have a helmet and a sort of head in there, and then mark-off the eyes and mouth …” · “we need a way of ensuring that your B1 estimates aren’t BS—ideally calculations with a separate package” | WP11 face exclusion zones; WP12 three-tier B1 validation (V14 vs Magpylib) |
+| 19 | “Okay, let’s do the major update!” | Design v1.6: zones, symmetric ring layouts, per-ring size/bloom/sharpness, multi-start, capacitor breaks, save/load, exact-segment B1, V9–V14, C2 |
+| 20 | “we need the capacitor values for a head-loaded coil” · “isn’t there a python code you could use so we could avoid Matlab?” · “update the design and implement the full capacitance modelling, including choosing the capacitors and also evaluating the effect of the capacitor in the decoupling and the B1 field … Update all design files. Make sure you have a design history file.” | Design v1.7: openEMS + Python co-simulation, V15–V20; DESIGN_HISTORY.md |
+| 21 | “once you’re done the design, I want you to do a full audit. 1. first, brainstorm on all the things that could go wrong. 2. Then, re-check your own brainstorm with a fresh agent … 3. Then run the full updated audit. You can switch to Fable if you think it would be better. 4. Based on the results of the audit, update the code. Keep design history files.” | docs/AUDIT_BRAINSTORM.md, AUDIT_BRAINSTORM_REVIEW.md (Fable), AUDIT_REPORT_A–D.md (Fable); fixes logged in DECISIONS.md “Audit actions” |</p>
+<p>| 22 | (2026-10-21) “yes: shift the capacitor breaks by the same amount in all three pair cases (and the air pair) so every port is clear of the other coil; log it before running, then queue the pair runs.” | Pair cases re-exported with breaks shifted ±0.100 of wire length; DECISIONS 2026-10-21; queue 3 |
+| 23 | (2026-10-21) “I now want to add the height dimension to these knots, such that with one parameter, I could allow the knots to rise higher (total thickness of the whole knot). Can you do that while still calculating their B1 fields etc?” · chose “Outward only” | Design v1.8: thickness T, side view, V21–V23; self-L offset correction |</p>
+<p>| 24 | (2026-10-21) “Use local bumps: at each crossing between two coils, one wire lifts outward over the other by at least wire + insulation over a short stretch; coils otherwise stay on the helmet. Make it a v1.9 design change with pre-registered checks, then rerun the pairs.” | Design v1.9: crossover bumps, V24, pre-run gate; pair queue 4 |
+| 25 | (2026-10-21) “package it for sharing right now.” | Zip with code, docs (HTML/PDF), validation report and simulation summaries; still subject to the OIP check before sharing outside McGill (Reza, 2026-10-20) |</p>
+<p>| 26 | (2026-10-21) “Is the output ready for input and validation in COMSOL? How easy is that to add?” · “add the COMSOL export first” | Design v1.10: export_comsol.py, comsol_build_mph.py (MPh, UNVALIDATED), V25 |</p>
 <h2>Standing instructions that shaped the work</h2>
 <p>These come from Reza’s workspace instructions (his global <code>CLAUDE.md</code>). The ones relevant to this project:</p>
 <ul>

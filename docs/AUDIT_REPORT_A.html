@@ -1,0 +1,136 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Audit, step 3, area A: core geometry and quasi-static electromagnetics</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Audit, step 3, area A: core geometry and quasi-static electromagnetics</h1>
+<p><strong>Auditor:</strong> an independent agent (model: Fable), read-only, with scratch test scripts. HEAD 2734546. Fix status is in <code>DECISIONS.md</code> (“Audit actions”).</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Severity</th>
+<th>Status</th>
+<th>Where</th>
+<th>Finding</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A1</strong></td>
+<td><strong>High</strong></td>
+<td>CONFIRMED</td>
+<td><code>core/knot.js</code> minSelfClearance and solveLift; callers in <code>core/optimise.js</code> (n = 200)</td>
+<td>Self-clearance is measured <strong>point-to-point</strong>, so a coarse polyline overestimates it and the lift solver under-lifts. Solver, pair explorer and ring mode solve the lift at n = 200 and never re-check the final wires. Hidden for T(2,q), whose crossings fall on sampled extremes; real for p ≥ 3</td>
+<td>T(3,4) β = 0.8: h from n = 200/400/1600/6400 = 0.436 / 0.789 / 0.862 / 0.866 mm. With h = 0.436 the true clearance is <strong>0.757 mm vs 1.5 mm required</strong></td>
+</tr>
+<tr>
+<td>A2</td>
+<td>Medium</td>
+<td>CONFIRMED</td>
+<td><code>core/surface.js</code> zones</td>
+<td>The mouth zone (el −21…−39°) lies below the coverage floor (zCut = −20 mm, el −10.5°), so it is inert and V12 is vacuous for it</td>
+<td>0 of 11,818 covered samples hit the mouth zone</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>Medium</td>
+<td>CONFIRMED (test design)</td>
+<td>V11</td>
+<td>Circular: the “closed form” is the same expression as <code>K.capacitor</code>, so V11 can only fail if V2 fails</td>
+<td>Code reading</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td><code>knot.report</code></td>
+<td>minClearance is capped at 2 × the required clearance, so the UI shows ≤ 3 mm even when the true clearance is larger</td>
+<td>p = 1 rosette: true 5.58, shown 3</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td><code>adaptiveN</code></td>
+<td>Cannot satisfy its own “three equal counts” rule when the start exceeds 25,600, so it always falls through to the untested 102,400</td>
+<td>T(5,6) m = 16</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td><code>selfL</code></td>
+<td>Converges as O(1/n): about 0.4–0.6% low at 300 points (within V2’s 2%)</td>
+<td>Circle and trefoil convergence series</td>
+</tr>
+<tr>
+<td>A7</td>
+<td>Low</td>
+<td>POSSIBLE</td>
+<td><code>surface.alongNormal</code></td>
+<td>Silently falls back to radial snapping when the normal line misses the ellipsoid; unflagged</td>
+<td>Beyond current footprints</td>
+</tr>
+<tr>
+<td>A8</td>
+<td>Low</td>
+<td>LIKELY</td>
+<td>V8, V14</td>
+<td>The direction (sign) of the B1 vector is never tested; only magnitudes are. Verified correct by hand</td>
+<td>Hand check</td>
+</tr>
+<tr>
+<td>A9</td>
+<td>Low</td>
+<td>CONFIRMED</td>
+<td>Comments</td>
+<td>knot.js and field.js “MATLAB EQUIVALENT” sections outdated; Design §6 “400 points” stale</td>
+<td>Reading</td>
+</tr>
+</tbody>
+</table>
+<h2>Verified correct</h2>
+<ul>
+<li><strong>Crossings:</strong> match brute force for 7 knots up to 102,400 points; vertex crossings counted once.</li>
+<li><strong>Mirror:</strong> exact.</li>
+<li><strong>Lift bisection:</strong> monotone, so bisection is valid.</li>
+<li><strong>Bloom floor:</strong> <code>betaMinPhysical</code> matches the numerical floor.</li>
+<li><strong>Capped clearance:</strong> equals the exact value below the cap.</li>
+<li><strong>Breaks:</strong> recomputed independently, 64/64.</li>
+<li><strong>Elliptic integrals and Maxwell:</strong> to 1e-15.</li>
+<li><strong>Units:</strong> all constants.</li>
+<li><strong>B1 singular branch:</strong> safe.</li>
+<li><strong>Neumann near-field:</strong> converges (0.1% at 300 points).</li>
+<li><strong>Wrap:</strong> on the ellipsoid to 7e-16.</li>
+<li><strong>Non-circular checks:</strong> V1, V4, V5, V6, V7, V8 are non-circular; V9’s mapping is right.</li>
+</ul>
+</body></html>

@@ -1,33 +1,49 @@
-<!doctype html><html><head><meta charset='utf-8'><title>Citation Verification</title><style>
-:root{--fg:#1a1a1a;--muted:#666;--rule:#e2e2e2;--accent:#2b5e8c;--code:#f4f5f7}
-*{box-sizing:border-box}
-body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--fg);
- line-height:1.6;max-width:820px;margin:40px auto;padding:0 24px;font-size:16px}
-h1{font-size:28px;line-height:1.2;margin:0 0 4px;border-bottom:3px solid var(--accent);padding-bottom:10px}
-h2{font-size:21px;margin:32px 0 8px;color:var(--accent)}
-h3{font-size:16px;margin:20px 0 6px;color:var(--muted);font-weight:600}
-p,li{font-size:15.5px}
-code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:13.5px}
-strong{color:#000}
-em{color:var(--muted)}
-hr{border:0;border-top:1px solid var(--rule);margin:28px 0}
-table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
-th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top}
-th{background:#f0f4f8}
-tr:nth-child(even) td{background:#fafbfc}
-blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;color:var(--muted);background:#f8f9fb}
-@media print{body{margin:0;max-width:none;font-size:11pt}h2{page-break-after:avoid}table{page-break-inside:avoid}}
-</style></head><body><h1 id="citation-verification-procedure">Citation verification procedure</h1>
-<p><strong>Why this exists.</strong> AI can "generate falsified research references, that is, plausible citations with reasonable title, author, and journal combinations for papers that do not exist" (McGill GPS, 2024; <a href="POLICY_SOURCES_VERIFIED.html">V§5</a>). ICMJE requires humans to "ensure there is appropriate attribution of all quoted material, including full citations" (<a href="POLICY_SOURCES_VERIFIED.html">V§4</a>). <strong>Claude's memory is not a source.</strong></p>
-<h2 id="the-procedure-every-citation-every-time">The procedure (every citation, every time)</h2>
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Citation verification procedure</title><style>
+:root { --navy:#0B1F5C; --teal:#0E7C8B; --magenta:#C0335A; --ink:#1A2238; --muted:#5b647a; --line:#d7deea; --panel:#f4f7fb; }
+* { box-sizing: border-box; }
+body { font-family: "Calibri","Segoe UI",Arial,sans-serif; color: var(--ink); line-height: 1.5;
+  max-width: 8.0in; margin: 0 auto; padding: 0.7in 0.6in; font-size: 11.5pt; }
+h1 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 21pt; border-bottom: 3px solid var(--teal);
+  padding-bottom: 6px; margin: 0 0 14px; }
+h2 { font-family: "Trebuchet MS",sans-serif; color: var(--navy); font-size: 15pt; margin: 22px 0 8px;
+  border-left: 5px solid var(--teal); padding-left: 9px; }
+h3 { font-family: "Trebuchet MS",sans-serif; color: var(--magenta); font-size: 12.5pt; margin: 16px 0 6px; }
+p { margin: 6px 0; }
+strong { color: var(--navy); }
+a { color: var(--teal); word-break: break-word; }
+ul,ol { margin: 6px 0 6px 4px; padding-left: 22px; }
+li { margin: 3px 0; }
+code { background: var(--panel); padding: 1px 5px; border-radius: 3px; font-size: 10.5pt; color: var(--magenta); }
+blockquote { margin: 10px 0; padding: 8px 14px; background: var(--panel); border-left: 4px solid var(--navy);
+  color: var(--ink); border-radius: 0 4px 4px 0; }
+blockquote p { margin: 3px 0; }
+hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+th { background: var(--navy); color: #fff; text-align: left; padding: 7px 9px; font-family: "Trebuchet MS",sans-serif; }
+td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+tr:nth-child(even) td { background: var(--panel); }
+@media print {
+  body { padding: 0; max-width: none; }
+  h2 { break-after: avoid; }
+  table, blockquote, h1, h2, h3 { break-inside: avoid; }
+  thead { display: table-header-group; }
+  a { color: var(--navy); }
+}
+</style></head><body><h1>Citation verification procedure</h1>
+<p><strong>Why this exists.</strong> AI can “generate falsified research references, that is, plausible citations with reasonable title, author, and journal combinations for papers that do not exist” (McGill GPS, 2024; <a href="POLICY_SOURCES_VERIFIED.html">V§5</a>). ICMJE requires humans to “ensure there is appropriate attribution of all quoted material, including full citations” (<a href="POLICY_SOURCES_VERIFIED.html">V§4</a>). <strong>Claude’s memory is not a source.</strong></p>
+<h2>The procedure (every citation, every time)</h2>
 <ol>
 <li><strong>Retrieve the primary source itself.</strong> That means the actual paper, policy or documentation page, not a summary, secondary blog or search-result snippet.
-   - <em>Doesn't count as verification:</em> search-engine summaries; web-fetch tools that answer questions about a page through an AI model (they paraphrase and truncate); anything recalled from memory.
-   - <em>Does count:</em> the downloaded PDF or HTML whose text is read directly; a publisher page; a DOI that resolves.</li>
+<ul>
+<li><em>Doesn’t count as verification:</em> search-engine summaries; web-fetch tools that answer questions about a page through an AI model (they paraphrase and truncate); anything recalled from memory.</li>
+<li><em>Does count:</em> the downloaded PDF or HTML whose text is read directly; a publisher page; a DOI that resolves.</li>
+</ul>
+</li>
 <li><strong>Confirm the identity.</strong> Authors, year, title and venue match. The DOI resolves (open <code>https://doi.org/&lt;doi&gt;</code>).</li>
 <li><strong>For a quote</strong>, copy the text <strong>character-for-character</strong> from the retrieved document. Record the section or page. Keep quotes brief (a sentence or two); longer passages get paraphrased and marked PARAPHRASE.</li>
-<li><strong>For a claim about a number or method</strong> (for example "Aubry et al. set σ = 7× the energy increment"), locate the exact passage or equation that supports it. If the claim can't be located, it stays UNVERIFIED.</li>
-<li><strong>Archive</strong> a copy (or the relevant excerpt) in the project's <code>sources/</code> folder. Record the URL and the retrieval date.</li>
+<li><strong>For a claim about a number or method</strong> (for example “Aubry et al. set σ = 7× the energy increment”), locate the exact passage or equation that supports it. If the claim can’t be located, it stays UNVERIFIED.</li>
+<li><strong>Archive</strong> a copy (or the relevant excerpt) in the project’s <code>sources/</code> folder. Record the URL and the retrieval date.</li>
 <li><strong>Label</strong> the citation wherever it is used:</li>
 </ol>
 <table>
@@ -57,21 +73,22 @@ blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:4px 14px;co
 <tr>
 <td><code>SECONDARY</code></td>
 <td>Known only through another work that cites it</td>
-<td>Only as "as cited in …"</td>
+<td>Only as “as cited in …”</td>
 </tr>
 </tbody>
 </table>
 <ol start="7">
 <li><strong>Human spot-check.</strong> Before submission, Reza (or a delegate) re-checks a random ~20% of VERIFIED items against the archived copies. Record who checked, and when.</li>
 </ol>
-<h2 id="rules">Rules</h2>
+<h2>Rules</h2>
 <ul>
-<li><strong>No citation to justify a choice after the fact while passing it off as the original reason.</strong> If a parameter was a library default or a judgement call, the registry says so. A paper found later is recorded as "later found consistent with".</li>
+<li><strong>No citation to justify a choice after the fact while passing it off as the original reason.</strong> If a parameter was a library default or a judgement call, the registry says so. A paper found later is recorded as “later found consistent with”.</li>
 <li><strong>Code comments follow the same rules as papers.</strong> A reference in a code comment carries a status label.</li>
 <li><strong>Never cite AI output as a primary source</strong> (ICMJE, <a href="POLICY_SOURCES_VERIFIED.html">V§4</a>).</li>
 </ul>
-<h2 id="citation-record-format-for-code-comments-and-the-registry">Citation record format (for code comments and the registry)</h2>
+<h2>Citation record format (for code comments and the registry)</h2>
 <pre><code>[AUTHOR YEAR] Title. Venue. DOI/URL.  Status: VERIFIED (retrieved 2026-09-18; §4.2, p.7)
   Quote: &quot;…exact words…&quot;
   Archived: research_integrity/sources/&lt;file&gt;
-</code></pre></body></html>
+</code></pre>
+</body></html>
