@@ -2,7 +2,7 @@
 // Reza Farivar (McGill University), who is accountable for it. See README 'Provenance and AI-use statement'.
 /*
 VALIDATION RUNNER — the pre-registered checks of Design.md §7 (V1–V6 registered in git 39a4e83, V7 in 30d6fa1, V8 in ff1a40e,
-V9–V14 in 91c4df5, V15–V20 in 527aba1, V15b in be426cb),
+V9–V14 in 91c4df5, V15–V20 in 527aba1, V15b in be426cb, V21–V23 in 979b1fa),
 applied mechanically. Pass criteria are copied from Design.md and must not be edited here.
 
   node tests/run.js        -> prints results; writes validation/validation_report.{json,html}
@@ -481,7 +481,7 @@ want('PH1') && (function () {
 var git = '';
 try { git = require('child_process').execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim(); } catch (e) { git = 'unknown'; }
 var out = { generated: new Date().toISOString(), git: git, wire: WIRE, results: results,
-  preregistered: 'Design.md §7: V1-V6 git 39a4e83; V7 30d6fa1; V8 ff1a40e; V9-V14 91c4df5; V15-V20 527aba1; V15b be426cb',
+  preregistered: 'Design.md §7: V1-V6 git 39a4e83; V7 30d6fa1; V8 ff1a40e; V9-V14 91c4df5; V15-V20 527aba1; V15b be426cb; V21-V23 979b1fa',
   allPreregisteredPass: results.filter(function (r) { return /^V/.test(r.id); }).every(function (r) { return r.verdict === 'PASS'; }) };
 var vdir = path.join(root, 'validation'); if (!fs.existsSync(vdir)) fs.mkdirSync(vdir);
 fs.writeFileSync(path.join(vdir, 'validation_report.json'), JSON.stringify(out, null, 1));
