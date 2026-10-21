@@ -77,6 +77,35 @@ It designs MRI receive phased arrays made of **flat knotted wire loops** (torus 
   4. **Run `loop_air_3T` first at each grid resolution:** it calibrates the thin-wire correction (`sim/out/thinwire_calibration.json`), which every other case uses.
 - **Matching topology:** shunt C_m across the feed gap, series L_m to the preamp. The tuning condition is X = √(Z₀R) (derivation in the `sim/cosim.py` header). L_m·C_m resonance gives preamp decoupling.
 
+### v1.8 thickness and v1.9 crossovers
+
+- **Thickness T:** `KC.knot.height(prm, clear, n)` returns `{h, zOff, hMin, thickness, clamped}`. Points take `h` and `zOff` (`z = h sin ψ + zOff`). Arrays use `knot.height` in `cfg.knot`.
+- **Crossovers:** `KC.opt.crossovers(wires, normals, clear)` bumps higher-numbered elements outward over lower ones.
+  - `O.report` applies it. The report carries `wires` (bumped), `layoutWires` (pre-bump), `kMatrix` (bumped), `kMatrixLayout` and `crossovers`.
+  - V9 uses the layout fields; V24 checks the bumps.
+- **Full-wave pre-run gate:** `python sim/check_crossings.py sim/cases/<case>.json` must report zero risks before `run_openems.py`. `run_openems.py` also aborts on dropped ports (preflight) and on grid cells < 0.15 mm.
+
+### v1.10 COMSOL interface (UNVALIDATED)
+
+- **Shared geometry:** `sim/wirecut.py` (numpy only) cuts wires at capacitor gaps for both solvers, so openEMS and COMSOL see identical ports and wire ends.
+- **Export:** `sim/export_comsol.py <case.json>` writes `sim/comsol/<case>/`:
+  - `seg_e<element>_<k>.txt`;
+  - `ports.csv` (A, B terminals; face direction u);
+  - `phantom.json`;
+  - `meta.json`.
+- **Build:** `sim/comsol_build_mph.py <case>` uses MPh 1.4.0 (MIT; `pip install mph`, which needs JPype and a licensed COMSOL with the RF Module).
+  - **Model:** PEC edges for wires, a lumped-port face per gap, nested-ellipsoid phantom, air sphere with a scattering boundary, frequency study.
+  - **Solve:** one solve per excited port; S is assembled from lumped-port V and I as in openEMS.
+  - **Output:** `sim/out/<case>_comsol/{comsol.npz, comsol_meta.json, model.mph}`.
+  - `--dry-run` needs no COMSOL; `--no-solve` builds and saves only.
+- **First use on a COMSOL machine:**
+  1. `--no-solve`, then open `model.mph` in the GUI.
+  2. Check that every wire is one PEC edge set, every port face bridges its gap, and each port's direction runs A → B.
+  3. Check the tissue domains and the mesh on the wires.
+  4. Fix any API name the script got wrong and **record the fix**.
+  5. Solve `loop_air_3T` first: it calibrates the PEC-edge thin-wire correction, just as for openEMS.
+  6. Solve `trefoil_air_3T`, run `cosim.py ... --solver comsol`, then `node tests/run.js` for **V25**.
+
 ## 4. Common extensions — where to start
 
 | You want to… | Do this |
@@ -128,5 +157,6 @@ Builds `dist/`, a flat copy of the app for hosting.
 - **V3:** cannot be evaluated until Roemer et al. 1990 is read (paywalled).
 - **V6:** fails below the wire-dependent bloom floor. It is a known physical limit, shown in the UI.
 - **Solver:** seed-sensitive. No 32-element test array met |k| < 0.01 for all nearest pairs.
+- **Crossovers in dense arrays (v1.9):** bumps work for pairs, but in heavily overlapping knot arrays they stack up to the 10 mm cap and some crossings cannot be separated (V24 FAIL on arrays). Such arrays are flagged "not buildable as drawn". Thicker knots (T) need far fewer bumps. Open design problem.
 - **Very sharp petals** (high m, 3–5 windings) need crossing lifts of several mm.
 - **Untested:** opening the app from `file://` (double-click). The local server is tested.

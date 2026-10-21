@@ -30,6 +30,11 @@ Reza Farivar's instructions during the build session of 2026-10-20, quoted, with
 | 22 | (2026-10-21) "yes: shift the capacitor breaks by the same amount in all three pair cases (and the air pair) so every port is clear of the other coil; log it before running, then queue the pair runs." | Pair cases re-exported with breaks shifted ±0.100 of wire length; DECISIONS 2026-10-21; queue 3 |
 | 23 | (2026-10-21) "I now want to add the height dimension to these knots, such that with one parameter, I could allow the knots to rise higher (total thickness of the whole knot). Can you do that while still calculating their B1 fields etc?" · chose "Outward only" | Design v1.8: thickness T, side view, V21–V23; self-L offset correction |
 
+| 24 | (2026-10-21) "Use local bumps: at each crossing between two coils, one wire lifts outward over the other by at least wire + insulation over a short stretch; coils otherwise stay on the helmet. Make it a v1.9 design change with pre-registered checks, then rerun the pairs." | Design v1.9: crossover bumps, V24, pre-run gate; pair queue 4 |
+| 25 | (2026-10-21) "package it for sharing right now." | Zip with code, docs (HTML/PDF), validation report and simulation summaries; still subject to the OIP check before sharing outside McGill (Reza, 2026-10-20) |
+
+| 26 | (2026-10-21) "Is the output ready for input and validation in COMSOL? How easy is that to add?" · "add the COMSOL export first" | Design v1.10: export_comsol.py, comsol_build_mph.py (MPh, UNVALIDATED), V25 |
+
 ## Standing instructions that shaped the work
 
 These come from Reza's workspace instructions (his global `CLAUDE.md`). The ones relevant to this project:

@@ -4,6 +4,22 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-21 — Design v1.10 COMSOL interface (Reza), and a process slip during it
+- **Request:** Reza asked whether the output was ready for COMSOL; on hearing it was not, chose "add the COMSOL export first", then package.
+- **What was built:** export files plus an MPh build script, labelled UNVALIDATED. COMSOL is **not installed** on this machine, so the script was tested only in `--dry-run`, which checks the files and records the API calls.
+- **Verified:** MPh's own entry points (`mph.start`, `client.create`, `model.java`, `model.save`, `model.evaluate`) against the MPh 1.4.0 wheel source, and MPh's MIT licence and JPype dependency from its metadata.
+- **Not verified:** all COMSOL feature and property names, which are marked UNVERIFIED in the code. Check V25 was pre-registered first (e2763ae).
+- **Design choices (Claude):**
+  1. Both solvers cut wires with the same code, now `sim/wirecut.py`, moved unchanged out of `run_openems.py` (grid verified identical: same line counts and smallest cells).
+  2. S is assembled from lumped-port V and I with the openEMS wave convention, rather than relying on COMSOL's own S variables.
+  3. Wires are modelled as PEC edges, so the COMSOL loop case calibrates its own thin-wire correction, as openEMS's does.
+- **Process slip (Claude):**
+  - While testing V25 with a KC_ONLY run, Claude restored `validation/` with `git checkout` **while the clean full validation run was still in progress**.
+  - That reverted the freshly regenerated C2 comparison file mid-run, so V12 would have read stale arrays.
+  - Caught at once: the run was killed and restarted from C2 on the committed code (bc374d0).
+  - Lesson: never touch `validation/` while a full run is going.
+- **Timing:** each pair port run takes about 29 min on the refined 8.2-million-cell grid, so about 3.8 h per case. The four pair cases are expected to finish around 05:30 on 2026-10-22.
+
 ### 2026-10-21 — Design v1.9 crossover bumps: development findings and fixes (before the official V24 run)
 - **Pre-registered:** 8fa1bf7.
 - **Development checks of the V24 criteria, which found problems and drove fixes:**

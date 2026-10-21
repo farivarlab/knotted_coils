@@ -27,9 +27,9 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | `docs/research_integrity/` | The research-integrity rules this project follows (Reza Farivar's framework, DRAFT v1.0) |
 | `sources/` | Archived primary sources for verified citations |
 | `NOTICE.txt` | Copyright, sharing terms, status |
-| `Design.md` | Frozen design v1.8 (v1.8 = knot thickness T). The changelog records every version; checks V1–V20 were each pre-registered before their code ran |
+| `Design.md` | Frozen design v1.10 (v1.8 = knot thickness T; v1.9 = crossover bumps between overlapping coils; v1.10 = COMSOL interface). The changelog records every version; checks V1–V25 were each pre-registered before their code ran |
 | `DESIGN_HISTORY.md` | One-page history of every version, trigger, check and outcome |
-| `sim/` | Full-wave capacitor co-simulation (Python + openEMS), v1.7 |
+| `sim/` | Full-wave capacitor co-simulation (Python + openEMS), v1.7; pre-run geometry gate `sim/check_crossings.py` (v1.9) |
 | `docs/AUDIT_*.md` | The night-of-2026-10-20 audit: brainstorm, independent review, four area audits |
 | `DECISIONS.md` | Dated decision log, including validation failures and open questions for Reza |
 | `PARAMETERS.md` | Every parameter with its origin tag (LIT / CONV / JUDG / TUNED / DERIVED) |
@@ -55,6 +55,23 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | V8 B1 on-axis loop field | PASS (worst error 0.005%) |
 
 Every failing run is kept in the git history; see DECISIONS.md.
+
+**New in v1.10 (COMSOL interface, 2026-10-21) — UNVALIDATED:**
+- `python sim/export_comsol.py sim/cases/<case>.json` writes plain files for COMSOL into `sim/comsol/<case>/`: wire segments between capacitor gaps (x y z, mm), a ports table, the head phantom and metadata. It needs numpy only.
+- `python sim/comsol_build_mph.py <case>` builds, solves and extracts the model through MPh (Python ↔ COMSOL). It needs a licensed COMSOL with the RF Module.
+  - Then `python sim/cosim.py <case> --solver comsol` chooses the capacitors exactly as for openEMS.
+  - `--dry-run` checks the files and writes the planned COMSOL calls without COMSOL.
+- **Written without access to COMSOL.** The COMSOL API names in the build script are marked UNVERIFIED. Check the first build in the COMSOL GUI, then run check V25 (COMSOL vs openEMS).
+
+**New in v1.9 (crossover bumps, 2026-10-21):**
+- Where two coils cross, the higher-numbered coil now hops outward over the other, by wire + insulation plus a 10% margin, over a short smooth bump. Coupling and B1 are computed on the bumped wires.
+- Before v1.9 the wires of overlapping coils could pass through each other. This was found when a full-wave pair simulation shorted the two coils (DECISIONS.md).
+- **Known limitation:** this works for pairs, but in dense knot arrays bumps stack up and some crossings cannot be separated (check V24 fails on arrays). The app then flags the array **"NOT BUILDABLE AS DRAWN"**.
+
+**New in v1.8 (knot thickness, 2026-10-21):**
+- A "Total thickness T" slider lets the knot rise out of its plane like a 3D torus knot, with a side view. Extra height goes outward only.
+- T = 0 is identical to earlier versions.
+- Self-inductance is now correct for non-flat wires (V23).
 
 **New in v1.7 (full-wave capacitor co-simulation):**
 - Python scripts run openEMS (FDTD) with ports in every capacitor break and a three-layer head phantom.

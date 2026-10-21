@@ -53,6 +53,14 @@ Last updated 2026-10-20.
 | Tissue 3T | 62.8, 0.66 / 12.5, 0.13 / 46.8, 0.58 | **APPROXIMATION** | openEMS 128 MHz *body* phantom values mapped to head layers | same |
 | Phantom layers | skin 4 mm, skull 7 mm | JUDG PLACEHOLDER | | `tests/export_case.js` |
 | Test element | T(2,3), β 0.8, Rf 45 mm, 4 breaks, posterior midline at 20° elevation | JUDG | | `tests/export_case.js` |
+| Crossover target clearance (v1.9) | 1.1 × (d_w + 2·t_i) | JUDG | 10% margin over touching insulation, to absorb polyline sampling | `core/optimise.js` (O.crossovers) |
+| Crossover taper width W (v1.9) | 10 mm (pre-registered 6) | **TUNED** | Raised to keep the 2 mm bend limit on the pair cases (which V24 also tests); DECISIONS 2026-10-21 | `core/optimise.js` |
+| Crossover A_max, height step, cluster gap, r0_max (v1.9) | 10 mm, 0.1 mm, 3 mm, 30 mm | JUDG | Search limits for bump height and plateau radius; reaching A_max is flagged (V24 d) | `core/optimise.js` |
+| Grid refinement at crossovers REFINE (v1.9) | lines every 0.4 mm within ±3 mm | JUDG | Keeps two coils 1.65 mm apart several grid nodes apart (pre-run gate) | `sim/run_openems.py` |
+| MIN_GAP / MIN_CELL (v1.9) | 0.2 mm / 0.15 mm | JUDG | No sliver cells (they shrink the FDTD timestep); a case with a smaller cell aborts | `sim/run_openems.py` |
+| COMSOL air sphere margin AIR (v1.10) | 150 mm | JUDG | Distance from the farthest wire or tissue to the scattering boundary | `sim/comsol_build_mph.py` |
+| COMSOL wire mesh size HMAX_WIRE (v1.10) | 1 mm | JUDG | Same scale as the openEMS grid near wires; the PEC-edge inductance depends on it (calibrate on the loop, as for openEMS) | `sim/comsol_build_mph.py` |
+| COMSOL frequencies NF (v1.10) | 41 over f0 (1 ± 0.4) | CONV (this project) | Same band as openEMS, fewer points (one solve per port) | `sim/comsol_build_mph.py` |
 | Total thickness T (v1.8, added 2026-10-21) | 0 mm default (= minimal lift, v1.7 geometry); app slider 0–60 mm | User input (Reza's design choice) | h = max(h_min, T/2); extra thickness goes outward only (Reza's choice). Slider range 0–60 mm is JUDG | `core/knot.js` (knot.height), app |
 | Pair break shift (added 2026-10-21) | +0.100 × wire length (element 1), −0.100 (mirrored element 2) | JUDG rule, DERIVED value | Rule: largest worst-case port-gap-to-other-coil distance over all four pair cases, subject to break-to-crossing clearance ≥ 5 mm. Result: 7.3 mm (was 1.4 mm). Chosen on geometry only, before any pair result (DECISIONS 2026-10-21) | `tests/export_case.js` |
 | Port terminal rounding PORT_ROUND (added 2026-10-21) | 1 µm | DERIVED | Makes openEMS's 7-significant-digit XML export of the port box land exactly on its grid line | `sim/run_openems.py` |
