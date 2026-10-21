@@ -36,6 +36,19 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
   - Bumps change adjacent k by up to 0.029.
   - **Conclusion:** local bumps work for a pair but not for dense knot arrays, so array crossovers are an open design problem (Reza).
   - The app now marks such arrays "NOT BUILDABLE AS DRAWN" in the report (app 0.5.0).
+- **Aborted run (14:00, about 3 min): the refined grid had sliver cells.**
+  - The first queue-4 pair run showed a 1.1e-14 s timestep, about 30× smaller than before. The excitation needed more than MAX_TS steps, so it would have been truncated. The run was killed at once.
+  - **Causes** (0.002–0.1 mm cells):
+    1. refinement lines next to existing lines;
+    2. terminals of *different* ports within 0.005 mm of each other on one axis;
+    3. phantom-box edge lines next to refinement lines.
+  - **Fixes:**
+    1. refinement lines are kept only ≥ MIN_GAP = 0.2 mm (JUDG) from every other line;
+    2. `cut_all`: port terminals within MIN_GAP on an axis snap to one shared coordinate (terminals and wire ends move < 0.2 mm; shared by `run_openems.py` and `check_crossings.py`);
+    3. phantom-box lines within MIN_GAP of an existing line are skipped;
+    4. **new guard MIN_CELL = 0.15 mm (JUDG):** a case whose smallest cell is below it aborts at setup, which the preflight catches. It caught (3) on `pair_head_3T_d-4` before any run.
+  - All four pair cases and `trefoil_head_3T` now pass the gate and preflight.
+  - The single-coil results already obtained used the earlier mesh code; the snapping and phantom-line changes would alter their grids by < 0.2 mm at most (not re-run).
 
 ### 2026-10-21 — INVALID RUN: pair cases had the two coils touching (no separation at inter-element crossings)
 - **Found:** Claude, reviewing the first pair result (`pair_head_3T_d+0`, finished about 13:10). Mirror-twin elements gave different inductances (399 vs 596 nH, where 500 is expected). Also R_loop 916 Ω (expected about 8 Ω), S21 −3.6 dB, and M_eff −118 nH against +2.9 nH quasi-static.

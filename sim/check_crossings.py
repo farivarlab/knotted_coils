@@ -28,8 +28,7 @@ def build_mesh(case, opt):
     mesh = CSX.GetGrid()
     mesh.SetDeltaUnit(R.UNIT)
     allpts = []
-    for el in case['elements']:
-        segs, prt = R.cut_wire(el['wire'], el['breaks'], opt.gap)
+    for segs, prt in R.cut_all(case, opt.gap):                      # same port snapping as run_openems.py
         allpts += [np.asarray(s) for s in segs]
         for q in prt:
             for v in (q['A'], q['B']):
@@ -104,8 +103,7 @@ def main():
     # nodes, or the two coils would be joined through that port.
     nodes = lambda a, b: {snap(a + t * (b - a)) for t in np.linspace(0, 1, 41)}
     pbad = 0
-    for e, el in enumerate(case['elements']):
-        _, prt = R.cut_wire(el['wire'], el['breaks'], opt.gap)
+    for e, (_, prt) in enumerate(R.cut_all(case, opt.gap)):       # snapped ports, as in run_openems.py
         for k, q in enumerate(prt):
             gap_nodes = nodes(q['A'], q['B'])
             for f, other in enumerate(case['elements']):

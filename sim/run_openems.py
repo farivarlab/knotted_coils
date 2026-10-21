@@ -163,11 +163,49 @@ def planes_for(case):
             dict(name='coronal', axis=1, pos=float(y_cor), start=[-ext[0], float(y_cor), -ext[2]], stop=[ext[0], float(y_cor), ext[2]])]
 
 
+MIN_GAP = 0.2       # mm, JUDG: refinement lines closer than this to another line are skipped (no sliver cells)
+MIN_CELL = 0.15     # mm, JUDG: abort a case whose smallest cell is below this (tiny cells shrink the timestep)
+
+
 def add_refinement(mesh, case):
-    """Design v1.9: local grid refinement around crossover centres (REFINE). Shared with sim/check_crossings.py."""
-    for c in case.get('refine') or []:
-        for ax in range(3):
-            mesh.AddLine('xyz'[ax], [float(v) for v in np.round(np.arange(c[ax] - 3.0, c[ax] + 3.0 + 1e-9, 0.4), 3)])
+    """Design v1.9: local grid refinement around crossover centres (REFINE). Shared with sim/check_crossings.py.
+    A candidate line is kept only if it is >= MIN_GAP from every existing line and every line already kept
+    (2026-10-21: without this, overlapping regions and port lines produced 0.002 mm cells and a 30x smaller timestep)."""
+    cents = case.get('refine') or []
+    for ax in range(3):
+        have = sorted(float(v) for v in mesh.GetLines('xyz'[ax]))
+        cand = sorted(set(float(v) for c in cents for v in np.round(np.arange(c[ax] - 3.0, c[ax] + 3.0 + 1e-9, 0.4), 3)))
+        keep = []
+        for v in cand:
+            if all(abs(v - h) >= MIN_GAP for h in have) and all(abs(v - k) >= MIN_GAP for k in keep):
+                keep.append(v)
+        if keep:
+            mesh.AddLine('xyz'[ax], keep)
+
+
+def cut_all(case, gap):
+    """Cut every element's wire at its breaks, then snap port terminals of ALL ports that lie within MIN_GAP of each
+    other on an axis onto one shared grid coordinate (2026-10-21: two different ports' terminals 0.005 mm apart made a
+    0.005 mm cell). Terminals move by < MIN_GAP; the wire ends move with them (same arrays). Returns [(segs, ports)]."""
+    cut = [cut_wire(el['wire'], el['breaks'], gap) for el in case['elements']]
+    terms = [v for _, prt in cut for q in prt for v in (q['A'], q['B'])]
+    for ax in range(3):
+        order = sorted(range(len(terms)), key=lambda i: terms[i][ax])
+        anchor = None
+        for i in order:
+            v = terms[i][ax]
+            if anchor is not None and v - anchor < MIN_GAP:
+                terms[i][ax] = anchor                                 # in place: segments share these arrays
+            else:
+                anchor = v
+    return cut
+
+
+def check_min_cell(mesh):
+    for ax in range(3):
+        d = np.diff(np.sort(np.asarray(mesh.GetLines('xyz'[ax]), float)))
+        if len(d) and d.min() < MIN_CELL:
+            raise RuntimeError('mesh: smallest %s cell %.4f mm < MIN_CELL %.2f mm (would shrink the timestep); case aborted' % ('xyz'[ax], d.min(), MIN_CELL))
 
 
 def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box, nrts=None):
@@ -182,8 +220,7 @@ def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box,
     mesh.SetDeltaUnit(UNIT)
     metal = CSX.AddMetal('wire')
     allpts, ports, pidx = [], [], 0
-    for ei, el in enumerate(case['elements']):
-        segs, prt = cut_wire(el['wire'], el['breaks'], opt.gap)
+    for ei, (segs, prt) in enumerate(cut_all(case, opt.gap)):
         for sgm in segs:
             arr = np.asarray(sgm, float)
             if opt.wire == 'curve':
@@ -213,8 +250,11 @@ def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box,
     if phantom_file:
         body = CSX.AddDiscMaterial('head', filename=phantom_file, filetype=0, scale=1 / UNIT)
         body.AddBox(phantom_box[0], phantom_box[1], priority=0)
-        for ax in range(3):
-            mesh.AddLine('xyz'[ax], [phantom_box[0][ax], phantom_box[1][ax]])
+        for ax in range(3):   # phantom box edges need no exact line: skip any within MIN_GAP of an existing line
+            have = np.asarray(mesh.GetLines('xyz'[ax]), float)
+            add = [v for v in (phantom_box[0][ax], phantom_box[1][ax]) if not len(have) or np.abs(have - v).min() >= MIN_GAP]
+            if add:
+                mesh.AddLine('xyz'[ax], [float(v) for v in add])
         mesh.SmoothMeshLines('all', opt.res_phantom, 1.4)
     glo = np.minimum(lo, phantom_box[0] if phantom_file else lo)
     ghi = np.maximum(hi, phantom_box[1] if phantom_file else hi)
@@ -222,6 +262,7 @@ def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box,
         mesh.AddLine('xyz'[ax], [glo[ax] - opt.air, ghi[ax] + opt.air])
     lam_min = C0 / (f0 + fc) / UNIT
     mesh.SmoothMeshLines('all', lam_min / 40, 1.5)
+    check_min_cell(mesh)
     for pl in planes:
         d = CSX.AddDump('Hf_' + pl['name'], dump_type=11, file_type=1, frequency=[f0])
         d.AddBox(pl['start'], pl['stop'])
