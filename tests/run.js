@@ -2,7 +2,7 @@
 // Reza Farivar (McGill University), who is accountable for it. See README 'Provenance and AI-use statement'.
 /*
 VALIDATION RUNNER — the pre-registered checks of Design.md §7 (V1–V6 registered in git 39a4e83, V7 in 30d6fa1, V8 in ff1a40e,
-V9–V14 in 91c4df5, V15–V20 in 527aba1, V15b in be426cb, V21–V23 in 979b1fa),
+V9–V14 in 91c4df5, V15–V20 in 527aba1, V15b in be426cb, V21–V23 in 979b1fa, V24 in 8fa1bf7),
 applied mechanically. Pass criteria are copied from Design.md and must not be edited here.
 
   node tests/run.js        -> prints results; writes validation/validation_report.{json,html}
@@ -389,6 +389,79 @@ want('V23') && (function () {
     rows: rows, reference: 'Rotation invariance (exact) + Rosa & Grover 1912 eq. [62] (VERIFIED, sources/)' });
 })();
 
+
+// ---------------- Design v1.9 check (pre-registered in Design.md §7, git 8fa1bf7, before its code) ----------------
+// V24 — crossover bumps separate overlapping coils.
+want('V24') && (function () {
+  var c = WIRE.d + 2 * WIRE.tIns, Wtaper = 10, sets = [];
+  function fromArray(name, r) {
+    return { name: name, layout: r.layoutWires, wires: r.wires, normals: r.normals, bumps: r.crossovers.bumps, capped: r.crossovers.capped,
+      fraction: r.crossovers.fractionBumped, maxA: r.crossovers.maxA, r: r };
+  }
+  v9Arrays().forEach(function (A) { sets.push(fromArray(A.name, A.r)); });
+  sets.push(fromArray('free N=16 T(2,3) b0.8 seed 1 (fast)', solve(16, V16_KNOT, { layout: 'free' })));
+  sets.push(fromArray('free N=16 T(2,3) b0.8 T=15 mm seed 1 (fast)', solve(16, Object.assign({}, V16_KNOT, { height: 15 }), { layout: 'free' })));
+  // pair simulation cases: regenerate with pre-bump wires into a scratch folder; must equal the committed case files
+  var tmp = path.join(root, 'validation', '_v24_cases'), consistent = true;
+  require('child_process').execFileSync(process.execPath, [path.join(root, 'tests', 'export_case.js')],
+    { env: Object.assign({}, process.env, { KC_EXPORT_ONLY: 'pairs', KC_CASES_OUT: tmp, KC_WRITE_LAYOUT: '1' }), stdio: 'pipe' });
+  ['pair_head_3T_d+0', 'pair_head_3T_d-4', 'pair_head_3T_d+4', 'pair_air_3T_d+0'].forEach(function (nm) {
+    var X = JSON.parse(fs.readFileSync(path.join(tmp, nm + '.json'), 'utf8')), Y = JSON.parse(fs.readFileSync(path.join(root, 'sim', 'cases', nm + '.json'), 'utf8'));
+    X.elements.forEach(function (e, i) { if (JSON.stringify(e.wire) !== JSON.stringify(Y.elements[i].wire)) consistent = false; });
+    sets.push({ name: 'case ' + nm, layout: X.elements.map(function (e) { return e.layoutWire || e.wire; }), wires: X.elements.map(function (e) { return e.wire; }),
+      normals: X.elements.map(function (e) { return e.normals; }), bumps: X.crossovers.bumps, capped: X.crossovers.capped,
+      fraction: X.crossovers.fractionBumped, maxA: X.crossovers.maxA });
+  });
+  fs.rmSync(tmp, { recursive: true, force: true });
+  var rows = [], ok = consistent;
+  sets.forEach(function (S1) {
+    var W = S1.wires, L = S1.layout, Nn = S1.normals, N = W.length, interMin = Infinity, fails = [];
+    for (var i = 0; i < N; i++) for (var j = i + 1; j < N; j++) {                                        // (a)
+      var A = W[i], B = W[j];
+      for (var a = 0; a < A.length; a++) for (var b = 0; b < B.length; b++) {
+        var p = A[a], u = B[b];
+        if (Math.hypot(p[0] - u[0], p[1] - u[1], p[2] - u[2]) > 15) continue;   // segments are ~2 mm long
+        var d = K.segSegDist(p, A[(a + 1) % A.length], u, B[(b + 1) % B.length]);
+        if (d < interMin) interMin = d;
+      }
+    }
+    if (!(interMin >= c - 1e-9)) fails.push('(a) inter-element distance ' + interMin.toFixed(3) + ' mm');
+    var bOK = true, perpMax = 0, negMin = 0, outside = 0;                                                  // (b)
+    for (var e = 0; e < N; e++) for (var k = 0; k < W[e].length; k++) {
+      var dv = [W[e][k][0] - L[e][k][0], W[e][k][1] - L[e][k][1], W[e][k][2] - L[e][k][2]];
+      if (dv[0] === 0 && dv[1] === 0 && dv[2] === 0) continue;
+      var n = Nn[e][k], s = dv[0] * n[0] + dv[1] * n[1] + dv[2] * n[2];
+      perpMax = Math.max(perpMax, Math.hypot(dv[0] - s * n[0], dv[1] - s * n[1], dv[2] - s * n[2])); negMin = Math.min(negMin, s);
+      var inside = S1.bumps.some(function (bp) { return bp.element === e && bp.centre &&
+        Math.hypot(L[e][k][0] - bp.centre[0], L[e][k][1] - bp.centre[1], L[e][k][2] - bp.centre[2]) < bp.r0 + Wtaper + 1e-9; });
+      if (!inside) outside++;
+    }
+    if (perpMax > 1e-9 || negMin < -1e-9 || outside > 0) { bOK = false; fails.push('(b) perp ' + perpMax.toExponential(1) + ', min outward ' + negMin.toFixed(3) + ', moved outside regions ' + outside); }
+    var bumpedLowest = S1.bumps.some(function (bp) { return bp.element === 0; });
+    if (bumpedLowest) fails.push('(b) element 0 displaced');
+    var scMin = Infinity, bendMin = Infinity;                                                             // (c)
+    W.forEach(function (P) { scMin = Math.min(scMin, K.minSelfClearance(P, 4 * c, 2 * c).clearance); bendMin = Math.min(bendMin, K.minBendRadius(P)); });
+    if (scMin < c - 1e-9) fails.push('(c) own self-clearance ' + scMin.toFixed(2) + ' mm');
+    if (bendMin < WIRE.minBend - 1e-9) fails.push('(c) bend ' + bendMin.toFixed(2) + ' mm');
+    if (S1.capped) fails.push('(d) a bump reached A_max');                                              // (d)
+    var info = { bumps: S1.bumps.length, maxA_mm: S1.maxA, fractionBumped: S1.fraction };
+    if (S1.r) {
+      var dk = 0; S1.r.pairs.forEach(function (pp) { if (pp.adjacent) dk = Math.max(dk, Math.abs(S1.r.kMatrix[pp.i * N + pp.j] - S1.r.kMatrixLayout[pp.i * N + pp.j])); });
+      info.maxAbsDeltaK_adjacent = dk;
+      var asym = 0; S1.r.elements.forEach(function (el, i2) { if (el.midline || el.twin == null) return;
+        var Wi = W[i2], Wj = W[el.twin], nW = Wi.length; for (var t = 0; t < nW; t++) { var v = (nW - t) % nW; asym = Math.max(asym, Math.abs(Wi[t][0] + Wj[v][0]), Math.abs(Wi[t][1] - Wj[v][1]), Math.abs(Wi[t][2] - Wj[v][2])); } });
+      if (S1.r.mode === 'ring') info.mirrorAsymmetry_mm = asym;
+    }
+    if (fails.length) ok = false;
+    rows.push(Object.assign({ set: S1.name, pass: fails.length === 0, fails: fails, interElementMin_mm: interMin, ownClearanceMin_mm: scMin, bendMin_mm: bendMin }, info));
+  });
+  rec({ id: 'V24', title: 'Crossover bumps separate overlapping coils (2 ring arrays, 2 free arrays, 4 pair simulation cases)',
+    criterion: '(a) different elements >= d_w + 2 t_i apart; (b) moves outward along the normal only, only inside bump regions, never the lowest element; (c) own clearance and bends kept; (d) no bump at A_max',
+    verdict: ok ? 'PASS' : 'FAIL',
+    summary: (consistent ? '' : 'regenerated pair cases DIFFER from sim/cases; ') + rows.map(function (x) { return x.set + ': ' + (x.pass ? 'pass' : x.fails.join(', ')) + ' (' + x.bumps + ' bumps, max ' + x.maxA_mm.toFixed(1) + ' mm' + (x.maxAbsDeltaK_adjacent != null ? ', max |dk| ' + x.maxAbsDeltaK_adjacent.toFixed(4) : '') + ')'; }).join('; '),
+    rows: rows });
+})();
+
 // ---------------- Design v1.7 checks V15-V20 (pre-registered in Design.md §7, git 527aba1 / be426cb) ----------------
 // The full-wave runs happen in Python (sim/run_openems.py + sim/cosim.py); this block reads their cosim.json outputs so
 // the verdicts reach this report and the app banner (audit M1). Official set = untagged sim/out/<case>/ folders
@@ -482,7 +555,7 @@ want('PH1') && (function () {
 var git = '';
 try { git = require('child_process').execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim(); } catch (e) { git = 'unknown'; }
 var out = { generated: new Date().toISOString(), git: git, wire: WIRE, results: results,
-  preregistered: 'Design.md §7: V1-V6 git 39a4e83; V7 30d6fa1; V8 ff1a40e; V9-V14 91c4df5; V15-V20 527aba1; V15b be426cb; V21-V23 979b1fa',
+  preregistered: 'Design.md §7: V1-V6 git 39a4e83; V7 30d6fa1; V8 ff1a40e; V9-V14 91c4df5; V15-V20 527aba1; V15b be426cb; V21-V23 979b1fa; V24 8fa1bf7',
   allPreregisteredPass: results.filter(function (r) { return /^V/.test(r.id); }).every(function (r) { return r.verdict === 'PASS'; }) };
 var vdir = path.join(root, 'validation'); if (!fs.existsSync(vdir)) fs.mkdirSync(vdir);
 fs.writeFileSync(path.join(vdir, 'validation_report.json'), JSON.stringify(out, null, 1));

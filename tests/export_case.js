@@ -21,7 +21,7 @@ var KC = globalThis.KC, K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 var WIRE = { d: 1.0, tIns: 0.25, minBend: 2 };   // JUDG PLACEHOLDER (same as tests/run.js)
 var A = WIRE.d / 2, CLEAR = WIRE.d + 2 * WIRE.tIns, NB = 4, CAPCLEAR = 5;
 var ONLY_PAIRS = process.env.KC_EXPORT_ONLY === 'pairs';   // rewrite only the pair cases (single-coil results stay current)
-var outDir = path.join(root, 'sim', 'cases'); if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+var outDir = process.env.KC_CASES_OUT ? path.resolve(process.env.KC_CASES_OUT) : path.join(root, 'sim', 'cases');   // KC_CASES_OUT: V24 harness if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 var H = JSON.parse(JSON.stringify(S.DEFAULTS));
 var HEAD = KC.field.head(H);                     // helmet - 10 mm (same placeholder head as the B1 view)
 
@@ -44,7 +44,9 @@ function withCrossovers(els) {
   var co = O.crossovers(els.map(function (e) { return e.wire; }), els.map(function (e) { return e.normals; }), CLEAR);
   var out = els.map(function (e, i) {
     var moved = false; for (var q = 0; q < co.disp[i].length; q++) if (co.disp[i][q] > 0) { moved = true; break; }
-    return moved ? wireWithBreaks(co.wires[i], e._src.flat, e.normals, e._src.shiftFrac) : e;
+    var r = moved ? wireWithBreaks(co.wires[i], e._src.flat, e.normals, e._src.shiftFrac) : e;
+    if (process.env.KC_WRITE_LAYOUT) r.layoutWire = e.wire;   // pre-bump wire, for the V24 harness only
+    return r;
   });
   return { els: out, info: { count: co.bumps.length, maxA: co.maxA, capped: co.capped, fractionBumped: co.fractionBumped, target: co.target,
     bumps: co.bumps.map(function (b) { return { element: b.element, A: b.A, r0: b.r0, cleared: b.cleared, centre: b.centre }; }) } };

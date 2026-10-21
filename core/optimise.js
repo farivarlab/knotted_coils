@@ -612,7 +612,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
       L: el.map(function (Q) { return Q.L; }), wires: el.map(function (Q) { return Q.points; }), normals: el.map(function (Q) { return Q.normals; }),
       layoutWires: lay.map(function (Q) { return Q.points; }),
       crossovers: { count: co.bumps.length, maxA: co.maxA, capped: co.capped, fractionBumped: co.fractionBumped, target: co.target,
-        bumps: co.bumps.map(function (b) { return { element: b.element, A: b.A, r0: b.r0, cleared: b.cleared }; }) },
+        bumps: co.bumps.map(function (b) { return { element: b.element, A: b.A, r0: b.r0, cleared: b.cleared, centre: b.centre }; }) },
       flats: el.map(function (Q) { return Q.flat; }),
       rings: ctx.rings ? ctx.rings.map(function (r) { return Object.assign({}, r); }) : null,
       label: 'Geometric decoupling estimate (quasi-static filament model), EXPLORATORY. Confirm with full-wave simulation or bench S21.'
