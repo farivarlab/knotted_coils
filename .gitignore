@@ -3,3 +3,4 @@ dist/
 node_modules/
 sim/out/**/*.npz
 sim/comsol/*/build_plan.txt
+__pycache__/
