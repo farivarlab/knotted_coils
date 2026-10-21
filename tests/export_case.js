@@ -20,6 +20,7 @@ var fs = require('fs'), path = require('path'), root = path.join(__dirname, '..'
 var KC = globalThis.KC, K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 var WIRE = { d: 1.0, tIns: 0.25, minBend: 2 };   // JUDG PLACEHOLDER (same as tests/run.js)
 var A = WIRE.d / 2, CLEAR = WIRE.d + 2 * WIRE.tIns, NB = 4, CAPCLEAR = 5;
+var ONLY_PAIRS = process.env.KC_EXPORT_ONLY === 'pairs';   // rewrite only the pair cases (single-coil results stay current)
 var outDir = path.join(root, 'sim', 'cases'); if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 var H = JSON.parse(JSON.stringify(S.DEFAULTS));
 var HEAD = KC.field.head(H);                     // helmet - 10 mm (same placeholder head as the B1 view)
@@ -28,14 +29,36 @@ var HEAD = KC.field.head(H);                     // helmet - 10 mm (same placeho
 function phantom(B0) { return KC.phantom.spec(H, B0); }
 
 // One element as world wire + breaks. `centre`: point on the helmet; flat knot wrapped like the array solver does.
-function elementAt(kp, Rf, theta, centre, mirror) {
+function elementAt(kp, Rf, theta, centre, mirror, shiftFrac) {
   var lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness }, CLEAR, 400);
   var flat = K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, theta: theta, h: lift.h, mirror: !!mirror }, 600);
   var W = S.wrap(H, flat, centre);
-  return wireWithBreaks(W.points, flat, W.normals);
+  return wireWithBreaks(W.points, flat, W.normals, shiftFrac);
 }
-function wireWithBreaks(world, flat, normals) {
+// Shift every break by shiftFrac x wire length along the flat knot (DECISIONS 2026-10-21, pair cases). Spacing is
+// unchanged (segments stay equal); the crossing clearance must still meet the V10 rule (>= CAPCLEAR), else error.
+function arcOf(P) {
+  var N = P.length, s = [0];
+  for (var i = 0; i < N; i++) { var a = P[i], b = P[(i + 1) % N]; s.push(s[i] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2])); }
+  return s;
+}
+function shiftBreaks(P, bk, shiftFrac) {
+  var s = arcOf(P), N = P.length, L = s[N];
+  var arc = bk.arc.map(function (x) { return (((x + shiftFrac * L) % L) + L) % L; }).sort(function (x, y) { return x - y; });
+  var xs = [];
+  K.crossings(P).list.forEach(function (c) { xs.push(s[c.i] + c.s * (s[c.i + 1] - s[c.i])); xs.push(s[c.j] + c.t * (s[c.j + 1] - s[c.j])); });
+  var minD = Math.min.apply(null, arc.map(function (x) {
+    return Math.min.apply(null, xs.map(function (c) { var d = ((x - c) % L + L) % L; return Math.min(d, L - d); })); }));
+  if (!(minD >= CAPCLEAR)) throw new Error('break shift violates crossing clearance: ' + minD.toFixed(2) + ' mm < ' + CAPCLEAR);
+  var at = arc.map(function (x) {
+    var lo = 0, hi = N; while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (s[mid] <= x) lo = mid; else hi = mid; }
+    return { index: lo, f: (x - s[lo]) / ((s[lo + 1] - s[lo]) || 1) };
+  });
+  return Object.assign({}, bk, { arc: arc, at: at, minDistToCrossing: minD });
+}
+function wireWithBreaks(world, flat, normals, shiftFrac) {
   var bk = K.breaks(flat, NB, CAPCLEAR), n = world.length;
+  if (shiftFrac) bk = shiftBreaks(flat, bk, shiftFrac);
   var breaks = bk.at.map(function (b) {
     var P0 = world[b.index], P1 = world[(b.index + 1) % n], t = [P1[0] - P0[0], P1[1] - P0[1], P1[2] - P0[2]], tl = Math.hypot(t[0], t[1], t[2]) || 1;
     return { p: [P0[0] + b.f * t[0], P0[1] + b.f * t[1], P0[2] + b.f * t[2]], t: [t[0] / tl, t[1] / tl, t[2] / tl], index: b.index, f: b.f };
@@ -61,19 +84,26 @@ function write(name, B0, els, ph, extra) {
 
 // V15: circular loop R = 40 mm in air (flat, z = 0), 4 evenly spaced breaks (no crossings).
 var loop = I.circle(40, 600);
-write('loop_air_3T', 3, [wireWithBreaks(loop, loop, null)], null, { purpose: 'V15' });
+if (!ONLY_PAIRS) write('loop_air_3T', 3, [wireWithBreaks(loop, loop, null)], null, { purpose: 'V15' });
 
 // Single trefoil on the posterior midline, 20 deg elevation (JUDG).
 var KP = { p: 2, q: 3, beta: 0.8, shape: 'outward', sharpness: 1 }, RF = 45;   // JUDG: footprint radius 45 mm
 var c0 = S.point(H, -Math.PI / 2, 20 * Math.PI / 180);
 var tre = elementAt(KP, RF, 0, c0, false);
 [3, 7].forEach(function (B0) {
+  if (ONLY_PAIRS) return;
   write('trefoil_air_' + B0 + 'T', B0, [tre], null, { purpose: 'V16/V17 (unloaded reference)' });
   write('trefoil_head_' + B0 + 'T', B0, [tre], phantom(B0), { purpose: 'V16/V17/V18/V20' });
 });
 
 // V19: trefoil pair, head-loaded at 3T, centre spacings d0-4, d0, d0+4 mm; d0 = flat quasi-static null (Pair explorer,
 // rotations 0/0). The pair sits symmetric about the posterior midline, 20 deg elevation (chord spacing = d).
+// Break shift for the pair cases (DECISIONS 2026-10-21): fraction of wire length; the mirrored element uses the sign.
+// Default 0.100 with the mirrored element shifted the opposite way (keeps the pair mirror-symmetric): chosen by the
+// rule logged before any pair result existed - largest worst-case port-gap-to-other-coil distance over all pair cases
+// (7.3 mm, was 1.4 mm), subject to break-to-crossing clearance >= CAPCLEAR. Geometry only (JUDG rule, DERIVED value).
+var PAIR_SHIFT = process.env.KC_PAIR_SHIFT != null ? +process.env.KC_PAIR_SHIFT : 0.1;
+var PAIR_SHIFT_SIGN = process.env.KC_PAIR_SHIFT_SIGN != null ? +process.env.KC_PAIR_SHIFT_SIGN : -1;
 var scan = O.pairScan(KP, RF, WIRE, 0, 0, { n: 300 }), d0 = scan.zeros.length ? scan.zeros[scan.zeros.length - 1].d : null;
 if (d0 == null) throw new Error('no quasi-static null found for the pair');
 var v = 20 * Math.PI / 180, rho = H.a * Math.cos(v);   // horizontal radius at that elevation (x semi-axis; back of head)
@@ -84,13 +114,14 @@ var v = 20 * Math.PI / 180, rho = H.a * Math.cos(v);   // horizontal radius at t
   for (var it = 0; it < 60; it++) { var mid = (lo + hi) / 2, pa = S.point(H, -Math.PI / 2 + mid, v), pb = S.point(H, -Math.PI / 2 - mid, v);
     if (KC.layout.dist(pa, pb) < d) lo = mid; else hi = mid; }
   var al = (lo + hi) / 2;
-  var e1 = elementAt(KP, RF, 0, S.point(H, -Math.PI / 2 + al, v), false), e2 = elementAt(KP, RF, 0, S.point(H, -Math.PI / 2 - al, v), true);
+  var e1 = elementAt(KP, RF, 0, S.point(H, -Math.PI / 2 + al, v), false, PAIR_SHIFT),
+    e2 = elementAt(KP, RF, 0, S.point(H, -Math.PI / 2 - al, v), true, PAIR_SHIFT_SIGN * PAIR_SHIFT);
   var qs = quasistatic([e1, e2]), kqs = qs.M_nH[0][1] / Math.sqrt(qs.L_nH[0] * qs.L_nH[1]);
   write('pair_head_3T_d' + (dd >= 0 ? '+' : '') + dd, 3, [e1, e2], phantom(3), { purpose: 'V19', d0_flat_mm: d0, spacing_mm: d,
-    k_quasistatic_on_helmet: kqs });
+    k_quasistatic_on_helmet: kqs, break_shift_frac: [PAIR_SHIFT, PAIR_SHIFT_SIGN * PAIR_SHIFT] });
   console.log('   spacing', d.toFixed(1), 'mm (d0 flat', d0.toFixed(1), ') k_qs on helmet', kqs.toFixed(4));
   // audit M5 (added after the independent review): the same pair in air at d0, to separate tissue effects from
   // geometry/capacitor effects and to check the sign of M_eff against the quasi-static M.
   if (dd === 0) write('pair_air_3T_d+0', 3, [e1, e2], null, { purpose: 'audit M5 (information)', d0_flat_mm: d0, spacing_mm: d,
-    k_quasistatic_on_helmet: kqs });
+    k_quasistatic_on_helmet: kqs, break_shift_frac: [PAIR_SHIFT, PAIR_SHIFT_SIGN * PAIR_SHIFT] });
 });

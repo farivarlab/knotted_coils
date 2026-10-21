@@ -4,6 +4,30 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-21 — Pair cases: capacitor breaks shifted so every port clears the other coil (logged BEFORE any pair run)
+- **Decision:** Reza, 2026-10-21: "shift the capacitor breaks by the same amount in all three pair cases (and the air pair) so every port is clear of the other coil; log it before running".
+- **What V19 keeps, and what changes:**
+  - V19's criterion and spacings {d₀ − 4, d₀, d₀ + 4} are unchanged.
+  - Only the break positions in the pair test setup change.
+  - No pair result existed at the time of this entry: the only pair run so far was the dropped-port run, which produced no signal.
+- **Selection rule (Claude, fixed before scanning):**
+  - One shift for all four pair cases. The mirrored element is shifted the opposite way, so the pair stays mirror-symmetric.
+  - Maximise the worst-case distance from any port gap to the other coil's wire.
+  - Constraint: every break stays ≥ 5 mm from a crossing (the V10 rule).
+  - Segment lengths stay equal, because the whole set of 4 breaks moves together.
+- **Scan:**
+  - Shifts 0 to 0.25 of the wire length in steps of 1/60, then refined by 0.004 around the best.
+  - Shifts that are multiples of 1/12 keep crossing clearance exactly (3-fold symmetry), but reach at most 2.1 mm, so they were not enough.
+  - **Chosen: 0.100 → 7.3 mm** (was 1.4 mm). Crossing clearance 5.03 mm.
+  - Shifts above 0.100 up to 0.112 violate the 5 mm rule.
+- **Checks on the final cases:**
+  - Crossings: none at risk.
+  - Port clearance: no port at risk in any of the four cases (grid-snapping check).
+  - openEMS preflight passes (all ports on the grid).
+  - Mirror-symmetry error of the break sets: 0.
+- **Side observation:** regenerating the cases with today's code gives the same trefoil as the single-coil runs to 0.2 µm in position (L differs by 0.001 nH, floating-point noise in the lift solve). The single-coil case files were left as committed.
+- **Caveat for interpretation:** the pair's capacitors are no longer at the same positions along the wire as the single-trefoil runs. Cross-comparisons of tuned capacitor values between single and pair runs carry that difference.
+
 ### 2026-10-21 — FAILED RUN: pair_head_3T_d+0 ran 13.7 h with no signal (feed port silently dropped)
 - **What happened:**
   - The first pair run (started 19:51) never injected energy: openEMS reported energy ~0 for 5.66 million timesteps.
