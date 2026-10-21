@@ -4,6 +4,20 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-21 — INVALID RUN: pair cases had the two coils touching (no separation at inter-element crossings)
+- **Found:** Claude, reviewing the first pair result (`pair_head_3T_d+0`, finished about 13:10). Mirror-twin elements gave different inductances (399 vs 596 nH, where 500 is expected). Also R_loop 916 Ω (expected about 8 Ω), S21 −3.6 dB, and M_eff −118 nH against +2.9 nH quasi-static.
+- **Cause:**
+  - The two coils' wires pass within 0.03–0.05 mm of each other in every pair case, at the midline where the mirrored coils cross.
+  - Design §4 says that "where wires from neighbouring overlapping elements cross, they need a lift too", but this was **never implemented**: neither the array solver nor the case export separates crossings between different elements.
+  - `check_crossings.py` checked only crossings within each coil, plus port clearance.
+  - The quasi-static model was not visibly affected, because the kernel is softened near contact (DECISIONS "Kernel softening"). FDTD shorts the coils together.
+- **Same gap in app arrays:** a 16-element free array (seed 1) has 32 of 48 overlapping pairs with wires closer than 1.5 mm (wire plus insulation); the closest is 0.3 mm.
+- **Actions:**
+  - Pair queue killed; `pair_head_3T_d-4` was mid-run.
+  - The d+0 output was moved to `sim/out/_invalid/` so the validation runner ignores it. It was included in the 13:37 full-validation V16 line (1.0025); that report is not committed and will be regenerated.
+  - No pair runs until the separation is designed (Reza's decision: how coils cross each other).
+- **Process lesson:** pre-run geometry checks must include wire-to-wire clearance between **all** wires, not only within each element.
+
 ### 2026-10-21 — Design v1.8: knot thickness T (Reza), and a self-inductance correction found on the way
 - **Request:** Reza: one parameter for the total thickness of the knot. Reza chose "outward only" over "straddle the helmet surface".
 - **Design (Claude):**
