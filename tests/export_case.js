@@ -34,7 +34,20 @@ function elementAt(kp, Rf, theta, centre, mirror, shiftFrac) {
   var lift = K.height({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, height: kp.height || 0 }, CLEAR, 400);
   var flat = K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, theta: theta, h: lift.h, zOff: lift.zOff, mirror: !!mirror }, 600);
   var W = S.wrap(H, flat, centre);
-  return wireWithBreaks(W.points, flat, W.normals, shiftFrac);
+  var el = wireWithBreaks(W.points, flat, W.normals, shiftFrac);
+  Object.defineProperty(el, '_src', { value: { flat: flat, shiftFrac: shiftFrac }, enumerable: false });   // not written to JSON
+  return el;
+}
+// Design v1.9: crossover bumps between the elements of a case (higher-numbered element lifts over lower), then the
+// bumped elements are rebuilt so breaks (same arc positions on the flat knot) and L follow the bumped wire.
+function withCrossovers(els) {
+  var co = O.crossovers(els.map(function (e) { return e.wire; }), els.map(function (e) { return e.normals; }), CLEAR);
+  var out = els.map(function (e, i) {
+    var moved = false; for (var q = 0; q < co.disp[i].length; q++) if (co.disp[i][q] > 0) { moved = true; break; }
+    return moved ? wireWithBreaks(co.wires[i], e._src.flat, e.normals, e._src.shiftFrac) : e;
+  });
+  return { els: out, info: { count: co.bumps.length, maxA: co.maxA, capped: co.capped, fractionBumped: co.fractionBumped, target: co.target,
+    bumps: co.bumps.map(function (b) { return { element: b.element, A: b.A, r0: b.r0, cleared: b.cleared, centre: b.centre }; }) } };
 }
 // Shift every break by shiftFrac x wire length along the flat knot (DECISIONS 2026-10-21, pair cases). Spacing is
 // unchanged (segments stay equal); the crossing clearance must still meet the V10 rule (>= CAPCLEAR), else error.
@@ -117,12 +130,16 @@ var v = 20 * Math.PI / 180, rho = H.a * Math.cos(v);   // horizontal radius at t
   var al = (lo + hi) / 2;
   var e1 = elementAt(KP, RF, 0, S.point(H, -Math.PI / 2 + al, v), false, PAIR_SHIFT),
     e2 = elementAt(KP, RF, 0, S.point(H, -Math.PI / 2 - al, v), true, PAIR_SHIFT_SIGN * PAIR_SHIFT);
+  var X = withCrossovers([e1, e2]); e1 = X.els[0]; e2 = X.els[1];
+  console.log('   crossovers:', X.info.count, 'bumps, max height', X.info.maxA.toFixed(2), 'mm, capped', X.info.capped, ', wire bumped', (100 * X.info.fractionBumped).toFixed(1) + '%');
   var qs = quasistatic([e1, e2]), kqs = qs.M_nH[0][1] / Math.sqrt(qs.L_nH[0] * qs.L_nH[1]);
   write('pair_head_3T_d' + (dd >= 0 ? '+' : '') + dd, 3, [e1, e2], phantom(3), { purpose: 'V19', d0_flat_mm: d0, spacing_mm: d,
-    k_quasistatic_on_helmet: kqs, break_shift_frac: [PAIR_SHIFT, PAIR_SHIFT_SIGN * PAIR_SHIFT] });
+    k_quasistatic_on_helmet: kqs, break_shift_frac: [PAIR_SHIFT, PAIR_SHIFT_SIGN * PAIR_SHIFT], crossovers: X.info,
+    refine: X.info.bumps.map(function (b) { return b.centre; }) });
   console.log('   spacing', d.toFixed(1), 'mm (d0 flat', d0.toFixed(1), ') k_qs on helmet', kqs.toFixed(4));
   // audit M5 (added after the independent review): the same pair in air at d0, to separate tissue effects from
   // geometry/capacitor effects and to check the sign of M_eff against the quasi-static M.
   if (dd === 0) write('pair_air_3T_d+0', 3, [e1, e2], null, { purpose: 'audit M5 (information)', d0_flat_mm: d0, spacing_mm: d,
-    k_quasistatic_on_helmet: kqs, break_shift_frac: [PAIR_SHIFT, PAIR_SHIFT_SIGN * PAIR_SHIFT] });
+    k_quasistatic_on_helmet: kqs, break_shift_frac: [PAIR_SHIFT, PAIR_SHIFT_SIGN * PAIR_SHIFT], crossovers: X.info,
+    refine: X.info.bumps.map(function (b) { return b.centre; }) });
 });

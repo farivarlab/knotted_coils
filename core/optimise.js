@@ -411,21 +411,153 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
   };
 
   // ---------- Final, honest report (Design.md §5.3, §8; v1.6 adds adjacency, regularity, zones, per-element shapes) ----------
+  // ---------- Crossover bumps between overlapping elements (Design v1.9 §4, Reza 2026-10-21) ----------
+  // Where wires of two different elements cross, the HIGHER-numbered element lifts outward over the lower one.
+  // Elements are processed in index order, each against the final (already bumped) wires of all lower-numbered
+  // elements. Points of element j closer than `target` to a lower wire are grouped into clusters (points within
+  // clusterGap mm); each cluster gets a SPATIAL bump: every point of j within r0 of the cluster centre moves outward
+  // along its surface normal by A, tapering as a raised cosine to 0 between r0 and r0 + W. Spatial (not along-wire),
+  // so both strands of j's own nearby crossing move together. A grows from `target` in `step` mm until every bumped
+  // segment of j clears every lower wire by `target`; A_max caps it (flagged). If a remaining clash lies on the bump's
+  // taper (typically a lower wire that is itself raised over a third coil), the plateau radius r0 grows to cover it
+  // instead (up to r0_max = 30 mm, JUDG), so the upper coil passes over the whole raised stretch. Likewise, if one of j's
+  // OWN crossings (two strands of j within 5 mm in space but far apart along the wire) would sit on the taper, r0 grows
+  // until both strands are on the plateau, so they rise together and keep their own over/under clearance
+  // (development fix 2026-10-21, found by the V24(c)-style check on the pair cases before the official run).
+  // Parameters (Design v1.9; PARAMETERS.md): target = 1.1 x (d_w + 2 t_i) JUDG; W = 6 mm JUDG; A_max = 10 mm JUDG;
+  // step 0.1 mm JUDG; clusterGap 3 mm JUDG; r0 = cluster radius + target DERIVED.
+  // taper width W (mm): pre-registered 6 (JUDG); TUNED to 10 on 2026-10-21 because W = 6 broke the bend-radius limit on the
+  // pair cases (development check before the official V24 run; DECISIONS). Tuned on cases that V24 also tests.
+  var KC_CROSSOVER_W = 10;
+  O.crossovers = function (wires, normals, clearReq, opt) {
+    opt = Object.assign({ margin: 1.1, W: KC_CROSSOVER_W, Amax: 10, step: 0.1, clusterGap: 3, r0max: 30 }, opt || {});
+    var target = opt.margin * clearReq, N = wires.length;
+    var out = wires.map(function (w) { return w.map(function (p) { return p.slice(); }); });
+    var disp = wires.map(function (w) { return new Float64Array(w.length); });
+    var bumps = [], capped = false;
+    function bbox(P) {
+      var lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+      P.forEach(function (p) { for (var a = 0; a < 3; a++) { if (p[a] < lo[a]) lo[a] = p[a]; if (p[a] > hi[a]) hi[a] = p[a]; } });
+      return { lo: lo, hi: hi };
+    }
+    function boxesNear(A, B, pad) { for (var a = 0; a < 3; a++) if (A.lo[a] - pad > B.hi[a] || B.lo[a] - pad > A.hi[a]) return false; return true; }
+    function dist(p, q) { return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]); }
+    function prof(r, r0) { return r <= r0 ? 1 : r >= r0 + opt.W ? 0 : 0.5 * (1 + Math.cos(Math.PI * (r - r0) / opt.W)); }
+    for (var j = 1; j < N; j++) {
+      var Pj = wires[j], nj = Pj.length, bj = bbox(Pj), lower = [];
+      for (var i = 0; i < j; i++) if (boxesNear(bj, bbox(out[i]), target + 1)) lower.push(i);
+      if (!lower.length) continue;
+      // segments of j closer than target to a lower wire -> close points (both segment ends)
+      var close = [];
+      for (var k = 0; k < nj; k++) {
+        var a = Pj[k], b = Pj[(k + 1) % nj], hit = false;
+        for (var li = 0; li < lower.length && !hit; li++) {
+          var Q = out[lower[li]], nq = Q.length;
+          for (var m = 0; m < nq; m++) {
+            var c0 = Q[m], c1 = Q[(m + 1) % nq];
+            if (dist(a, c0) > 20 && dist(a, c1) > 20) continue;   // segments are ~2 mm: cheap rejection
+            if (K.segSegDist(a, b, c0, c1) < target) { hit = true; break; }
+          }
+        }
+        if (hit) { close.push(k); close.push((k + 1) % nj); }
+      }
+      if (!close.length) continue;
+      // j's own crossing strands: point pairs within 5 mm in space but more than 1/20 of the wire apart along it
+      var own = [], gap = Math.max(3, Math.floor(nj / 20));
+      for (var u1 = 0; u1 < nj; u1++) for (var u2 = u1 + gap; u2 < nj; u2++) {
+        if (nj - (u2 - u1) < gap) continue;
+        if (dist(Pj[u1], Pj[u2]) < 5) own.push([u1, u2]);
+      }
+      // clusters: greedy grouping of close points within clusterGap of any member
+      var clusters = [];
+      close.forEach(function (k2) {
+        var p = Pj[k2], home = null;
+        for (var c = 0; c < clusters.length && !home; c++)
+          for (var t = 0; t < clusters[c].length; t++) if (dist(p, Pj[clusters[c][t]]) <= opt.clusterGap) { home = clusters[c]; break; }
+        if (home) { if (home.indexOf(k2) < 0) home.push(k2); } else clusters.push([k2]);
+      });
+      clusters.forEach(function (cl) {
+        var cen = [0, 0, 0];
+        cl.forEach(function (k3) { for (var a2 = 0; a2 < 3; a2++) cen[a2] += Pj[k3][a2] / cl.length; });
+        var rc = 0; cl.forEach(function (k3) { rc = Math.max(rc, dist(Pj[k3], cen)); });
+        var r0 = rc + target, reach, idx, prf, near;
+        function region() {
+          reach = r0 + opt.W; idx = []; prf = []; near = [];
+          for (var k4 = 0; k4 < nj; k4++) { var r = dist(Pj[k4], cen); if (r < reach) { idx.push(k4); prf.push(prof(r, r0)); } }
+          lower.forEach(function (li2) {   // lower-wire segments that could matter for this bump
+            var Q2 = out[li2], nq2 = Q2.length;
+            for (var m2 = 0; m2 < nq2; m2++) if (dist(Q2[m2], cen) < reach + opt.Amax + 5) near.push([Q2[m2], Q2[(m2 + 1) % nq2]]);
+          });
+        }
+        region();
+        function place(A) {
+          idx.forEach(function (k5, t2) {
+            var d = Math.max(disp[j][k5], A * prf[t2]), nn = normals[j][k5];
+            out[j][k5] = [Pj[k5][0] + d * nn[0], Pj[k5][1] + d * nn[1], Pj[k5][2] + d * nn[2]];
+          });
+        }
+        function clashes() {   // indices t into idx whose segment is closer than target to a lower wire
+          var bad = [];
+          for (var t3 = 0; t3 < idx.length; t3++) {
+            var k6 = idx[t3], a3 = out[j][k6], b3 = out[j][(k6 + 1) % nj];
+            for (var s = 0; s < near.length; s++) if (K.segSegDist(a3, b3, near[s][0], near[s][1]) < target) { bad.push(t3); break; }
+          }
+          return bad;
+        }
+        var A = target, ok = false;
+        place(A);
+        for (var it = 0; it < 2000; it++) {
+          var bad = clashes();
+          var split = 0;   // own crossing straddling the taper: both strands must be on the plateau (or both outside)
+          own.forEach(function (pr) {
+            var f1 = prof(dist(Pj[pr[0]], cen), r0), f2 = prof(dist(Pj[pr[1]], cen), r0);
+            if (Math.abs(f1 - f2) > 1e-9 && Math.max(f1, f2) > 0) split = Math.max(split, dist(Pj[pr[0]], cen), dist(Pj[pr[1]], cen));
+          });
+          if (split > 0 && r0 < opt.r0max) { r0 = Math.min(opt.r0max, Math.max(r0 + 0.5, split + 0.5)); region(); place(A); continue; }
+          if (!bad.length) { ok = true; break; }
+          var onTaper = bad.filter(function (t5) { return prf[t5] < 1; });
+          if (onTaper.length && r0 < opt.r0max) {
+            var need = Math.max.apply(null, onTaper.map(function (t5) { return dist(Pj[idx[t5]], cen); })) + 0.5;
+            r0 = Math.min(opt.r0max, Math.max(r0 + 0.5, need)); region(); place(A);
+          } else if (A < opt.Amax) { A = Math.min(opt.Amax, A + opt.step); place(A); }
+          else break;
+        }
+        if (!ok) capped = true;
+        idx.forEach(function (k7, t4) { disp[j][k7] = Math.max(disp[j][k7], A * prf[t4]); });
+        bumps.push({ element: j, over: lower.slice(), centre: cen, r0: r0, A: A, cleared: ok, points: idx.length });
+      });
+    }
+    var moved = 0, total = 0;
+    disp.forEach(function (D) { total += D.length; for (var q = 0; q < D.length; q++) if (D[q] > 0) moved++; });
+    return { wires: out, disp: disp, bumps: bumps, capped: capped, target: target,
+      maxA: bumps.reduce(function (m3, b4) { return Math.max(m3, b4.A); }, 0), fractionBumped: total ? moved / total : 0 };
+  };
+
   O.report = function (ctx, onProgress) {
-    var st = ctx.state, N = st.C.length, o = ctx.o, el = [], elLow = [], E = [];
+    var st = ctx.state, N = st.C.length, o = ctx.o, lay = [], el = [], elLow = [], E = [];
     for (var i = 0; i < N; i++) {
-      el.push(O.buildElement(ctx, i, o.nFinal)); E.push(el[i].e);
+      lay.push(O.buildElement(ctx, i, o.nFinal)); E.push(lay[i].e);
       if (onProgress) onProgress({ stage: 'report', sweep: i + 1, of: N });
     }
+    // v1.9: crossover bumps on the final wires; 'lay' keeps the pre-bump layout (V9 symmetry, comparison)
+    var co = O.crossovers(lay.map(function (Q) { return Q.points; }), lay.map(function (Q) { return Q.normals; }), ctx.c);
+    var bumped = co.disp.map(function (D) { for (var q = 0; q < D.length; q++) if (D[q] > 0) return true; return false; });
+    el = lay.map(function (Q, i2) {
+      return bumped[i2] ? Object.assign({}, Q, { points: co.wires[i2], prep: I.prep(co.wires[i2]), L: I.selfL(co.wires[i2], ctx.a, Q.normals) }) : Q;
+    });
+    var kLay = new Float64Array(N * N);
     var adj = O.adjacency(ctx.samples, st.C, adjTol(ctx));
     var kM = new Float64Array(N * N), pairs = [];
     for (var a = 0; a < N; a++) for (var b = a + 1; b < N; b++) {
       var d = Lay.dist(st.C[a], st.C[b]), Rm = (E[a].Rf + E[b].Rf) / 2, dn = d / Rm, k;
-      if (dn < 3.5) k = I.mutual(el[a].prep, el[b].prep, ctx.c) / Math.sqrt(el[a].L * el[b].L);
-      else {
+      if (dn < 3.5) {
+        k = I.mutual(el[a].prep, el[b].prep, ctx.c) / Math.sqrt(el[a].L * el[b].L);
+        kLay[a * N + b] = kLay[b * N + a] = bumped[a] || bumped[b] ? I.mutual(lay[a].prep, lay[b].prep, ctx.c) / Math.sqrt(lay[a].L * lay[b].L) : k;
+      } else {
         if (!elLow[a]) elLow[a] = I.prep(O.buildElement(ctx, a, 120).points);
         if (!elLow[b]) elLow[b] = I.prep(O.buildElement(ctx, b, 120).points);
         k = I.mutual(elLow[a], elLow[b], ctx.c) / Math.sqrt(el[a].L * el[b].L);
+        kLay[a * N + b] = kLay[b * N + a] = k;   // far pairs never cross: no bumps between them
       }
       kM[a * N + b] = kM[b * N + a] = k;
       // ring1: nearest ring (v1.1 rule, free mode only); footprint: footprints overlap (v1.0); adjacent: Voronoi (v1.6)
@@ -467,7 +599,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
       theta: E.map(function (x) { return x.theta; }),
       elements: E.map(function (x) { return { Rf: x.Rf, beta: x.beta, m: x.m, theta: x.theta, h: x.h, zOff: x.zOff || 0, mirror: x.mirror, ring: x.ring, midline: !!x.midline, twin: x.twin }; }),
       elementShapes: shapeReps, liftFeasibleFinal: finalLiftOK,
-      kMatrix: kM, pairs: pairs, target: ctx.mode === 'ring' ? 'adjacent' : o.target,
+      kMatrix: kM, kMatrixLayout: kLay, pairs: pairs, target: ctx.mode === 'ring' ? 'adjacent' : o.target,
       footprint: fp, ring1: r1s, adjacent: ad, next: stats(function (p) { return p.kind === 'next'; }), far: stats(function (p) { return p.kind === 'far'; }),
       threshold: o.thresholdK,
       decoupledFootprint: fp.count > 0 && fp.above === 0,   // v1.0 rule
@@ -478,6 +610,9 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
       zoneByElement: zoneIn,
       coverage: covered / ctx.covSamples.length, element: planarRep, wrapDistortion: { max: Math.max.apply(null, distortion.map(Math.abs)) },
       L: el.map(function (Q) { return Q.L; }), wires: el.map(function (Q) { return Q.points; }), normals: el.map(function (Q) { return Q.normals; }),
+      layoutWires: lay.map(function (Q) { return Q.points; }),
+      crossovers: { count: co.bumps.length, maxA: co.maxA, capped: co.capped, fractionBumped: co.fractionBumped, target: co.target,
+        bumps: co.bumps.map(function (b) { return { element: b.element, A: b.A, r0: b.r0, cleared: b.cleared }; }) },
       flats: el.map(function (Q) { return Q.flat; }),
       rings: ctx.rings ? ctx.rings.map(function (r) { return Object.assign({}, r); }) : null,
       label: 'Geometric decoupling estimate (quasi-static filament model), EXPLORATORY. Confirm with full-wave simulation or bench S21.'

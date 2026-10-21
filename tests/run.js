@@ -189,12 +189,13 @@ want('V9') && (function () {
       if (e.midline || e.twin == null) return;
       // mirrored elements run in reversed point order (same curve; current circulates the same way seen from outside),
       // so point t of one twin corresponds to point (n - t) mod n of the other (harness updated 2026-10-20, criterion unchanged)
-      var j = e.twin, Wi = r.wires[i], Wj = r.wires[j], nW = Wi.length;
+      // Design v1.9: V9 is evaluated on the layout before crossover bumps (layoutWires, kMatrixLayout)
+      var LW = r.layoutWires || r.wires, j = e.twin, Wi = LW[i], Wj = LW[j], nW = Wi.length;
       for (var t = 0; t < nW; t++) { var u = (nW - t) % nW; wErr = Math.max(wErr, Math.abs(Wi[t][0] + Wj[u][0]), Math.abs(Wi[t][1] - Wj[u][1]), Math.abs(Wi[t][2] - Wj[u][2])); }
     });
     var P = r.elements.map(function (e, i) { return e.midline || e.twin == null ? i : e.twin; });
     for (var a = 0; a < N; a++) for (var b = a + 1; b < N; b++) {
-      var d = Math.abs(r.kMatrix[a * N + b] - r.kMatrix[P[a] * N + P[b]]);
+      var KL = r.kMatrixLayout || r.kMatrix, d = Math.abs(KL[a * N + b] - KL[P[a] * N + P[b]]);
       if (r.elements[a].midline || r.elements[b].midline) kMidErr = Math.max(kMidErr, d); else kErr = Math.max(kErr, d);
       pairsChecked++;
     }

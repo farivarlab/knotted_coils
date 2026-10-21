@@ -31,6 +31,10 @@ PARAMETERS (also in PARAMETERS.md):
   PORT_ROUND 1e-3 mm  DERIVED: port terminals rounded to 1 um so that openEMS's 7-significant-digit XML export of the
                     port box equals the grid line exactly (see DECISIONS 2026-10-21: an unrounded feed port was silently
                     dropped in the pair case and the run produced no signal for 13.7 h).
+  REFINE 0.4 mm +-3 mm  JUDG (Design v1.9): extra grid lines every 0.4 mm within +-3 mm (each axis) of every crossover
+                    centre listed in the case ('refine'), so two coils 1.65 mm apart land several grid nodes apart
+                    (pre-run gate). Caveat: the thin-wire correction (a_eff ~ 0.17 x cell) was calibrated on a uniform
+                    1 mm grid; the short refined stretches have a smaller a_eff (information; V15b caveat).
   MAX_TS 2e6        JUDG: timestep cap (openEMS default is 1e9, i.e. effectively none). The slowest completed run so far
                     needed ~2e5 timesteps; a run that hits the cap is reported, not trusted.
 VALIDATED BY: V15 (resonance of a circular loop), V16 (passivity/reciprocity of S). Exploratory otherwise.
@@ -159,6 +163,13 @@ def planes_for(case):
             dict(name='coronal', axis=1, pos=float(y_cor), start=[-ext[0], float(y_cor), -ext[2]], stop=[ext[0], float(y_cor), ext[2]])]
 
 
+def add_refinement(mesh, case):
+    """Design v1.9: local grid refinement around crossover centres (REFINE). Shared with sim/check_crossings.py."""
+    for c in case.get('refine') or []:
+        for ax in range(3):
+            mesh.AddLine('xyz'[ax], [float(v) for v in np.round(np.arange(c[ax] - 3.0, c[ax] + 3.0 + 1e-9, 0.4), 3)])
+
+
 def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box, nrts=None):
     f0 = case['f0_Hz']
     fc = opt.fc_frac * f0
@@ -197,6 +208,7 @@ def build_and_run(case, drive, sim_path, opt, planes, phantom_file, phantom_box,
     lo, hi = pts.min(axis=0) - 6.0, pts.max(axis=0) + 6.0
     for ax in range(3):
         mesh.AddLine('xyz'[ax], [lo[ax], hi[ax]])
+    add_refinement(mesh, case)
     mesh.SmoothMeshLines('all', opt.res, 1.4)
     if phantom_file:
         body = CSX.AddDiscMaterial('head', filename=phantom_file, filetype=0, scale=1 / UNIT)

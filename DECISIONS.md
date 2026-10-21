@@ -4,6 +4,26 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-21 — Design v1.9 crossover bumps: development findings and fixes (before the official V24 run)
+- **Pre-registered:** 8fa1bf7.
+- **Development checks of the V24 criteria, which found problems and drove fixes:**
+  1. **First version:**
+     - **Pair cases:** coils separated (≥ 1.66 mm), but the bumped coil's *own* clearance fell to 1.07 mm and its tightest bend to 1.38 mm. Cause: one of its own crossings sat on a bump's taper, so its two strands rose by different amounts.
+     - **16-element array:** bumps cascaded to A_max and wires still nearly touched (0.013 mm). Cause: a bump's taper rose into a lower coil that was itself raised over a third coil.
+  2. **Fixes (Claude):**
+     - **r0 grows** until any remaining clash, and both strands of any own crossing of the bumped coil, lie on the plateau rather than the taper.
+     - **Taper W TUNED from 6 to 10 mm** (pre-registered value 6, JUDG). W = 6 still broke the 2 mm bend limit on pair d−4 (1.32 mm); W = 10 gives ≥ 2.37 mm. **Tuned on the pair cases, which V24 also tests.**
+  3. **Result after the fixes:**
+     - **Pair cases (development):** inter-coil ≥ 1.66 mm, own clearance 1.50 mm, bends ≥ 2.37 mm, max bump 3.15 mm, nothing capped; 24–34% of the upper coil's wire is raised.
+     - **16-element array:** still **fails** — bumps capped at 10 mm, own clearance down to 0.58 mm. Local bumps are not local in heavily overlapping knot arrays, so a better array algorithm is needed (open item). The official V24 run will report this as a FAIL.
+- **Grid gate (v1.9 pre-run gate (3)):**
+  - With the coils 1.66 mm apart on the 1 mm grid, 1–3 spots per case had the two coils on edge-adjacent grid nodes, which fails the gate (none shared a node).
+  - The gate was **not relaxed**. Instead, the grid is refined locally: lines every 0.4 mm within ±3 mm of each crossover centre (REFINE, JUDG). All four pair cases now pass all three gate parts.
+  - Caveat: the thin-wire calibration assumed a uniform 1 mm grid.
+- **Quasi-static effect of the bumps (information):**
+  - Pair d₀: k 0.0058 → 0.0061.
+  - The upper coil's L rises 500 → 509 nH (longer wire).
+
 ### 2026-10-21 — INVALID RUN: pair cases had the two coils touching (no separation at inter-element crossings)
 - **Found:** Claude, reviewing the first pair result (`pair_head_3T_d+0`, finished about 13:10). Mirror-twin elements gave different inductances (399 vs 596 nH, where 500 is expected). Also R_loop 916 Ω (expected about 8 Ω), S21 −3.6 dB, and M_eff −118 nH against +2.9 nH quasi-static.
 - **Cause:**

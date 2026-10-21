@@ -39,6 +39,7 @@ def build_mesh(case, opt):
     lo, hi = pts.min(axis=0) - 6.0, pts.max(axis=0) + 6.0
     for ax in range(3):
         mesh.AddLine('xyz'[ax], [lo[ax], hi[ax]])
+    R.add_refinement(mesh, case)                                     # Design v1.9, same as run_openems.py
     mesh.SmoothMeshLines('all', opt.res, 1.4)
     return [np.asarray(mesh.GetLines('xyz'[ax])) for ax in range(3)]
 
@@ -122,6 +123,30 @@ def main():
                     pbad += 1
                     print('element %d port %d: element %d wire snaps onto or next to the gap' % (e, k, f))
     print('ports at risk from another element (same node or one grid edge apart):', pbad)
+
+    # Design v1.9 pre-run gate (3): wires of DIFFERENT elements must not snap onto the same or edge-adjacent grid nodes.
+    def wire_nodes(W):
+        W = np.asarray(W, float)
+        ns = set()
+        for i in range(len(W)):
+            ns |= nodes(W[i], W[(i + 1) % len(W)])
+        return ns
+    wn = [wire_nodes(el['wire']) for el in case['elements']]
+    wbad = 0
+    for e in range(len(wn)):
+        for f in range(e + 1, len(wn)):
+            same = wn[e] & wn[f]
+            adj = set()
+            for g in wn[e]:
+                for ax in range(3):
+                    for dlt in (-1, 1):
+                        h = list(g); h[ax] += dlt
+                        if tuple(h) in wn[f]:
+                            adj.add(g)
+            if same or adj:
+                wbad += 1
+                print('elements %d and %d: %d shared nodes, %d edge-adjacent nodes' % (e, f, len(same), len(adj)))
+    print('element pairs at risk (wires on same or edge-adjacent grid nodes):', wbad)
 
 
 if __name__ == '__main__':
