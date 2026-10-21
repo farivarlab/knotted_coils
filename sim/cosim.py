@@ -208,21 +208,22 @@ def b1_quasistatic(wire_mm, X, Y, Zc):
     return (0.5 * np.sqrt(B[:, 0] ** 2 + B[:, 1] ** 2)).reshape(X.shape)
 
 
-def main(name):
-    out = os.path.join(ROOT, 'sim', 'out', name)
-    meta = json.load(open(os.path.join(out, 'openems_meta.json')))
-    # audit C5: refuse to post-process an openEMS output that is incomplete or older than its run record
-    npz = os.path.join(out, 'openems.npz')
+def main(name, solver='openems'):
+    # Design v1.10: solver 'comsol' reads sim/out/<case>_comsol/comsol.npz + comsol_meta.json (same layout, no B1 planes)
+    out = os.path.join(ROOT, 'sim', 'out', name + ('_comsol' if solver == 'comsol' else ''))
+    mfile, npz = os.path.join(out, solver + '_meta.json'), os.path.join(out, solver + '.npz')
+    meta = json.load(open(mfile))
+    # audit C5: refuse to post-process a solver output that is incomplete or older than its run record
     nports_meta = len(meta.get('ports') or [])
     nruns = len([r for r in meta.get('runs', []) if isinstance(r.get('port'), int)])
-    if nruns != nports_meta or os.path.getmtime(npz) + 5 < os.path.getmtime(os.path.join(out, 'openems_meta.json')) - 60:
-        raise SystemExit('STALE or incomplete openEMS output for %s (runs %d, ports %d)' % (name, nruns, nports_meta))
+    if nruns != nports_meta or os.path.getmtime(npz) + 5 < os.path.getmtime(mfile) - 60:
+        raise SystemExit('STALE or incomplete %s output for %s (runs %d, ports %d)' % (solver, name, nruns, nports_meta))
     case = json.load(open(meta.get('case_file') or os.path.join(ROOT, 'sim', 'cases', name + '.json')))
-    D = np.load(os.path.join(out, 'openems.npz'))
+    D = np.load(npz)
     freq, S = D['freq'], D['S']
     f0 = case['f0_Hz']
     w0 = 2 * np.pi * f0
-    res = dict(case=name, B0_T=case['B0_T'], f0_MHz=f0 / 1e6, loaded=bool(case.get('phantom')),
+    res = dict(case=name, solver=solver, B0_T=case['B0_T'], f0_MHz=f0 / 1e6, loaded=bool(case.get('phantom')),
                tissue_source=(case['phantom']['tissue']['source'] if case.get('phantom') else None),
                parameters=dict(SIGMA_CU=SIGMA_CU, Q_CAP=Q_CAP, Q_IND=Q_IND, Z_PRE=Z_PRE, PASSES=PASSES))
     # ---- V16 inputs: passivity and reciprocity of the extracted S over the band
@@ -448,4 +449,4 @@ def plots(out, name, freq, s11, f0, E, res):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1], 'comsol' if '--solver' in sys.argv and sys.argv[sys.argv.index('--solver') + 1] == 'comsol' else 'openems')

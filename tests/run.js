@@ -2,7 +2,7 @@
 // Reza Farivar (McGill University), who is accountable for it. See README 'Provenance and AI-use statement'.
 /*
 VALIDATION RUNNER — the pre-registered checks of Design.md §7 (V1–V6 registered in git 39a4e83, V7 in 30d6fa1, V8 in ff1a40e,
-V9–V14 in 91c4df5, V15–V20 in 527aba1, V15b in be426cb, V21–V23 in 979b1fa, V24 in 8fa1bf7),
+V9–V14 in 91c4df5, V15–V20 in 527aba1, V15b in be426cb, V21–V23 in 979b1fa, V24 in 8fa1bf7, V25 in e2763ae),
 applied mechanically. Pass criteria are copied from Design.md and must not be edited here.
 
   node tests/run.js        -> prints results; writes validation/validation_report.{json,html}
@@ -469,7 +469,7 @@ want('V24') && (function () {
 (function () {
   var simOut = path.join(root, 'sim', 'out');
   function load(name) { var f = path.join(simOut, name, 'cosim.json'); return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : null; }
-  function all() { return fs.existsSync(simOut) ? fs.readdirSync(simOut).filter(function (d) { return d.indexOf('_') > 0 && !/_(res|curve|addwire)/.test(d) && fs.existsSync(path.join(simOut, d, 'cosim.json')); }).map(function (d) { return load(d); }) : []; }
+  function all() { return fs.existsSync(simOut) ? fs.readdirSync(simOut).filter(function (d) { return d.indexOf('_') > 0 && !/_(res|curve|addwire|comsol)/.test(d) && fs.existsSync(path.join(simOut, d, 'cosim.json')); }).map(function (d) { return load(d); }) : []; }
   var loop = load('loop_air_3T'), hist = load('loop_air_3T_addwire_res1.0');
   want('V15') && rec({ id: 'V15', title: 'Full-wave loop resonance with first-pass capacitors vs prediction (openEMS, thin curves, 1 mm grid)',
     criterion: 'within ±5% of 127.73 MHz', verdict: !loop || !loop.V15 || loop.V15.rel_err == null ? 'NOT RUN' : Math.abs(loop.V15.rel_err) <= 0.05 ? 'PASS' : 'FAIL',
@@ -510,6 +510,25 @@ want('V24') && (function () {
     criterion: 'within 10%; NOT EVALUABLE if mariepy cannot run',
     verdict: !mr || !mr.rel_diff ? 'NOT EVALUABLE' : Object.keys(mr.rel_diff).every(function (k) { return Math.abs(mr.rel_diff[k]) <= 0.10; }) ? 'PASS' : 'FAIL',
     summary: mr ? mr.summary : 'no mariepy result (see DECISIONS.md)', rows: mr ? [mr] : [] });
+  // V25 (Design v1.10, pre-registered in e2763ae): COMSOL vs openEMS on loop_air_3T and trefoil_air_3T
+  want('V25') && (function () {
+    var names = ['loop_air_3T', 'trefoil_air_3T'], rows = [], ok = true, missing = [];
+    names.forEach(function (nm) {
+      var fc = path.join(simOut, nm + '_comsol', 'cosim.json'), fo = path.join(simOut, nm, 'cosim.json');
+      if (!fs.existsSync(fc) || !fs.existsSync(fo)) { missing.push(nm); return; }
+      var C = JSON.parse(fs.readFileSync(fc, 'utf8')), O2 = JSON.parse(fs.readFileSync(fo, 'utf8'));
+      var passive = C.V16.max_singular_value <= 1.001 && C.V16.max_reciprocity_error <= 0.02;
+      var dC = C.tuned && O2.tuned ? C.elements[0].Ct_pF / O2.elements[0].Ct_pF - 1 : null;
+      var sameSign = nm === 'loop_air_3T' ? (C.V15 && O2.V15 && C.V15.rel_err != null && O2.V15.rel_err != null ? Math.sign(C.V15.rel_err) === Math.sign(O2.V15.rel_err) : false) : true;
+      var pass = passive && dC != null && Math.abs(dC) <= 0.10 && sameSign; if (!pass) ok = false;
+      rows.push({ case: nm, comsolPassive: passive, Ct_rel_diff: dC, loopResonanceSignSame: nm === 'loop_air_3T' ? sameSign : null, comsolV15relErr: C.V15 ? C.V15.rel_err : null, pass: pass });
+    });
+    rec({ id: 'V25', title: 'Second full-wave solver (COMSOL via MPh) vs openEMS: loop_air_3T and trefoil_air_3T',
+      criterion: '(a) COMSOL S passive/reciprocal as V16; (b) tuned Ct within 10% of openEMS; (c) loop resonance error same sign',
+      verdict: missing.length ? 'NOT EVALUABLE' : ok ? 'PASS' : 'FAIL',
+      summary: missing.length ? 'no COMSOL result for ' + missing.join(', ') + ' (COMSOL not installed on the development machine; run sim/comsol_build_mph.py where it is licensed)' :
+        rows.map(function (r) { return r.case + ': Ct ' + (r.Ct_rel_diff == null ? 'n/a' : (100 * r.Ct_rel_diff).toFixed(1) + '%') + (r.pass ? ' pass' : ' FAIL'); }).join('; '), rows: rows });
+  })();
 })();
 
 // POST-HOC (added after run 1): V6's test, restricted to blooms at or above the physical floor
@@ -555,7 +574,7 @@ want('PH1') && (function () {
 var git = '';
 try { git = require('child_process').execSync('git rev-parse --short HEAD', { cwd: root }).toString().trim(); } catch (e) { git = 'unknown'; }
 var out = { generated: new Date().toISOString(), git: git, wire: WIRE, results: results,
-  preregistered: 'Design.md §7: V1-V6 git 39a4e83; V7 30d6fa1; V8 ff1a40e; V9-V14 91c4df5; V15-V20 527aba1; V15b be426cb; V21-V23 979b1fa; V24 8fa1bf7',
+  preregistered: 'Design.md §7: V1-V6 git 39a4e83; V7 30d6fa1; V8 ff1a40e; V9-V14 91c4df5; V15-V20 527aba1; V15b be426cb; V21-V23 979b1fa; V24 8fa1bf7; V25 e2763ae',
   allPreregisteredPass: results.filter(function (r) { return /^V/.test(r.id); }).every(function (r) { return r.verdict === 'PASS'; }) };
 var vdir = path.join(root, 'validation'); if (!fs.existsSync(vdir)) fs.mkdirSync(vdir);
 fs.writeFileSync(path.join(vdir, 'validation_report.json'), JSON.stringify(out, null, 1));

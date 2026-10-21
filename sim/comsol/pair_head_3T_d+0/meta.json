@@ -1,0 +1,144 @@
+{
+ "case": "pair_head_3T_d+0",
+ "case_file": "sim/cases/pair_head_3T_d+0.json",
+ "git": "e2763ae",
+ "units": "mm",
+ "f0_Hz": 127732435.38299999,
+ "B0_T": 3,
+ "wire_radius_mm": 0.5,
+ "gap_mm": 2.0,
+ "port_face_width_mm": 1.0,
+ "n_elements": 2,
+ "n_ports": 8,
+ "segments": [
+  {
+   "file": "seg_e0_0.txt",
+   "element": 0,
+   "k": 0,
+   "points": 134,
+   "start": [
+    26.24,
+    -99.356,
+    5.109
+   ],
+   "end": [
+    34.346,
+    -78.387,
+    60.021
+   ]
+  },
+  {
+   "file": "seg_e0_1.txt",
+   "element": 0,
+   "k": 1,
+   "points": 149,
+   "start": [
+    32.346,
+    -78.387,
+    60.021
+   ],
+   "end": [
+    11.912,
+    -104.399,
+    -0.222
+   ]
+  },
+  {
+   "file": "seg_e0_2.txt",
+   "element": 0,
+   "k": 2,
+   "points": 158,
+   "start": [
+    13.912,
+    -104.399,
+    -0.222
+   ],
+   "end": [
+    29.247,
+    -67.822,
+    75.166
+   ]
+  },
+  {
+   "file": "seg_e0_3.txt",
+   "element": 0,
+   "k": 3,
+   "points": 155,
+   "start": [
+    27.247,
+    -67.822,
+    75.166
+   ],
+   "end": [
+    24.24,
+    -99.356,
+    5.109
+   ]
+  },
+  {
+   "file": "seg_e1_0.txt",
+   "element": 1,
+   "k": 0,
+   "points": 158,
+   "start": [
+    -29.247,
+    -67.822,
+    75.166
+   ],
+   "end": [
+    -13.915,
+    -104.399,
+    -0.222
+   ]
+  },
+  {
+   "file": "seg_e1_1.txt",
+   "element": 1,
+   "k": 1,
+   "points": 148,
+   "start": [
+    -11.915,
+    -104.399,
+    -0.222
+   ],
+   "end": [
+    -33.689,
+    -79.916,
+    60.39
+   ]
+  },
+  {
+   "file": "seg_e1_2.txt",
+   "element": 1,
+   "k": 2,
+   "points": 133,
+   "start": [
+    -33.689,
+    -77.916,
+    60.39
+   ],
+   "end": [
+    -26.24,
+    -99.356,
+    5.109
+   ]
+  },
+  {
+   "file": "seg_e1_3.txt",
+   "element": 1,
+   "k": 3,
+   "points": 155,
+   "start": [
+    -24.24,
+    -99.356,
+    5.109
+   ],
+   "end": [
+    -27.247,
+    -67.822,
+    75.166
+   ]
+  }
+ ],
+ "status": "UNVALIDATED export for COMSOL (Design v1.10 \u00a76c, check V25)"
+}

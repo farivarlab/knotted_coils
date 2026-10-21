@@ -1,0 +1,31 @@
+{
+ "type": "head3",
+ "semi_axes_mm": [
+  75,
+  95,
+  100
+ ],
+ "skin_mm": 4,
+ "skull_mm": 7,
+ "neck_cut_z_mm": -80,
+ "tissue": {
+  "brain": {
+   "epsR": 62.8,
+   "sigma_S_per_m": 0.66
+  },
+  "skull": {
+   "epsR": 12.5,
+   "sigma_S_per_m": 0.13
+  },
+  "skin": {
+   "epsR": 46.8,
+   "sigma_S_per_m": 0.58
+  }
+ },
+ "tissue_source": "APPROXIMATION: openEMS 0.37.0 phantom_body_128MHz.h5 values (Tissue->brain, Bone->skull, Skin->skin); verified 128 MHz head values are an open item",
+ "centre_mm": [
+  0.0,
+  0.0,
+  0.0
+ ]
+}

@@ -1,0 +1,80 @@
+{
+ "case": "trefoil_air_3T",
+ "case_file": "sim/cases/trefoil_air_3T.json",
+ "git": "e2763ae",
+ "units": "mm",
+ "f0_Hz": 127732435.38299999,
+ "B0_T": 3,
+ "wire_radius_mm": 0.5,
+ "gap_mm": 2.0,
+ "port_face_width_mm": 1.0,
+ "n_elements": 1,
+ "n_ports": 4,
+ "segments": [
+  {
+   "file": "seg_e0_0.txt",
+   "element": 0,
+   "k": 0,
+   "points": 153,
+   "start": [
+    -29.739,
+    -91.3,
+    39.286
+   ],
+   "end": [
+    43.068,
+    -86.72,
+    28.159
+   ]
+  },
+  {
+   "file": "seg_e0_1.txt",
+   "element": 0,
+   "k": 1,
+   "points": 159,
+   "start": [
+    43.068,
+    -86.72,
+    30.159
+   ],
+   "end": [
+    -42.54,
+    -86.022,
+    29.945
+   ]
+  },
+  {
+   "file": "seg_e0_2.txt",
+   "element": 0,
+   "k": 2,
+   "points": 153,
+   "start": [
+    -42.54,
+    -86.022,
+    27.945
+   ],
+   "end": [
+    29.201,
+    -90.214,
+    38.849
+   ]
+  },
+  {
+   "file": "seg_e0_3.txt",
+   "element": 0,
+   "k": 3,
+   "points": 133,
+   "start": [
+    29.201,
+    -90.214,
+    40.849
+   ],
+   "end": [
+    -29.739,
+    -91.3,
+    41.286
+   ]
+  }
+ ],
+ "status": "UNVALIDATED export for COMSOL (Design v1.10 \u00a76c, check V25)"
+}

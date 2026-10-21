@@ -1,0 +1,80 @@
+{
+ "case": "loop_air_3T",
+ "case_file": "sim/cases/loop_air_3T.json",
+ "git": "e2763ae",
+ "units": "mm",
+ "f0_Hz": 127732435.38299999,
+ "B0_T": 3,
+ "wire_radius_mm": 0.5,
+ "gap_mm": 2.0,
+ "port_face_width_mm": 1.0,
+ "n_elements": 1,
+ "n_ports": 4,
+ "segments": [
+  {
+   "file": "seg_e0_0.txt",
+   "element": 0,
+   "k": 0,
+   "points": 147,
+   "start": [
+    40.0,
+    1.0,
+    0.0
+   ],
+   "end": [
+    1.0,
+    40.0,
+    0.0
+   ]
+  },
+  {
+   "file": "seg_e0_1.txt",
+   "element": 0,
+   "k": 1,
+   "points": 147,
+   "start": [
+    -1.0,
+    40.0,
+    0.0
+   ],
+   "end": [
+    -40.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "file": "seg_e0_2.txt",
+   "element": 0,
+   "k": 2,
+   "points": 147,
+   "start": [
+    -40.0,
+    -1.0,
+    0.0
+   ],
+   "end": [
+    -1.0,
+    -40.0,
+    0.0
+   ]
+  },
+  {
+   "file": "seg_e0_3.txt",
+   "element": 0,
+   "k": 3,
+   "points": 147,
+   "start": [
+    1.0,
+    -40.0,
+    0.0
+   ],
+   "end": [
+    40.0,
+    -1.0,
+    0.0
+   ]
+  }
+ ],
+ "status": "UNVALIDATED export for COMSOL (Design v1.10 \u00a76c, check V25)"
+}
