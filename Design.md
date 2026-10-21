@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.7 (v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-20 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.8 (v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-21 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -48,12 +48,21 @@ r(φ) = R · (1 + β · (1 + cos(q·φ)) / 2)     ← v1.2 "outward" (default)
 r(φ) = R · (1 + β · cos(q·φ))               ← v1.0 "symmetric" (kept as an option)
 x(φ) = r(φ) · cos(p·φ + θ)
 y(φ) = r(φ) · sin(p·φ + θ)
-z(φ) = h · sin(q·φ)          ← over/under at crossings only
+z(φ) = h · sin(q·φ) + z₀     ← over/under at crossings; thickness (v1.8)
+h  = max(h_min, T/2)          (v1.8)
+z₀ = h − h_min                (v1.8: extra thickness goes outward only)
 ```
+*(Since v1.3/v1.4 the angle inside sin and cos is the sharpness-warped ψ = qφ + (1 − 1/m)·sin qφ; shown here with m = 1.)*
 
 - **q** = number of lobes; **p** = number of windings; **gcd(p, q) = 1** is required, otherwise the curve is a link of several separate loops rather than one knot.
 - **R** = core radius, which sets element size; **θ** = in-plane rotation.
-- **h** = crossing lift. It must be at least one wire diameter plus insulation. Its job is to keep the over/under topology; it is not 3D shape.
+- **h** = crossing lift. **h_min** is the smallest lift that keeps crossing strands at least one wire diameter plus insulation apart (solved numerically). Its job is to keep the over/under topology.
+- **T = total thickness (v1.8, Reza 2026-10-21).** The one-parameter height control: the knot's total extent along z (top of the highest wire to bottom of the lowest, wire centrelines).
+  - T = 0, the default, means "minimal": h = h_min, z₀ = 0, so the geometry is identical to v1.7.
+  - T > 2·h_min: h = T/2, and the whole knot is raised by z₀ = h − h_min. The lowest wire point therefore stays at −h_min, exactly as in v1.7. On the helmet, +z points away from the head, so **a thicker knot never brings wire closer to the head** (Reza's choice: "outward only").
+  - T < 2·h_min is clamped to h_min and flagged.
+  - The z profile sin ψ is the out-of-plane profile of a true 3D torus knot, so T moves the element from a flat rosette towards the textbook 3D knot. T = β·R gives a round tube (equal in-plane and out-of-plane extent).
+  - **One shared T for all elements in an array (v1.8).** Per-ring T is a possible v1.9.
 - Number of crossings in this projection = **q·(p−1)**.
 - Footprint radius = R·(1+β) for both shapes. With the outward shape the innermost radius stays R, so lobes only grow outward.
 
@@ -103,7 +112,7 @@ Higher p for the same q is also allowed, e.g. T(3,5) or T(3,7), giving more wind
 
 - **v1:** a parametric hemi-ellipsoid (semi-axes a, b, c) with a coverage boundary, i.e. the lowest elevation the array reaches and a face opening. The default dimensions are **placeholders**, tagged as such in the parameter registry until Reza supplies real former dimensions.
 - **v2:** import the real former as an STL file (a 3D mesh format).
-- **Placing an element on the surface:** the flat knot is defined in the tangent plane at the element's centre, then projected onto the surface along the surface normal. Crossing lift is applied along the normal. This deforms the knot slightly; the deformation is measured and reported.
+- **Placing an element on the surface:** the flat knot is defined in the tangent plane at the element's centre, then projected onto the surface along the surface normal. Crossing lift and the thickness offset (z, v1.8) are applied along the outward normal. This deforms the knot slightly; the deformation is measured and reported.
 - **Crossings between elements:** where wires from neighbouring overlapping elements cross, they need a lift too. The tool assigns over/under at these crossings and checks clearance.
 
 ## 5. Array layout and automatic decoupling
@@ -143,6 +152,9 @@ subject to wire-clearance constraints
 
 - **Mutual inductance:** the Neumann double integral, computed numerically over polyline wire paths. Points per element: 300 in the final report (V4 checks convergence there), 160 during the exact search stage, 128 in the lookup table, 96 in ring-mode search.
 - **Self-inductance:** Neumann with a finite-wire-radius correction, so the formula does not blow up where the wire meets itself. The method will be the standard thin-wire approach, with the reference verified before implementation.
+  - **v1.8 correction:** the wire is paired with a copy offset by the wire radius a. Up to v1.7 the offset was along z (or the helmet normal), which is perpendicular to the wire only if the wire is flat. From v1.8 the offset direction is that same vector **with its component along the local wire tangent removed, then renormalised**, so the offset is perpendicular to the wire everywhere.
+  - For flat wires this is unchanged (circles exactly). For the nearly flat v1.7 knots, L changes by a small fraction of a percent. The change is reported in the v1.8 validation run.
+  - V23 checks it.
 - **Singular points:** where wires of different elements cross, the true 3D separation (lift plus wire radius) is used, never zero. The sensitivity of k to the lift value is reported.
 
 ## 6b. Full-wave capacitor co-simulation (v1.7)
@@ -214,6 +226,9 @@ Each check runs automatically in the test suite and appears in a validation repo
 | V18 *(v1.7, pre-registered)* | B1 Tier 2: is the quasi-static map valid near the surface? | openEMS full-wave with capacitors and phantom (exploratory; one solver) | Single trefoil, head-loaded, per field strength: normalised \|B1⁻\| (each map scaled to its own maximum in the plane) agrees with the quasi-static map within 20% at every phantom point within 20 mm of the head surface, on the axial and coronal planes. **Classification:** PASS = the quasi-static map is valid near the surface for that case. The depth at which disagreement first exceeds 20% is reported either way |
 | V19 *(v1.7, pre-registered)* | Does the quasi-static null survive capacitors and load? | openEMS + co-simulation | Trefoil pair, head-loaded at 3T, centre spacings {d₀ − 4, d₀, d₀ + 4} mm, where d₀ is the quasi-static null (Pair explorer, rotations 0/0). PASS if \|S21(f0)\| with 50 Ω terminations ≤ −15 dB at d₀, **and** the smallest \|S21\| of the three is at d₀ (null bracketed) |
 | V20 *(v1.7, pre-registered)* | Second solver | mariepy (MARIE port; immature) | Single trefoil, head-loaded: capacitor values within 10% of openEMS's. NOT EVALUABLE if mariepy cannot be installed or run on this machine |
+| V21 *(v1.8, pre-registered)* | Thickness control T | Internal | Every catalogue knot, β ∈ {0.4, 1.5}, m ∈ {1, 4}, core R = 30 mm, placeholder wire, T ∈ {0, 5, 10, 20, 40} mm:<br>(a) T = 0 gives points identical to the v1.7 construction (h = h_min, no offset), difference exactly 0;<br>(b) for T > 2·h_min: measured thickness max z − min z within 1% of T, and min z ≥ −h_min − 1e-9 mm (never deeper than v1.7);<br>(c) crossing count = q(p−1), over/under pattern equal to T = 0, minimum self-clearance ≥ d_w + 2·t_i;<br>(d) T < 2·h_min gives h = h_min and the clamp flag set |
+| V22 *(v1.8, pre-registered)* | B1 implementation on thick knots, Tier 1 | Magpylib 6.x, as V14 | Same harness and criterion as V14 (< 0.5% at every point ≥ 10 mm from any wire), on:<br>(d) one T(2,3), β = 0.8, core R = 30 mm, T = 30 mm;<br>(e) a solved 16-element free array, T(2,3) β 0.8, T = 15 mm |
+| V23 *(v1.8, pre-registered)* | Self-inductance of a non-flat wire (v1.8 offset correction) | Rotation invariance plus Rosa & Grover eq. [62] (VERIFIED, as V11) | Circle R = 50 mm, wire radius 0.5 mm, 400 points, tilted by 0°, 30°, 60°, 80° about the x axis, default offset direction z: L within 0.5% of the untilted value at every tilt, **and** within 2% of Rosa & Grover (as V2). The v1.7 method's values are reported alongside for information |
 | V8 *(added v1.5, pre-registered before running)* | B1 (Biot–Savart) field of a circular loop on its axis | Closed form B = μ₀IR² / (2(R² + z²)^{3/2}), DERIVED from Biot–Savart (derivation in `core/field.js`) | Relative error < 0.5% at z = 0, 10, 20, 40, 80 mm for R = 50 mm, 400 points |
 | V7 *(added v1.3, pre-registered before running)* | Topology preserved under petal sharpness | Internal | Every catalogue knot (core R = 30 mm, placeholder wire), every m ∈ {1, 1.5, 2, 3, 4, 6, 8, 12, 16} × β ∈ {0.1, 0.4, 0.8, 1.5, 3.0}: crossing count = q(p−1); over/under pattern equals the pattern at m = 1, β = 0.4 (up to the starting point); lift solvable with minimum self-clearance ≥ d_w + 2·t_i |
 
@@ -269,6 +284,14 @@ knotted_coils/
 | D7 | Mixed knots in one array | No for v1 (all elements the same knot); yes for v2 |
 
 ## 12. Changelog
+
+- **2026-10-21, v1.8 (Reza: "add the height dimension to these knots, such that with one parameter, I could allow the knots to rise higher (total thickness of the whole knot) … while still calculating their B1 fields"; Reza chose "outward only").**
+  - §3.1: total-thickness parameter T. h = max(h_min, T/2), z₀ = h − h_min; T = 0 reproduces v1.7 exactly.
+  - §4: the offset goes along the outward normal.
+  - §6: self-inductance offset made perpendicular to the wire, a correction found while planning this change. It matters for thick knots and is negligible for v1.7 shapes.
+  - Shared T across an array.
+  - Checks V21–V23 pre-registered before their code.
+  - Unaffected by construction: B1, mutual inductance, the solver and the simulation export already use full 3D wire paths; T only changes the paths.
 
 - **2026-10-20 (night), v1.7 audit corrections (documentation only; no design change).** Fixed after the independent audit (`docs/AUDIT_REPORT_*.md`):
   - §5.1: the λ_max term *is* implemented.
