@@ -8,8 +8,9 @@ WHAT IT DOES (plain language):
   IDENTICAL wire paths and points, and compares. Magpylib uses SI units (metres, tesla; verified from its
   `current.Polyline` docstring), so we convert mm -> m and T -> microtesla.
 
-INPUT : validation/b1_crosscheck_input.json  (written by tests/run.js)
-OUTPUT: validation/b1_crosscheck_result.json
+INPUT : validation/b1_crosscheck<tag>_input.json  (written by tests/run.js; <tag> = optional first argument,
+        e.g. "_v22" for the v1.8 thick-knot cases V22; no argument = V14)
+OUTPUT: validation/b1_crosscheck<tag>_result.json
 CRITERION (copied from Design.md §7, V14): relative difference < 0.5% at every point >= 10 mm from any wire.
   Points 5-10 mm from a wire are reported for information only.
 
@@ -23,7 +24,8 @@ import numpy as np
 import magpylib as magpy
 
 root = Path(__file__).resolve().parent.parent
-inp = json.loads((root / "validation" / "b1_crosscheck_input.json").read_text())
+tag = sys.argv[1] if len(sys.argv) > 1 else ""
+inp = json.loads((root / "validation" / ("b1_crosscheck%s_input.json" % tag)).read_text())
 out = {"magpylib_version": magpy.__version__, "numpy_version": np.__version__, "cases": []}
 all_pass = True
 for case in inp["cases"]:
@@ -50,6 +52,6 @@ for case in inp["cases"]:
         "pass": ok,
     })
 out["verdict"] = "PASS" if all_pass else "FAIL"
-(root / "validation" / "b1_crosscheck_result.json").write_text(json.dumps(out, indent=1))
+(root / "validation" / ("b1_crosscheck%s_result.json" % tag)).write_text(json.dumps(out, indent=1))
 print(json.dumps(out, indent=1))
 sys.exit(0)

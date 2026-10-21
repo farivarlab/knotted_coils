@@ -139,15 +139,19 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
   };
 
   // Flat element at footprint radius Rf (mm): points, self-inductance.
-  O.elementPoints = function (kp, Rf, theta, h, n) {
-    return K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, theta: theta, h: h }, n);
+  O.elementPoints = function (kp, Rf, theta, h, n, zOff) {
+    return K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, theta: theta, h: h, zOff: zOff || 0 }, n);
   };
+  // Lift + thickness for one element shape (Design v1.8): kp.height = total thickness T in mm (0 = minimal lift).
+  function heightFor(kp, Rf, beta, m, c) {
+    return K.height({ p: kp.p, q: kp.q, beta: beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: m, height: kp.height || 0 }, c, 200);
+  }
 
   // ---------- Pair analysis (Design.md §5.3): k vs centre distance for two flat elements ----------
   O.pairScan = function (kp, Rf, wire, a1, a2, o) {
     o = Object.assign({ dMin: 0.5 * Rf, dMax: 2.6 * Rf, nd: 60, n: 300 }, o || {});
-    var c = clearanceOf(wire), lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness }, c, 200);
-    var A = O.elementPoints(kp, Rf, a1, lift.h, o.n), Bp = O.elementPoints(kp, Rf, a2, lift.h, o.n);
+    var c = clearanceOf(wire), lift = heightFor(kp, Rf, kp.beta, kp.sharpness, c);
+    var A = O.elementPoints(kp, Rf, a1, lift.h, o.n, lift.zOff), Bp = O.elementPoints(kp, Rf, a2, lift.h, o.n, lift.zOff);
     var pa = I.prep(A), L1 = I.selfL(A, wire.d / 2), L2 = I.selfL(Bp, wire.d / 2);
     function k(d) { return I.mutual(pa, Bp.map(function (p) { return [p[0] + d, p[1], p[2]]; }), c) / Math.sqrt(L1 * L2); }
     var ds = [], ks = [];
@@ -160,7 +164,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
       var z = 0.5 * (lo + hi), slope = (k(z + 0.2) - k(z - 0.2)) / 0.4;   // per mm
       zeros.push({ d: z, dOverRf: z / Rf, slopePerMm: slope });
     }
-    return { d: ds, k: ks, zeros: zeros, L: L1, h: lift.h };
+    return { d: ds, k: ks, zeros: zeros, L: L1, h: lift.h, hMin: lift.hMin, zOff: lift.zOff, thickness: lift.thickness, thicknessClamped: lift.clamped };
   };
 
   // ---------- Shared set-up ----------
@@ -169,10 +173,11 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var samples = S.samples(H, o.nSamples), area = S.coveredArea(H);
     var spacing = Math.sqrt(2 * area / (Math.sqrt(3) * cfg.N));   // DERIVED: hexagonal packing, area per element = (sqrt3/2) s^2
     var Rf0 = spacing / 1.5;
-    var lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf0, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness }, c, 200);
+    var lift = heightFor(kp, Rf0, kp.beta, kp.sharpness, c);
+    // The table pairs two coplanar elements; a common z offset (v1.8 zOff) moves both equally and cannot change M.
     var T = O.buildTable(kp, lift.h / Rf0, c / Rf0, o);
     var zn = O.tableZero(T) || 1.5;
-    var ctx = { cfg: cfg, o: o, H: H, kp: kp, wire: w, c: c, a: w.d / 2, h: lift.h, liftFeasible: lift.feasible,
+    var ctx = { cfg: cfg, o: o, H: H, kp: kp, wire: w, c: c, a: w.d / 2, h: lift.h, zOff: lift.zOff, thickness: lift.thickness, thicknessClamped: lift.clamped, liftFeasible: lift.feasible,
       samples: samples, area: area, spacing: spacing, T: T, tableZero: zn, Lcache: {}, mode: 'free' };
     ctx.covSamples = covFilter(H, samples, o.covBuffer * spacing / zn);
     var C0 = Lay.initialCentres(H, cfg.N, samples);
@@ -232,16 +237,16 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
   O.elem = function (ctx, i) {
     if (ctx.elemFn) return ctx.elemFn(i);
     var st = ctx.state;
-    return { Rf: st.Rf, beta: ctx.kp.beta, m: ctx.kp.sharpness || 1, theta: st.th[i], mirror: false, h: ctx.h, centre: st.C[i] };
+    return { Rf: st.Rf, beta: ctx.kp.beta, m: ctx.kp.sharpness || 1, theta: st.th[i], mirror: false, h: ctx.h, zOff: ctx.zOff || 0, centre: st.C[i] };
   };
   O.elemFlat = function (ctx, e, n) {
     return K.points({ p: ctx.kp.p, q: ctx.kp.q, beta: e.beta, size: e.Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape,
-      sharpness: e.m, theta: e.theta, h: e.h, mirror: e.mirror }, n);
+      sharpness: e.m, theta: e.theta, h: e.h, zOff: e.zOff || 0, mirror: e.mirror }, n);
   };
 
   O.Lflat = function (ctx, Rf) {
     var key = Rf.toFixed(4);
-    if (!ctx.Lcache[key]) ctx.Lcache[key] = I.selfL(O.elementPoints(ctx.kp, Rf, 0, ctx.h, ctx.o.nSelfL), ctx.a);
+    if (!ctx.Lcache[key]) ctx.Lcache[key] = I.selfL(O.elementPoints(ctx.kp, Rf, 0, ctx.h, ctx.o.nSelfL, ctx.zOff), ctx.a);
     return ctx.Lcache[key];
   };
 
@@ -449,7 +454,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var shapes = {}, shapeReps = [];
     E.forEach(function (x) { var key = x.Rf.toFixed(3) + '|' + x.beta.toFixed(4) + '|' + x.m.toFixed(3); if (!shapes[key]) shapes[key] = x; });
     Object.keys(shapes).forEach(function (key) {
-      var x = shapes[key], rp = K.report({ p: ctx.kp.p, q: ctx.kp.q, beta: x.beta, size: x.Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape, sharpness: x.m }, ctx.wire);
+      var x = shapes[key], rp = K.report({ p: ctx.kp.p, q: ctx.kp.q, beta: x.beta, size: x.Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape, sharpness: x.m, height: ctx.kp.height || 0 }, ctx.wire);
       rp.points = undefined; rp.shape = { Rf: x.Rf, beta: x.beta, m: x.m, ring: x.ring }; shapeReps.push(rp);
     });
     var planarRep = shapeReps.reduce(function (w, rp) { return !w || rp.minBendRadius < w.minBendRadius || !rp.liftFeasible ? rp : w; }, null);
@@ -460,7 +465,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     return {
       N: N, knot: ctx.kp, mode: ctx.mode, Rf: Rmean, coreRadius: Rmean / (1 + e0.beta), centres: st.C.map(function (p) { return p.slice(); }),
       theta: E.map(function (x) { return x.theta; }),
-      elements: E.map(function (x) { return { Rf: x.Rf, beta: x.beta, m: x.m, theta: x.theta, h: x.h, mirror: x.mirror, ring: x.ring, midline: !!x.midline, twin: x.twin }; }),
+      elements: E.map(function (x) { return { Rf: x.Rf, beta: x.beta, m: x.m, theta: x.theta, h: x.h, zOff: x.zOff || 0, mirror: x.mirror, ring: x.ring, midline: !!x.midline, twin: x.twin }; }),
       elementShapes: shapeReps, liftFeasibleFinal: finalLiftOK,
       kMatrix: kM, pairs: pairs, target: ctx.mode === 'ring' ? 'adjacent' : o.target,
       footprint: fp, ring1: r1s, adjacent: ad, next: stats(function (p) { return p.kind === 'next'; }), far: stats(function (p) { return p.kind === 'far'; }),
@@ -486,7 +491,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     var r = O.report(ctx, onProgress);
     r.config = { N: cfg.N, knot: cfg.knot, wire: cfg.wire, helmet: cfg.helmet, opts: ctx.o, stages: which === 'fast' ? ['table'] : ['table', 'exact'] };
     r.seconds = (Date.now() - t0) / 1000;
-    r.h = ctx.h; r.liftFeasible = r.liftFeasibleFinal; r.tableZero = ctx.tableZero;
+    r.h = ctx.h; r.zOff = ctx.zOff; r.thickness = ctx.thickness; r.thicknessClamped = ctx.thicknessClamped; r.liftFeasible = r.liftFeasibleFinal; r.tableZero = ctx.tableZero;
     return r;
   }
 
@@ -548,8 +553,8 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
   function liftFor(ctx, Rf, beta, m) {
     var key = Rf.toFixed(2) + '|' + beta.toFixed(3) + '|' + m.toFixed(2);
     if (!(key in ctx.liftCache)) {
-      var L = K.solveLift({ p: ctx.kp.p, q: ctx.kp.q, beta: beta, size: Rf, bloomMode: 'extent', bloomShape: ctx.kp.shape, sharpness: m }, ctx.c, 200);
-      ctx.liftCache[key] = L.h; if (!L.feasible) ctx.liftFeasible = false;
+      var L = heightFor(ctx.kp, Rf, beta, m, ctx.c);
+      ctx.liftCache[key] = L; if (!L.feasible) ctx.liftFeasible = false;
     }
     return ctx.liftCache[key];
   }
@@ -559,11 +564,11 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
   function ringLayout(ctx) {
     var H = ctx.H, q = ctx.kp.q, list = [];
     ctx.rings.forEach(function (r, k) {
-      var h = liftFor(ctx, r.Rf, r.beta, r.m);
+      var LH = liftFor(ctx, r.Rf, r.beta, r.m);
       for (var j = 0; j < r.n; j++) {
         var al = (j - (r.n - 1) / 2) * r.s, mid = Math.abs(al) < 1e-12;
         var th = mid ? Math.round(r.th / (Math.PI / q)) * (Math.PI / q) : r.th;
-        list.push({ ring: k, j: j, Rf: r.Rf, beta: r.beta, m: r.m, theta: th, mirror: al < 0 && !mid, midline: mid, h: h,
+        list.push({ ring: k, j: j, Rf: r.Rf, beta: r.beta, m: r.m, theta: th, mirror: al < 0 && !mid, midline: mid, h: LH.h, zOff: LH.zOff,
           twin: mid ? null : list.length + (r.n - 1 - 2 * j), centre: S.point(H, -Math.PI / 2 + al, r.v) });
       }
     });
@@ -639,7 +644,9 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
     r.config = { N: ctx.ringElems.length, knot: cfg.knot, wire: cfg.wire, helmet: cfg.helmet, opts: ctx.o, stages: ['rings'] };
     r.seconds = (Date.now() - t0) / 1000; r.liftFeasible = r.liftFeasibleFinal; r.tableZero = null; r.pairNullEstimate = ctx.pairNullEstimate;
     if (ctx.countWarning) r.warning = ctx.countWarning;
-    r.h = ctx.ringElems[0].h;
+    r.h = ctx.ringElems[0].h; r.zOff = ctx.ringElems[0].zOff;
+    r.thickness = 2 * Math.max.apply(null, ctx.ringElems.map(function (e) { return e.h; }));
+    r.thicknessClamped = (ctx.kp.height || 0) > 0 && r.thickness > (ctx.kp.height || 0) + 1e-9;
     return r;
   }
 

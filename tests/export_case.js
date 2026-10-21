@@ -30,8 +30,9 @@ function phantom(B0) { return KC.phantom.spec(H, B0); }
 
 // One element as world wire + breaks. `centre`: point on the helmet; flat knot wrapped like the array solver does.
 function elementAt(kp, Rf, theta, centre, mirror, shiftFrac) {
-  var lift = K.solveLift({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness }, CLEAR, 400);
-  var flat = K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, theta: theta, h: lift.h, mirror: !!mirror }, 600);
+  // v1.8: knot.height with kp.height (total thickness T; 0 = minimal lift, identical to v1.7 cases)
+  var lift = K.height({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, height: kp.height || 0 }, CLEAR, 400);
+  var flat = K.points({ p: kp.p, q: kp.q, beta: kp.beta, size: Rf, bloomMode: 'extent', bloomShape: kp.shape, sharpness: kp.sharpness, theta: theta, h: lift.h, zOff: lift.zOff, mirror: !!mirror }, 600);
   var W = S.wrap(H, flat, centre);
   return wireWithBreaks(W.points, flat, W.normals, shiftFrac);
 }

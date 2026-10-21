@@ -4,6 +4,26 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-21 — Design v1.8: knot thickness T (Reza), and a self-inductance correction found on the way
+- **Request:** Reza: one parameter for the total thickness of the knot. Reza chose "outward only" over "straddle the helmet surface".
+- **Design (Claude):**
+  - h = max(h_min, T/2), and the whole knot is raised by z₀ = h − h_min.
+  - Consequences: T = 0 is bit-identical to v1.7, and the lowest wire never goes deeper than in v1.7.
+  - The alternative, offsetting by h (lowest point on the surface), would have moved every existing design by about 0.75 mm.
+- **Correction found while planning (Claude):**
+  - Self-inductance pairs the wire with a copy offset by the wire radius. Up to v1.7 the offset was along z or the helmet normal, which is perpendicular to the wire only when the wire is flat.
+  - For thick knots this would overestimate L. V23 information column: the v1.7 method gives +11% on a circle tilted 80°.
+  - Fixed by removing the tangent component of the offset direction.
+  - Effect on v1.7 shapes is small; V2 and V11 (circles) are unchanged.
+- **Checks:** V21–V23 were pre-registered in 979b1fa before the code. Development run (KC_ONLY, 2026-10-21):
+  - **V21 PASS:** 32/126/160/2 evaluations of (a)/(b)/(c)/(d).
+  - **V22 PASS:** worst difference < 0.0001%.
+  - **V23 PASS:** tilt changes L by ≤ 0.001%; 0.37% from Rosa & Grover.
+  - V1, V2, V4, V5, V8 and V11 re-run: still PASS.
+  - The official report is regenerated in the next full validation run.
+- **First look (information, not a check):** trefoil β 0.8, core 30 mm, 0.5 mm wire, as T goes 0 → 10 → 20 → 40 → 60 mm, L goes 623 → 602 → 591 → 600 → 634 nH. Separating the strands first lowers the inter-winding mutual inductance; then the longer wire raises L. Bends tighten above about 40 mm.
+- **Not affected:** the overnight and queued openEMS cases. They were exported with v1.7 geometry, which is identical at T = 0. Their quasi-static L values in the case files used the v1.7 offset; the difference is small for these nearly flat knots and will be stated when V15b is reported.
+
 ### 2026-10-21 — Pair cases: capacitor breaks shifted so every port clears the other coil (logged BEFORE any pair run)
 - **Decision:** Reza, 2026-10-21: "shift the capacitor breaks by the same amount in all three pair cases (and the air pair) so every port is clear of the other coil; log it before running".
 - **What V19 keeps, and what changes:**

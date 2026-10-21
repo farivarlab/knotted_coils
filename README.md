@@ -27,7 +27,7 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | `docs/research_integrity/` | The research-integrity rules this project follows (Reza Farivar's framework, DRAFT v1.0) |
 | `sources/` | Archived primary sources for verified citations |
 | `NOTICE.txt` | Copyright, sharing terms, status |
-| `Design.md` | Frozen design v1.7. The changelog records every version; checks V1–V20 were each pre-registered before their code ran |
+| `Design.md` | Frozen design v1.8 (v1.8 = knot thickness T). The changelog records every version; checks V1–V20 were each pre-registered before their code ran |
 | `DESIGN_HISTORY.md` | One-page history of every version, trigger, check and outcome |
 | `sim/` | Full-wave capacitor co-simulation (Python + openEMS), v1.7 |
 | `docs/AUDIT_*.md` | The night-of-2026-10-20 audit: brainstorm, independent review, four area audits |

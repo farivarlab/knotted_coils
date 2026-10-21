@@ -86,10 +86,20 @@ VALIDATED BY: tests/run.js V1 (Maxwell coaxial), V2 (self-L), V4 (convergence), 
 
   // Self-inductance (nH): M between centreline and a copy shifted by wire radius `a` along
   // `dirs` (one unit vector per point; default +z, i.e. out of the element's plane).
+  // Offset copy at distance a. Design v1.8: the offset direction (z, or the helmet normal) has its component along the
+  // local wire tangent removed and is renormalised, so the copy is a perpendicular distance a from the wire even where
+  // the wire is not flat (thick knots). Up to v1.7 the raw direction was used, which is exact only for flat wires.
+  // Check: V23 (tilted circle, rotation invariance + Rosa & Grover).
   ind.selfL = function (P, a, dirs) {
+    var n = P.length;
     var Q = P.map(function (p, i) {
-      var d = dirs ? dirs[i] : [0, 0, 1];
-      return [p[0] + a * d[0], p[1] + a * d[1], p[2] + a * d[2]];
+      var d = dirs ? dirs[i] : [0, 0, 1], A = P[(i - 1 + n) % n], B = P[(i + 1) % n];
+      var t = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], tl = Math.hypot(t[0], t[1], t[2]) || 1;
+      t = [t[0] / tl, t[1] / tl, t[2] / tl];
+      var dt = d[0] * t[0] + d[1] * t[1] + d[2] * t[2], u = [d[0] - dt * t[0], d[1] - dt * t[1], d[2] - dt * t[2]];
+      var ul = Math.hypot(u[0], u[1], u[2]);
+      if (ul < 1e-9) u = d; else u = [u[0] / ul, u[1] / ul, u[2] / ul];   // degenerate: wire along d (not seen in practice)
+      return [p[0] + a * u[0], p[1] + a * u[1], p[2] + a * u[2]];
     });
     return ind.mutual(P, Q, 0);
   };

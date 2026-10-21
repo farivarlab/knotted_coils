@@ -267,7 +267,8 @@ want('V13') && (function () {
 })();
 
 // V14 — B1 implementation vs Magpylib (Tier 1). Exports identical thinned wires + points, runs tests/b1_crosscheck.py.
-want('V14') && (function () {
+// v1.8: the harness is shared with V22 (thick knots): b1Crosscheck(id, title, buildCases, tag).
+function b1Crosscheck(id, title, buildCases, tag) {
   var F = KC.field, cases = [];
   function thin(P) { var st = Math.max(1, Math.ceil(P.length / 200)); return P.filter(function (_, i) { return i % st === 0; }); }   // same as KC.field.prepWires
   function segDist(p, W) {
@@ -295,21 +296,96 @@ want('V14') && (function () {
     cases.push({ name: name, wires: W, points: pts, ours_uT: ours, dist_mm: dist });
   }
   var H = helmetDefaults();
+  buildCases(addCase, H);
+  fs.writeFileSync(path.join(root, 'validation', 'b1_crosscheck' + tag + '_input.json'), JSON.stringify({ generated: new Date().toISOString(), cases: cases }));
+  var py = process.env.KC_PYTHON || 'C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe', res = null, err = null;
+  try { require('child_process').execFileSync(py, [path.join(root, 'tests', 'b1_crosscheck.py')].concat(tag ? [tag] : []), { stdio: 'pipe' });
+    res = JSON.parse(fs.readFileSync(path.join(root, 'validation', 'b1_crosscheck' + tag + '_result.json'), 'utf8'));
+  } catch (e) { err = String(e.message || e).slice(0, 300); }
+  rec({ id: id, title: title,
+    criterion: 'relative difference < 0.5% at every point >= 10 mm from any wire', verdict: res ? res.verdict : 'NOT RUN',
+    summary: res ? res.cases.map(function (c) { return c.name + ': worst ' + (100 * c.worst_rel_diff_ge10mm).toFixed(4) + '% (' + c.n_criterion_points + ' pts)'; }).join('; ') + ' — Magpylib ' + res.magpylib_version : 'Python/Magpylib not available: ' + err,
+    rows: res ? res.cases : [], reference: 'Magpylib 6.0.0 current.Polyline (Ortner & Coliado Bandeira 2020, SoftwareX 11:100466, doi:10.1016/j.softx.2020.100466)' });
+}
+want('V14') && b1Crosscheck('V14', 'B1 implementation vs independent library (Magpylib) on identical wires, ~1000 points per case', function (addCase, H) {
   var flatTref = K.points({ p: 2, q: 3, beta: 0.8, size: 30, bloomMode: 'core', h: 0.8 }, 400).map(function (p) { return [p[0], p[1], p[2] + 60]; });
   addCase('(a) one flat trefoil (z = 60 mm)', [flatTref], H);
   var t25 = K.points({ p: 2, q: 5, beta: 1.5, size: 30, bloomMode: 'core', sharpness: 4, h: 1.0 }, 2000).map(function (p) { return [p[0], p[1], p[2] + 60]; });
   addCase('(b) one T(2,5) element, beta 1.5, m 4 (z = 60 mm)', [t25], H);
   var arr = solve(16, V16_KNOT, { layout: 'free' });
   addCase('(c) solved 16-element array (free, fast, seed 1)', arr.wires, H);
-  fs.writeFileSync(path.join(root, 'validation', 'b1_crosscheck_input.json'), JSON.stringify({ generated: new Date().toISOString(), cases: cases }));
-  var py = process.env.KC_PYTHON || 'C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe', res = null, err = null;
-  try { require('child_process').execFileSync(py, [path.join(root, 'tests', 'b1_crosscheck.py')], { stdio: 'pipe' });
-    res = JSON.parse(fs.readFileSync(path.join(root, 'validation', 'b1_crosscheck_result.json'), 'utf8'));
-  } catch (e) { err = String(e.message || e).slice(0, 300); }
-  rec({ id: 'V14', title: 'B1 implementation vs independent library (Magpylib) on identical wires, ~1000 points per case',
-    criterion: 'relative difference < 0.5% at every point >= 10 mm from any wire', verdict: res ? res.verdict : 'NOT RUN',
-    summary: res ? res.cases.map(function (c) { return c.name + ': worst ' + (100 * c.worst_rel_diff_ge10mm).toFixed(4) + '% (' + c.n_criterion_points + ' pts)'; }).join('; ') + ' — Magpylib ' + res.magpylib_version : 'Python/Magpylib not available: ' + err,
-    rows: res ? res.cases : [], reference: 'Magpylib 6.0.0 current.Polyline (Ortner & Coliado Bandeira 2020, SoftwareX 11:100466, doi:10.1016/j.softx.2020.100466)' });
+}, '');
+
+// ---------------- Design v1.8 checks (pre-registered in Design.md §7, git 979b1fa, before their code) ----------------
+// V21 — thickness control T.
+want('V21') && (function () {
+  var c = WIRE.d + 2 * WIRE.tIns, Ts = [0, 5, 10, 20, 40], rows = [], ok = true, counted = { a: 0, b: 0, c: 0, d: 0 };
+  K.catalogue().forEach(function (row) {
+    [0.4, 1.5].forEach(function (b) { [1, 4].forEach(function (m) {
+      var base = { p: row.p, q: row.q, beta: b, size: 30, bloomMode: 'core', sharpness: m }, n = K.adaptiveN(base);
+      var lift0 = K.solveLift(base, c, n), P17 = K.points(Object.assign({}, base, { h: lift0.h }), n);   // the v1.7 construction
+      var pat0 = K.crossings(P17).pattern;
+      Ts.forEach(function (T) {
+        var prm = Object.assign({}, base, { height: T }), H = K.height(prm, c, n);
+        var P = K.points(Object.assign({}, prm, { h: H.h, zOff: H.zOff }), n), fails = [];
+        if (T === 0) {                                                                       // (a)
+          counted.a++;
+          var d = 0; P.forEach(function (p, i) { d = Math.max(d, Math.abs(p[0] - P17[i][0]), Math.abs(p[1] - P17[i][1]), Math.abs(p[2] - P17[i][2])); });
+          if (d !== 0) fails.push('(a) differs from v1.7 by ' + d);
+        }
+        var zs = P.map(function (p) { return p[2]; }), zMax = Math.max.apply(null, zs), zMin = Math.min.apply(null, zs);
+        if (T > 2 * H.hMin) {                                                                // (b)
+          counted.b++;
+          if (Math.abs((zMax - zMin) - T) > 0.01 * T) fails.push('(b) thickness ' + (zMax - zMin).toFixed(3) + ' vs ' + T);
+          if (zMin < -H.hMin - 1e-9) fails.push('(b) lowest point ' + zMin + ' below -hMin ' + (-H.hMin));
+        } else if (T > 0) {                                                                  // (d)
+          counted.d++;
+          if (!(H.h === H.hMin && H.clamped)) fails.push('(d) T below the minimum not clamped and flagged');
+        }
+        counted.c++;                                                                         // (c)
+        var cr = K.crossings(P);
+        if (cr.list.length !== row.crossings) fails.push('(c) crossings ' + cr.list.length + ' vs ' + row.crossings);
+        if (!K.samePattern(pat0, cr.pattern)) fails.push('(c) over/under pattern changed');
+        if (!(H.feasible && H.clearance >= c - 1e-9)) fails.push('(c) clearance ' + H.clearance);
+        if (fails.length) { ok = false; rows.push({ knot: 'T(' + row.p + ',' + row.q + ')', beta: b, m: m, T: T, hMin: H.hMin, fails: fails }); }
+      });
+    }); });
+  });
+  rec({ id: 'V21', title: 'Thickness control T: v1.7 reproduced at T = 0; thickness and outward-only placement; topology and clearance (catalogue x beta {0.4, 1.5} x m {1, 4} x T {0, 5, 10, 20, 40} mm)',
+    criterion: '(a) T = 0 identical to v1.7; (b) thickness within 1% of T and min z >= -hMin; (c) crossings, pattern, clearance; (d) T < 2 hMin clamped and flagged',
+    verdict: ok ? 'PASS' : 'FAIL',
+    summary: ok ? 'all pass (' + counted.a + ' (a), ' + counted.b + ' (b), ' + counted.c + ' (c), ' + counted.d + ' (d) evaluations)' : rows.length + ' failing cases: ' + rows.slice(0, 5).map(function (r) { return r.knot + ' b' + r.beta + ' m' + r.m + ' T' + r.T + ': ' + r.fails.join(', '); }).join('; '),
+    rows: rows });
+})();
+
+// V22 — B1 vs Magpylib on thick knots (same harness and criterion as V14).
+want('V22') && b1Crosscheck('V22', 'B1 implementation vs Magpylib on thick knots (v1.8), same harness and criterion as V14', function (addCase, H) {
+  var c = WIRE.d + 2 * WIRE.tIns, prm = { p: 2, q: 3, beta: 0.8, size: 30, bloomMode: 'core', sharpness: 1, height: 30 }, n = 400;
+  var hh = K.height(prm, c, n), P = K.points(Object.assign({}, prm, { h: hh.h, zOff: hh.zOff }), n).map(function (p) { return [p[0], p[1], p[2] + 60]; });
+  addCase('(d) one T(2,3), beta 0.8, core R 30 mm, T = 30 mm (base plane z = 60 mm)', [P], H);
+  var arr = solve(16, Object.assign({}, V16_KNOT, { height: 15 }), { layout: 'free' });
+  addCase('(e) solved 16-element free array, T(2,3) beta 0.8, T = 15 mm (seed 1)', arr.wires, H);
+}, '_v22');
+
+// V23 — self-inductance of a tilted circle (v1.8 perpendicular offset).
+want('V23') && (function () {
+  var R = 50, a = 0.5, n = 400, rows = [], ok = true, ref = I.circleSelfL(R, a);
+  function tilted(deg) {
+    var t = deg * Math.PI / 180, c = Math.cos(t), s = Math.sin(t);
+    return I.circle(R, n).map(function (p) { return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]; });
+  }
+  function selfL17(P) { return I.mutual(P, P.map(function (p) { return [p[0], p[1], p[2] + a]; }), 0); }   // v1.7 method, information only
+  var L0 = I.selfL(tilted(0), a);
+  [0, 30, 60, 80].forEach(function (deg) {
+    var P = tilted(deg), L = I.selfL(P, a), eRot = (L - L0) / L0, eRG = (L - ref) / ref;
+    var pass = Math.abs(eRot) < 0.005 && Math.abs(eRG) < 0.02;
+    if (!pass) ok = false;
+    rows.push({ tilt_deg: deg, L_nH: L, relToUntilted: eRot, relToRosaGrover: eRG, v17_method_L_nH_info: selfL17(P), pass: pass });
+  });
+  rec({ id: 'V23', title: 'Self-inductance of a tilted circle (R = 50 mm, a = 0.5 mm): v1.8 perpendicular offset',
+    criterion: 'within 0.5% of the untilted value at 0/30/60/80 deg and within 2% of Rosa & Grover eq. [62]', verdict: ok ? 'PASS' : 'FAIL',
+    summary: rows.map(function (r) { return r.tilt_deg + '°: ' + (100 * r.relToUntilted).toFixed(3) + '% vs flat, ' + (100 * r.relToRosaGrover).toFixed(2) + '% vs R&G (v1.7 method ' + r.v17_method_L_nH_info.toFixed(1) + ' nH)'; }).join('; '),
+    rows: rows, reference: 'Rotation invariance (exact) + Rosa & Grover 1912 eq. [62] (VERIFIED, sources/)' });
 })();
 
 // ---------------- Design v1.7 checks V15-V20 (pre-registered in Design.md §7, git 527aba1 / be426cb) ----------------

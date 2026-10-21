@@ -53,6 +53,7 @@ Last updated 2026-10-20.
 | Tissue 3T | 62.8, 0.66 / 12.5, 0.13 / 46.8, 0.58 | **APPROXIMATION** | openEMS 128 MHz *body* phantom values mapped to head layers | same |
 | Phantom layers | skin 4 mm, skull 7 mm | JUDG PLACEHOLDER | | `tests/export_case.js` |
 | Test element | T(2,3), β 0.8, Rf 45 mm, 4 breaks, posterior midline at 20° elevation | JUDG | | `tests/export_case.js` |
+| Total thickness T (v1.8, added 2026-10-21) | 0 mm default (= minimal lift, v1.7 geometry); app slider 0–60 mm | User input (Reza's design choice) | h = max(h_min, T/2); extra thickness goes outward only (Reza's choice). Slider range 0–60 mm is JUDG | `core/knot.js` (knot.height), app |
 | Pair break shift (added 2026-10-21) | +0.100 × wire length (element 1), −0.100 (mirrored element 2) | JUDG rule, DERIVED value | Rule: largest worst-case port-gap-to-other-coil distance over all four pair cases, subject to break-to-crossing clearance ≥ 5 mm. Result: 7.3 mm (was 1.4 mm). Chosen on geometry only, before any pair result (DECISIONS 2026-10-21) | `tests/export_case.js` |
 | Port terminal rounding PORT_ROUND (added 2026-10-21) | 1 µm | DERIVED | Makes openEMS's 7-significant-digit XML export of the port box land exactly on its grid line | `sim/run_openems.py` |
 | Timestep cap MAX_TS (added 2026-10-21) | 2 × 10⁶ | JUDG | openEMS default is 10⁹ (no real cap). A run that hits the cap is not trusted | `sim/run_openems.py` |

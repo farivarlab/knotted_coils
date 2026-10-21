@@ -67,9 +67,10 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   };
   knot.footprintRadius = function (prm) { return knot.coreRadius(prm) * (1 + prm.beta); };
 
-  // Points of the closed curve (first point not repeated). prm: {p,q,beta,size,bloomMode,theta,h}
+  // Points of the closed curve (first point not repeated). prm: {p,q,beta,size,bloomMode,theta,h,zOff}
+  // zOff (Design v1.8): constant outward offset added to z; knot.height() sets it from the total thickness T.
   knot.points = function (prm, n) {
-    var R = knot.coreRadius(prm), p = prm.p, q = prm.q, b = prm.beta, th = prm.theta || 0, h = prm.h || 0;
+    var R = knot.coreRadius(prm), p = prm.p, q = prm.q, b = prm.beta, th = prm.theta || 0, h = prm.h || 0, z0 = prm.zOff || 0;
     var shape = prm.bloomShape || 'outward', a = 1 - 1 / Math.max(1, prm.sharpness || 1);
     var P = new Array(n);
     for (var i = 0; i < n; i++) {
@@ -84,7 +85,7 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       // 'outward' (Design v1.2 default): base circle R stays put, lobes grow outward to R(1+beta), so each lobe
       // gets longer at fixed base width (aspect ratio rises with beta). 'symmetric' (v1.0): lobes out AND waist in.
       var r = shape === 'symmetric' ? R * (1 + b * c) : R * (1 + b * (1 + c) / 2);
-      P[i] = [r * Math.cos(p * phi + th), r * Math.sin(p * phi + th), h * Math.sin(psi)];
+      P[i] = [r * Math.cos(p * phi + th), r * Math.sin(p * phi + th), z0 ? h * Math.sin(psi) + z0 : h * Math.sin(psi)];
       // mirror (Design v1.6): reflect across the element's local x axis -> mirror-image knot (opposite handedness).
       // Used for the left/right twin of an element in a symmetric layout (see optimise.js ring mode).
       if (prm.mirror) P[i][1] = -P[i][1];
@@ -261,6 +262,23 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
     return { h: hi, clearance: clr(hi), feasible: true };
   };
 
+  // Total thickness T (Design v1.8, Reza 2026-10-21): one parameter for how far the knot rises out of its plane.
+  // h = max(h_min, T/2), z0 = h - h_min: extra thickness goes OUTWARD only, so the lowest wire point stays at -h_min
+  // (exactly as in v1.7) and a thicker knot never brings wire closer to the head. T = 0 (default) reproduces v1.7.
+  // Clearance only grows with h (each pair's separation^2 = in-plane^2 + h^2 (sin psi1 - sin psi2)^2), so the lift
+  // stays feasible; the clearance at the final h is re-measured for the report.
+  knot.height = function (prm, clear, n) {
+    n = n || 400;
+    var lift = knot.solveLift(prm, clear, n), T = Math.max(0, +prm.height || 0);
+    var h = Math.max(lift.h, T / 2), zOff = h - lift.h, clearance = lift.clearance;
+    if (h > lift.h) {
+      var R = knot.coreRadius(prm), excl = Math.max(4 * clear, 3 * 2 * Math.PI * R * prm.p * (1 + prm.beta) / n);
+      clearance = knot.minSelfClearance(knot.points(Object.assign({}, prm, { h: h }), n), excl, 2 * clear).clearance;
+    }
+    return { h: h, zOff: zOff, hMin: lift.h, T: T, thickness: 2 * h, clamped: T > 0 && T / 2 < lift.h,
+      feasible: lift.feasible, clearance: clearance };
+  };
+
   // Lobe aspect ratio = lobe length / lobe width at half its length (both in the flat drawing).
   // Half length is where cos(psi) = 0, i.e. psi = pi/2; with the v1.4 warp psi = x + a sin x, solve for x
   // (bisection). The matching angle around the centre is x * p / q; width = 2 * that angle * radius at half length.
@@ -367,8 +385,8 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
   knot.report = function (prm, wire, n) {
     n = n || knot.adaptiveN(prm);
     var clear = wire.d + 2 * wire.tIns;
-    var lift = knot.solveLift(prm, clear, n);
-    var P = knot.points(Object.assign({}, prm, { h: lift.h }), n);
+    var lift = knot.height(prm, clear, n);
+    var P = knot.points(Object.assign({}, prm, { h: lift.h, zOff: lift.zOff }), n);
     var cr = knot.crossings(P);
     var bend = knot.minBendRadius(P);
     return {
@@ -376,6 +394,8 @@ VALIDATED BY: tests/run.js checks V5, V6 (see validation/). Status shown in vali
       // audit A4: solveLift searches only up to 2 x the required clearance, so a value at that cap is a lower bound
       h: lift.h, liftFeasible: lift.feasible, minClearance: lift.clearance, minClearanceIsLowerBound: lift.clearance >= 2 * clear - 1e-9,
       requiredClearance: clear,
+      // v1.8 thickness: hMin = minimal crossing lift; thickness = 2h (centreline to centreline); zOff = outward shift
+      hMin: lift.hMin, zOff: lift.zOff, thickness: lift.thickness, thicknessRequested: lift.T, thicknessClamped: lift.clamped,
       wireLength: knot.wireLength(P), crossings: cr.list.length, expectedCrossings: knot.expectedCrossings(prm.p, prm.q),
       pattern: cr.pattern, minBendRadius: bend, bendOK: bend >= wire.minBend, points: P, n: n,
       betaMinPhysical: knot.betaMinPhysical(prm.p, knot.coreRadius(prm), clear, prm.bloomShape),

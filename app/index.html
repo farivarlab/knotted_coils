@@ -96,6 +96,9 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
   <div class="slider"><div class="top"><span>Petal sharpness m</span><b id="sharpV">1.0</b></div>
     <input type="range" id="sharp" min="1" max="16" step="0.1" value="1">
     <small>1 = rounded lobes; higher = narrower petals (lobes-extend shape only)</small></div>
+  <div class="slider"><div class="top"><span>Total thickness T (mm)</span><b id="heightV">min</b></div>
+    <input type="range" id="height" min="0" max="60" step="0.5" value="0">
+    <small>0 = minimal crossing lift (flat, as before). Higher = the knot rises out of its plane like a 3D torus knot; extra height goes outward, away from the head (v1.8)</small></div>
   <label class="row">Bloom mode <select id="bloomMode"><option value="core">constant core R</option><option value="extent">constant footprint</option></select></label>
   <label class="row"><span id="sizeLabel">Core radius R (mm)</span><input type="number" id="size" value="30" min="2" step="1"></label>
   <div class="slider"><div class="top"><span>In-plane rotation θ</span><b id="thetaV"></b></div>
@@ -172,6 +175,7 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
   <section class="panel on" id="tab-el">
     <div class="grid2">
       <div class="card"><h3>Flat element (top view)</h3><canvas id="elCanvas" class="view" height="520"></canvas>
+        <h3 style="margin-top:10px">Side view (x–z, same scale; head side is down)</h3><canvas id="elSide" class="view" height="150"></canvas>
         <div class="legend"><span>Gaps show where the wire passes under. Dashed: footprint radius. Dotted: base (core) radius.</span></div></div>
       <div class="card"><h3>Geometry and fabrication checks</h3><table class="kv" id="elTable"></table>
         <p class="note">Lift h = how far the wire rises at crossings, solved so the wire never comes closer to itself than diameter + 2 × insulation.</p></div>
@@ -231,7 +235,7 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 <script src="../validation/validation_status.js" onerror="window.KC_VALIDATION=null"></script>
 <script>
 'use strict';
-var APP_VERSION = '0.3.0';   // 0.3.0 = Design v1.7 (audit D10)
+var APP_VERSION = '0.4.0';   // 0.4.0 = Design v1.8 (thickness T); 0.3.0 = v1.7 (audit D10)
 var K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 function $(id) { return document.getElementById(id); }
 function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -287,7 +291,7 @@ function helmet() {
   return { a: +$('ha').value, b: +$('hb').value, c: +$('hc').value, zCut: +$('hz').value, face: $('hf').value === '1', faceHalfAngle: +$('hfa').value,
     faceTop: +$('hft').value, zones: JSON.parse(JSON.stringify(zones)), zoneMargin: +$('zm').value };
 }
-function elemPrm() { return { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, size: +$('size').value, bloomMode: $('bloomMode').value, bloomShape: $('bloomShape').value, sharpness: +$('sharp').value, theta: +$('theta').value * Math.PI / 180 }; }
+function elemPrm() { return { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, size: +$('size').value, bloomMode: $('bloomMode').value, bloomShape: $('bloomShape').value, sharpness: +$('sharp').value, theta: +$('theta').value * Math.PI / 180, height: +$('height').value }; }
 
 // ---------- tabs ----------
 document.querySelectorAll('.tabs button').forEach(function (b) {
@@ -340,8 +344,26 @@ function elementHeader(prm, clear) {
     'Buildable bloom floor for this wire ≈ ' + floor.toFixed(3) + (prm.beta < floor ? ' — <b style="color:var(--bad)">below floor: strands would touch</b>' : ''));
   return true;
 }
-function drawElement(P, Rf, coreR, note, breaks) {
+// Side view (Design v1.8): x horizontal, z vertical, same mm-to-pixel scale as the top view unless the knot is too tall.
+// The dashed line is the element's base plane (the helmet surface on the array); the lowest wire point sits at -hMin.
+function drawSide(P, Rf, hMin, scTop) {
+  var cv = sizeCanvas($('elSide')), g = cv.g, zs = P.map(function (p) { return p[2]; });
+  var zMax = Math.max.apply(null, zs), zMin = Math.min.apply(null, zs), pad = 22;
+  var sc = Math.min(scTop, (cv.h - 2 * pad) / Math.max(zMax - zMin, 1e-6)), cx = cv.w / 2, y0 = cv.h - pad - (0 - zMin) * sc;
+  g.clearRect(0, 0, cv.w, cv.h);
+  g.setLineDash([6, 5]); g.strokeStyle = css('--line'); g.lineWidth = 1.2;
+  g.beginPath(); g.moveTo(cx - Rf * sc - 10, y0); g.lineTo(cx + Rf * sc + 10, y0); g.stroke(); g.setLineDash([]);
+  g.beginPath();
+  P.forEach(function (p, i) { var x = cx + p[0] * sc, y = y0 - p[2] * sc; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); });
+  g.closePath(); g.strokeStyle = css('--wire'); g.lineWidth = 2; g.lineJoin = 'round'; g.stroke();
+  g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
+  g.fillText('thickness ' + (zMax - zMin).toFixed(1) + ' mm' + (sc < scTop - 1e-9 ? ' (vertical scale enlarged to fit)' : '') +
+    (hMin != null ? '; lowest point ' + zMin.toFixed(2) + ' mm (minimal lift ' + hMin.toFixed(2) + ')' : ''), 10, 14);
+  g.fillText('head side ↓', 10, cv.h - 6);
+}
+function drawElement(P, Rf, coreR, note, breaks, hMin) {
   var cv = sizeCanvas($('elCanvas')), g = cv.g, sc = Math.min(cv.w, cv.h) * 0.45 / Rf;
+  drawSide(P, Rf, hMin, sc);
   g.clearRect(0, 0, cv.w, cv.h);
   g.setLineDash([6, 5]); g.strokeStyle = css('--line'); g.lineWidth = 1.2;
   g.beginPath(); g.arc(cv.w / 2, cv.h / 2, Rf * sc, 0, 2 * Math.PI); g.stroke();
@@ -360,8 +382,9 @@ function updateElement(preview) {
   var prm = elemPrm(), w = wire(), clear = w.d + 2 * w.tIns;
   if (!elementHeader(prm, clear)) return;
   var nP = Math.min(1200, Math.max(400, 100 * prm.p * prm.q)), hEst = prm.p < 2 ? 0 : clear / (2 * Math.sin(Math.PI / prm.p));
-  drawElement(K.points(Object.assign({}, prm, { h: hEst }), nP), K.footprintRadius(prm), K.coreRadius(prm),
-    preview ? 'preview — checks update when you release the control' : 'checking…');
+  var hP = Math.max(hEst, prm.height / 2);   // preview only; the worker solves the true minimal lift (knot.height)
+  drawElement(K.points(Object.assign({}, prm, { h: hP, zOff: hP - hEst }), nP), K.footprintRadius(prm), K.coreRadius(prm),
+    preview ? 'preview — checks update when you release the control' : 'checking…', null, hEst);
   if (preview) return;
   $('elTable').style.opacity = 0.45;
   // a stale check still running is abandoned: restart the worker rather than queue behind it
@@ -376,7 +399,7 @@ function onElement(e) {
   if (d.type === 'error') { $('elTable').innerHTML = '<tr><td>Error</td><td>' + d.msg + '</td></tr>'; return; }
   var prm = elPending.prm, w = elPending.w, clear = elPending.clear, n = d.n;
   elRep = d.rep;
-  drawElement(elRep.points, elRep.footprintRadius, elRep.coreRadius, null, d.breaks);
+  drawElement(elRep.points, elRep.footprintRadius, elRep.coreRadius, null, d.breaks, elRep.hMin);
   $('elTable').style.opacity = 1;
   var bk = d.breaks, cap = d.cap, longSeg = Math.max.apply(null, bk.segments);
   function f(ok, txt) { return '<span class="flag ' + (ok ? 'ok' : 'bad') + '">' + txt + '</span>'; }
@@ -386,7 +409,8 @@ function onElement(e) {
     ['Over/under pattern', '<code>' + (elRep.pattern || '—') + '</code>'],
     ['Core radius R', fmt(elRep.coreRadius, 1) + ' mm'], ['Footprint radius', fmt(elRep.footprintRadius, 1) + ' mm'],
     ['Wire length', fmt(elRep.wireLength, 0) + ' mm'],
-    ['Crossing lift h', fmt(elRep.h, 2) + ' mm'],
+    ['Minimal crossing lift h_min', fmt(elRep.hMin, 2) + ' mm'],
+    ['Total thickness (centrelines)', f(!elRep.thicknessClamped, fmt(elRep.thickness, 2) + ' mm' + (elRep.thicknessRequested > 0 ? (elRep.thicknessClamped ? ' — requested ' + fmt(elRep.thicknessRequested, 1) + ' mm is below the minimum; minimum used' : ' (requested ' + fmt(elRep.thicknessRequested, 1) + ')') : ' (minimal)') + (elRep.zOff > 0 ? '; raised ' + fmt(elRep.zOff, 2) + ' mm outward' : ''))],
     ['Min self-clearance (need)', f(elRep.liftFeasible && elRep.minClearance >= clear - 1e-6, (elRep.minClearanceIsLowerBound ? '≥ ' : '') + fmt(elRep.minClearance, 2) + ' (' + fmt(clear, 2) + ') mm')],
     ['Tightest bend (limit)', f(elRep.bendOK, fmt(elRep.minBendRadius, 2) + ' (' + fmt(w.minBend, 1) + ') mm')],
     ['Lobe aspect ratio (length ÷ width at half length)', fmt(elRep.lobe.aspect, 2) + ' (' + fmt(elRep.lobe.length, 1) + ' / ' + fmt(elRep.lobe.width, 1) + ' mm)'],
@@ -408,13 +432,13 @@ function schedulePreview() {
   if (previewPending) return; previewPending = true;
   requestAnimationFrame(function () { previewPending = false; updateElement(true); });
 }
-['q', 'p', 'beta', 'sharp', 'bloomMode', 'bloomShape', 'size', 'theta', 'wd', 'wt', 'wb', 'nBreaks', 'capClear', 'B0'].forEach(function (id) {
+['q', 'p', 'beta', 'sharp', 'height', 'bloomMode', 'bloomShape', 'size', 'theta', 'wd', 'wt', 'wb', 'nBreaks', 'capClear', 'B0'].forEach(function (id) {
   var isSlider = $(id).type === 'range';
   $(id).addEventListener('input', function () {
     if (id === 'q') fillP();
     if (id === 'bloomShape') $('sharp').disabled = $('bloomShape').value === 'symmetric';
     // sliders: preview only while dragging (checks run on release, 'change'); other controls: checks now
-    if (isSlider) { $('betaV').textContent = (+$('beta').value).toFixed(3); $('thetaV').textContent = $('theta').value + '°'; $('sharpV').textContent = (+$('sharp').value).toFixed(1); schedulePreview(); }
+    if (isSlider) { $('betaV').textContent = (+$('beta').value).toFixed(3); $('thetaV').textContent = $('theta').value + '°'; $('sharpV').textContent = (+$('sharp').value).toFixed(1); $('heightV').textContent = +$('height').value ? (+$('height').value).toFixed(1) + ' mm' : 'min'; schedulePreview(); }
     else scheduleElement();
     pairStale();
   });
@@ -479,7 +503,7 @@ $('pairRun').onclick = function () {
     $('pairTable').innerHTML = rows.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('');
     drawPair();
   });
-  pairWorker.postMessage({ cmd: 'pair', kp: { p: prm.p, q: prm.q, beta: prm.beta, shape: prm.bloomShape, sharpness: prm.sharpness }, Rf: Rf, wire: wire(), a1: +$('a1').value * Math.PI / 180, a2: +$('a2').value * Math.PI / 180 });
+  pairWorker.postMessage({ cmd: 'pair', kp: { p: prm.p, q: prm.q, beta: prm.beta, shape: prm.bloomShape, sharpness: prm.sharpness, height: prm.height }, Rf: Rf, wire: wire(), a1: +$('a1').value * Math.PI / 180, a2: +$('a2').value * Math.PI / 180 });
 };
 function drawPair() {
   if (!$('pairCanvas').clientWidth) return;   // tab hidden: redrawn when the tab is opened
@@ -635,7 +659,7 @@ var view3d = (function () {
 // ---------- array solve ----------
 var arrRes = null, arrBusy = false;
 function arrCfg() {
-  return { N: Math.max(2, Math.round(+$('N').value)), knot: { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, shape: $('bloomShape').value, sharpness: +$('sharp').value }, wire: wire(), helmet: helmet(),
+  return { N: Math.max(2, Math.round(+$('N').value)), knot: { p: +$('p').value, q: +$('q').value, beta: +$('beta').value, shape: $('bloomShape').value, sharpness: +$('sharp').value, height: +$('height').value }, wire: wire(), helmet: helmet(),
     opts: { target: $('target').value, rotation: $('rotation').value, theta0: +$('theta').value * Math.PI / 180, thresholdK: +$('thr').value, lambdaMax: +$('lamMax').value, seed: Math.round(+$('seed').value),
       layout: $('layout').value, starts: Math.max(1, Math.round(+$('starts').value)), ringSize: $('ringSize').value, ringBloom: $('ringBloom').value, ringSharp: $('ringSharp').value,
       ringCounts: $('ringCounts').value.trim() ? $('ringCounts').value.split(/[ ,;]+/).map(Number).filter(function (x) { return x >= 1; }) : null } };
@@ -691,6 +715,7 @@ function showArray() {
     ['Element wire length', fmt(r.element.wireLength, 0) + ' mm'],
     ['Element bend check', '<span class="flag ' + (r.element.bendOK ? 'ok' : 'bad') + '">' + fmt(r.element.minBendRadius, 2) + ' mm</span>'],
     ['Crossing lift feasible', verdict(r.liftFeasible)],
+    ['Element thickness (v1.8)', r.thickness != null ? fmt(r.thickness, 1) + ' mm' + (r.thicknessClamped ? ' (requested T below the minimum lift for some elements; minimum used)' : '') + (r.zOff > 0 ? ', raised outward' : '') : '—'],
     ['Max wrap distortion (wire length)', fmt(100 * r.wrapDistortion.max, 2) + '%'],
     ['Self-inductance L (range)', fmt(Math.min.apply(null, r.L), 0) + '–' + fmt(Math.max.apply(null, r.L), 0) + ' nH']
   ];
@@ -936,6 +961,7 @@ $('loadFile').addEventListener('change', function () {
     var o = c.opts || {};
     $('q').value = c.knot.q; fillP(); $('p').value = c.knot.p; $('beta').value = c.knot.beta;
     if (c.knot.shape) $('bloomShape').value = c.knot.shape; if (c.knot.sharpness) $('sharp').value = c.knot.sharpness;
+    $('height').value = c.knot.height || 0; $('heightV').textContent = c.knot.height ? (+c.knot.height).toFixed(1) + ' mm' : 'min';
     $('wd').value = c.wire.d; $('wt').value = c.wire.tIns; $('wb').value = c.wire.minBend;
     var H = c.helmet; $('ha').value = H.a; $('hb').value = H.b; $('hc').value = H.c; $('hz').value = H.zCut; $('hf').value = H.face ? '1' : '0';
     $('hfa').value = H.faceHalfAngle; $('hft').value = H.faceTop; if (H.zones) { zones = H.zones; drawZoneEditor(); } if (H.zoneMargin != null) $('zm').value = H.zoneMargin;

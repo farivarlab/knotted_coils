@@ -27,6 +27,9 @@ Reza Farivar's instructions during the build session of 2026-10-20, quoted, with
 | 20 | "we need the capacitor values for a head-loaded coil" · "isn't there a python code you could use so we could avoid Matlab?" · "update the design and implement the full capacitance modelling, including choosing the capacitors and also evaluating the effect of the capacitor in the decoupling and the B1 field … Update all design files. Make sure you have a design history file." | Design v1.7: openEMS + Python co-simulation, V15–V20; DESIGN_HISTORY.md |
 | 21 | "once you're done the design, I want you to do a full audit. 1. first, brainstorm on all the things that could go wrong. 2. Then, re-check your own brainstorm with a fresh agent … 3. Then run the full updated audit. You can switch to Fable if you think it would be better. 4. Based on the results of the audit, update the code. Keep design history files." | docs/AUDIT_BRAINSTORM.md, AUDIT_BRAINSTORM_REVIEW.md (Fable), AUDIT_REPORT_A–D.md (Fable); fixes logged in DECISIONS.md "Audit actions" |
 
+| 22 | (2026-10-21) "yes: shift the capacitor breaks by the same amount in all three pair cases (and the air pair) so every port is clear of the other coil; log it before running, then queue the pair runs." | Pair cases re-exported with breaks shifted ±0.100 of wire length; DECISIONS 2026-10-21; queue 3 |
+| 23 | (2026-10-21) "I now want to add the height dimension to these knots, such that with one parameter, I could allow the knots to rise higher (total thickness of the whole knot). Can you do that while still calculating their B1 fields etc?" · chose "Outward only" | Design v1.8: thickness T, side view, V21–V23; self-L offset correction |
+
 ## Standing instructions that shaped the work
 
 These come from Reza's workspace instructions (his global `CLAUDE.md`). The ones relevant to this project:
