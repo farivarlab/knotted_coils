@@ -9,7 +9,7 @@ A browser tool for designing MRI receive phased arrays made of **knotted wire lo
 - **Easiest:** double-click `app/index.html`. It needs no install and no internet; the Three.js 3D library is stored in `vendor/`.
   - *Not yet tested:* opening by double-click. It was tested served from a local web server.
   - If the array solver doesn't respond when opened by double-click, use the built-in local server (tested). Run `node tools/serve.js` in this folder, then open http://localhost:8765/app/index.html.
-- **Validation suite** (needs Node.js; takes about 2 minutes):
+- **Validation suite** (needs Node.js; takes about 5–15 minutes):
 
 ```bash
 node tests/run.js
@@ -41,7 +41,9 @@ This writes `validation/validation_report.html`. The app's header shows the late
 | `validation/` | Generated validation reports |
 | `vendor/` | Three.js 0.149.0 (MIT licence, `vendor/three-LICENSE.txt`) |
 
-## Validation status (full run 2026-10-21 16:07, code bc374d0, Design v1.10)
+## Validation status (full run 2026-10-23 11:48, code d3cfeb9 plus the uncommitted changes of DECISIONS 2026-10-23, Design v1.10)
+
+The report records git d3cfeb9 because the 2026-10-23 changes were not yet committed when it ran. Every verdict is identical to the run of 2026-10-21 (code bc374d0).
 
 Pre-registered checks, applied mechanically. Full report: `validation/validation_report.html`.
 
@@ -70,6 +72,15 @@ Pre-registered checks, applied mechanically. Full report: `validation/validation
 Ring vs free layouts (C2, pre-registered): the ring layout met none of its 3 criteria, so free layouts stay the default.
 
 Every failing run is kept in the git history; see DECISIONS.md.
+
+**Proposed v1.11 (2026-10-23, pending Reza's approval) — COMSOL link in the app, EXPLORATORY:**
+- The Array tab's "COMSOL" card and the Pair explorer's "Verify in COMSOL" send the design to COMSOL and run it in the background. You need `node tools/serve.js`, a licensed COMSOL with the RF Module and a Python with MPh; set-up for Windows and Linux is in DEVELOPER_GUIDE "v1.11".
+- One or two coils are tuned and matched inside COMSOL. Arrays get one port per coil (no capacitors, no tuning or matching) and give B1 maps and coupling only; their single-coil maps are distorted by the missing capacitors, the whole-array map is the fair comparison.
+- Every case is checked before it is sent (coil too large for the head, wires inside the head or touching, gaps next to another coil).
+- The app then shows COMSOL's capacitor values, S-parameters and coupling next to its own numbers, B1⁻ maps side by side with a ratio map, and COMSOL points on the Pair explorer graph.
+- Insulation beads (placeholder permittivity) sit at every crossing (one or two coils).
+- `python sim/comsol_run.py case.json` does the same without the app. "Download case + STL" writes the case file.
+- No pass/fail criteria (requester's choice). Tested on Linux with COMSOL 6.4; written for Windows but not yet run there.
 
 **New in v1.10 (COMSOL interface, 2026-10-21) — UNVALIDATED:**
 - `python sim/export_comsol.py sim/cases/<case>.json` writes plain files for COMSOL into `sim/comsol/<case>/`: wire segments between capacitor gaps (x y z, mm), a ports table, the head phantom and metadata. It needs numpy only.

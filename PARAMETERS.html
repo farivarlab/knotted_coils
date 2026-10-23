@@ -34,7 +34,7 @@ tr:nth-child(even) td { background: var(--panel); }
 <p>Every number that shapes a result, with its true origin. Tags follow the research-integrity code standard:
 <strong>LIT</strong> (from verified literature) · <strong>CONV</strong> (convention/library default) · <strong>JUDG</strong> (our judgement) · <strong>TUNED</strong> (searched) · <strong>DERIVED</strong> (computed from others).
 <strong>PLACEHOLDER</strong> marks a JUDG value awaiting Reza’s real specification.</p>
-<p>Last updated 2026-10-20.</p>
+<p>Last updated 2026-10-23.</p>
 <h2>Physical inputs (placeholders until Reza supplies them)</h2>
 <table>
 <thead>
@@ -399,6 +399,181 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 </tbody>
 </table>
+<h2>Design v1.11 (PROPOSED, pending Reza’s approval): COMSOL link (<code>sim/comsol_run.py</code> CFG, <code>core/simcase.js</code>)</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+<th>Tag</th>
+<th>Rationale / source</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gap length</td>
+<td>2.0 mm</td>
+<td>JUDG</td>
+<td>Same as the openEMS model (GAP)</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Tube centreline</td>
+<td>cubic spline through every case point, arc-length parameter</td>
+<td>JUDG</td>
+<td>Replaced a Fourier fit that missed bumped array wires by up to 9.8 mm (DECISIONS 2026-10-23)</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Tube patch length / NURBS knots</td>
+<td>≤ 20 mm / 40 per direction</td>
+<td>JUDG</td>
+<td>COMSOL approximates each parametric patch with NURBS (its default is 20 knots)</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Air margin / PML thickness</td>
+<td>60 / 80 mm</td>
+<td>JUDG</td>
+<td>Values of Will’s <code>coils8_import.py</code></td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Mesh</td>
+<td>physics-controlled, level 5 (normal) or 4 (fine)</td>
+<td>JUDG</td>
+<td>Will used 4; level 5 meshes a single trefoil in ~120k elements</td>
+<td><code>sim/comsol_run.py</code>, app</td>
+</tr>
+<tr>
+<td>Match tolerance</td>
+<td>|S11| ≤ −30 dB</td>
+<td>JUDG</td>
+<td>The handover’s criterion for “matched”</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Stage-2 iterations / damping</td>
+<td>10 / 0.7 (log space)</td>
+<td>JUDG</td>
+<td>Handover values (<code>tune_match_bounded</code>)</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Shunt Cp search range</td>
+<td>0.5 pF – 2 nF</td>
+<td>JUDG</td>
+<td>Handover value</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Insulation permittivity εr</td>
+<td>3</td>
+<td>JUDG PLACEHOLDER</td>
+<td>Typical enamel; real wire spec pending (D5). Editable in the app</td>
+<td><code>sim/comsol_run.py</code>, app</td>
+</tr>
+<tr>
+<td>Crossing threshold for beads</td>
+<td>3 mm centre to centre</td>
+<td>JUDG</td>
+<td>Catches every crossing (1.5–2 mm) and crossover</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Bead padding beyond the wire</td>
+<td>0.6, then 2, then 3 mm</td>
+<td>JUDG (mesh-driven)</td>
+<td>The real 0.25 mm insulation meets the tube at a grazing angle the mesher cannot fill; 1.0 mm also failed on the trefoil (DECISIONS 2026-10-23)</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Touching-wire refusal</td>
+<td>&lt; 2·r_wire + 0.1 mm centre to centre</td>
+<td>JUDG</td>
+<td>Closer tubes would be fused by the geometry union (a short)</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Pre-flight: wrap stretch refusal</td>
+<td>&gt; 15%</td>
+<td>JUDG</td>
+<td>Coils that wrap cleanly stretch up to 12% (test arrays N 8–12, T 0–15 mm); the badly wrapped 94 mm coil stretched 27.5% (DECISIONS 2026-10-23)</td>
+<td><code>core/simcase.js</code></td>
+</tr>
+<tr>
+<td>Pre-flight: port or capacitor gap near another coil</td>
+<td>&lt; 1.5 mm centre to centre</td>
+<td>JUDG</td>
+<td>A 2 mm gap that close to another wire could short across it</td>
+<td><code>core/simcase.js</code>, <code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Pre-flight: wire point jump</td>
+<td>longest step &gt; 3 mm and &gt; 5 × the median step</td>
+<td>JUDG</td>
+<td>Healthy case wires step 1.8–4.1 mm with no outliers; the badly wrapped coil jumped 56–62 mm</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>Pre-flight: long-run warning</td>
+<td>&gt; 24 COMSOL solves</td>
+<td>JUDG</td>
+<td>About 25–65 s per solve; beyond 24 a run takes well over half an hour</td>
+<td><code>core/simcase.js</code></td>
+</tr>
+<tr>
+<td>Arrays: ports and beads</td>
+<td>feed gap only, one port per coil; no insulation beads</td>
+<td>JUDG (requester’s choice; mesh-driven)</td>
+<td>“only port is needed”; beads did not mesh on an 8-coil array and hardly change B1</td>
+<td><code>sim/comsol_run.py</code></td>
+</tr>
+<tr>
+<td>B1 map grid</td>
+<td>60 × 60 per plane, the app’s slice grid</td>
+<td>JUDG</td>
+<td>Same points as the app’s quasi-static map</td>
+<td><code>sim/comsol_run.py</code>, app</td>
+</tr>
+<tr>
+<td>B1 planes</td>
+<td>axial / coronal / sagittal through the coils’ centroid (coronal at 0.6 × centroid y)</td>
+<td>JUDG</td>
+<td>Puts the coronal plane inside the head for posterior coils</td>
+<td>app</td>
+</tr>
+<tr>
+<td>Single/pair position on the helmet</td>
+<td>posterior midline, 20° elevation</td>
+<td>JUDG</td>
+<td>Same as the v1.7 cases (<code>tests/export_case.js</code>)</td>
+<td><code>core/simcase.js</code></td>
+</tr>
+<tr>
+<td>Pair gap shift search</td>
+<td>120 shifts per gap period</td>
+<td>JUDG</td>
+<td>Maximises the gap-to-other-coil distance, gaps ≥ capacitor clearance from crossings</td>
+<td><code>core/simcase.js</code></td>
+</tr>
+<tr>
+<td>Default pair spacings</td>
+<td>zero ± 0, 2, 4, 6 mm</td>
+<td>JUDG</td>
+<td>Brackets the Pair explorer’s zero</td>
+<td>app</td>
+</tr>
+<tr>
+<td>Comparison statistic</td>
+<td>share of points within 20% after normalising, where the app map is within 30 dB of its maximum</td>
+<td>JUDG</td>
+<td>Information only (no criterion, by the requester’s choice)</td>
+<td>app</td>
+</tr>
+</tbody>
+</table>
 <h2>Design v1.6 additions</h2>
 <table>
 <thead>
@@ -562,7 +737,7 @@ tr:nth-child(even) td { background: var(--panel); }
 <td>Wire thinning for B1</td>
 <td>≤ 200 points per element</td>
 <td>JUDG</td>
-<td>Speed. Field points are ≥ 10 mm from wires, so the midpoint rule is adequate (not separately tested)</td>
+<td>Speed. The exact finite-segment formula (since v1.6) is checked against Magpylib on the same thinned wires (V14, V22)</td>
 <td><code>core/field.js</code></td>
 </tr>
 <tr>

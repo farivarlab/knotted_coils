@@ -299,7 +299,9 @@ function b1Crosscheck(id, title, buildCases, tag) {
   var H = helmetDefaults();
   buildCases(addCase, H);
   fs.writeFileSync(path.join(root, 'validation', 'b1_crosscheck' + tag + '_input.json'), JSON.stringify({ generated: new Date().toISOString(), cases: cases }));
-  var py = process.env.KC_PYTHON || 'C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe', res = null, err = null;
+  // default venv under the user's home (Windows: Scripts/python.exe, as on the development machine; elsewhere bin/python)
+  var py = process.env.KC_PYTHON || path.join(require('os').homedir(), '.venvs', 'knotted_coils',
+    process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python'), res = null, err = null;
   try { require('child_process').execFileSync(py, [path.join(root, 'tests', 'b1_crosscheck.py')].concat(tag ? [tag] : []), { stdio: 'pipe' });
     res = JSON.parse(fs.readFileSync(path.join(root, 'validation', 'b1_crosscheck' + tag + '_result.json'), 'utf8'));
   } catch (e) { err = String(e.message || e).slice(0, 300); }

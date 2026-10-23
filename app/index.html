@@ -31,8 +31,12 @@ header h1 { font-size: 17px; margin: 0; }
 .banner { font-size: 12.5px; padding: 4px 10px; border-radius: 6px; background: var(--chip); }
 .banner.warn { color: var(--warn); } .banner.ok { color: var(--ok); }
 .banner a { color: inherit; }
-.layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 52px); }
-aside { border-right: 1px solid var(--line); background: var(--panel); padding: 8px 14px 24px; overflow-y: auto; max-height: calc(100vh - 52px); }
+.layout { display: grid; grid-template-columns: 300px 1fr; align-items: start; }
+/* The controls stick to the top of the window and scroll on their own. Their height no longer assumes a one-line
+   header (it wraps on most screens), and has a floor because VS Code's built-in browser reported a tiny window
+   height and squeezed the controls to a sliver (2026-10-23). */
+aside { border-right: 1px solid var(--line); background: var(--panel); padding: 8px 14px 24px; overflow-y: auto;
+  position: sticky; top: 0; max-height: max(100vh, 480px); }
 aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 16px 0 6px; }
 label.row { display: grid; grid-template-columns: 1fr 128px; align-items: center; gap: 6px; margin: 5px 0; font-size: 13px; }
 label.row span.hint { display: block; font-size: 11px; color: var(--muted); }
@@ -67,11 +71,13 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 #three { width: 100%; height: 520px; border-radius: 6px; overflow: hidden; touch-action: none; cursor: grab; }
 .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
-#heat { image-rendering: pixelated; max-width: 360px; }
+#heat { image-rendering: pixelated; max-width: 100%; height: auto; }   /* shrinks with a narrow card (was a fixed 360 px that overflowed) */
+.cs-maps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.cs-bar select, .cs-bar input { width: auto; padding: 5px 6px; }
 #tip { position: fixed; pointer-events: none; background: var(--panel); border: 1px solid var(--line); padding: 3px 7px; border-radius: 4px; font-size: 12px; display: none; z-index: 10; }
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
-  aside { max-height: none; border-right: none; border-bottom: 1px solid var(--line); }
+  aside { position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--line); }
   .grid2 { grid-template-columns: 1fr; }
   #three { height: 380px; }
 }
@@ -195,7 +201,11 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
           <select id="pairScale"><option value="db">dB</option><option value="lin">linear k</option></select></label>
         <div class="btns"><button class="primary" id="pairRun">Compute</button></div>
         <table class="kv" id="pairTable"></table>
-        <p class="note">Slope = how fast k changes per mm of spacing at the zero. Shallow zeros tolerate placement error.</p></div>
+        <p class="note">Slope = how fast k changes per mm of spacing at the zero. Shallow zeros tolerate placement error.</p>
+        <h3 style="margin-top:14px">COMSOL</h3>
+        <p class="note">Runs this pair in COMSOL at spacings around the zero and adds the results to the graph.</p>
+        <div class="btns cs-bar"><input type="text" id="csPairD" placeholder="spacings (mm), blank = auto"><button id="csPairRun">Verify in COMSOL</button></div>
+        <div id="csPairStatus" class="note"></div><div class="progress cs-prog" style="display:none"><div></div></div></div>
     </div>
   </section>
 
@@ -219,6 +229,25 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
         <div id="cosimCard" style="display:none"><h3 style="margin-top:14px">Full-wave co-simulation results</h3><table class="kv" id="cosimTable"></table>
           <p class="note">From sim/cosim.py (openEMS + circuit co-simulation). Exploratory: one solver, placeholder phantom and component Q.</p></div></div>
     </div>
+    <div class="card" id="csCard" style="margin-top:16px">
+      <h3>COMSOL</h3>
+      <p class="note">Solves the design in COMSOL with the head and compares B1 and coupling with the estimates above: one or two coils are tuned and matched, arrays get one port per coil. Needs <code>node tools/serve.js</code> and COMSOL with MPh.</p>
+      <div class="btns cs-bar"><select id="csWhat"><option value="array">solved array</option><option value="single">current element</option></select>
+        <button class="primary" id="csRun">Run in COMSOL</button><button id="csExport">Download case</button>
+        <select id="csPrev"><option value="">previous runs…</option></select><button id="csCancel" style="display:none">Cancel</button></div>
+      <div id="csStatus" class="note"></div>
+      <div class="progress cs-prog" style="display:none"><div></div></div>
+      <div id="csResult" style="display:none">
+        <table class="kv" id="csTable"></table>
+        <div class="btns cs-bar" style="margin-top:10px"><select id="csPlane"></select><select id="csEl"></select></div>
+        <div class="cs-maps">
+          <div><canvas id="csMapApp" class="view" height="240"></canvas><div class="note">App</div></div>
+          <div><canvas id="csMapCs" class="view" height="240"></canvas><div class="note">COMSOL</div></div>
+          <div><canvas id="csMapRatio" class="view" height="240"></canvas><div class="note">COMSOL ÷ app (±6 dB)</div></div>
+        </div>
+        <p class="note" id="csMapStats"></p>
+      </div>
+    </div>
   </section>
 </main>
 </div>
@@ -232,10 +261,11 @@ table.kv td:last-child { text-align: right; font-variant-numeric: tabular-nums; 
 <script src="../core/optimise.js"></script>
 <script src="../core/field.js"></script>
 <script src="../core/phantom.js"></script>
+<script src="../core/simcase.js"></script>
 <script src="../validation/validation_status.js" onerror="window.KC_VALIDATION=null"></script>
 <script>
 'use strict';
-var APP_VERSION = '0.5.0';   // 0.5.0 = Design v1.9 (crossover bumps); 0.4.0 = v1.8 (thickness T); 0.3.0 = v1.7 (audit D10)
+var APP_VERSION = '0.6.0';   // 0.6.0 = COMSOL link (Design v1.11, proposed); 0.5.1 = page survives a browser without WebGL; canvases no longer grow on HiDPI screens; controls column height (UI only); 0.5.0 = Design v1.9 (crossover bumps); 0.4.0 = v1.8 (thickness T); 0.3.0 = v1.7 (audit D10)
 var K = KC.knot, I = KC.ind, S = KC.surface, O = KC.opt;
 function $(id) { return document.getElementById(id); }
 function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -305,8 +335,12 @@ document.querySelectorAll('.tabs button').forEach(function (b) {
 
 // ---------- element view ----------
 var elRep = null;
+// The layout height (CSS px) is read from the markup's height attribute ONCE and kept in data-h: setting cv.height below
+// rewrites that attribute in device pixels, so on HiDPI screens re-reading it doubled the canvas on every redraw until
+// the drawing slid down the page and Chrome gave up on the canvas (found 2026-10-23 on a 2x display).
 function sizeCanvas(cv) {
-  var r = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.getAttribute('height');
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  var r = window.devicePixelRatio || 1, w = cv.clientWidth, h = +cv.dataset.h;
   cv.width = Math.round(w * r); cv.height = Math.round(h * r); cv.style.height = h + 'px';
   var g = cv.getContext('2d'); g.setTransform(r, 0, 0, r, 0, 0); return { g: g, w: w, h: h };
 }
@@ -467,8 +501,21 @@ function workerMain() {
         postMessage({ type: 'b1', mode: m.mode, plane: m.plane, offset: m.offset, n: G.n, ext: G.ext, per: KC.field.atPoints(W, G.pts) });
       } else if (m.cmd === 'pair') {
         postMessage({ type: 'pair', r: KC.opt.pairScan(m.kp, m.Rf, m.wire, m.a1, m.a2) });
+      } else if (m.cmd === 'cases') {          // Design v1.11: case files for COMSOL
+        var SC = KC.simcase, cs = m.kind === 'array' ? [SC.fromArray(m.res, m.B0, m.nb, m.clr)]
+          : m.kind === 'single' ? [SC.single(m.H, m.kp, m.Rf, m.theta, m.wire, m.B0, m.nb, m.clr)]
+          : SC.pairSweep(m.H, m.kp, m.Rf, m.a1, m.a2, m.spacings, m.wire, m.B0, m.nb, m.clr);
+        postMessage({ type: 'cases', id: m.id, cases: cs, checks: cs.map(function (c) { return SC.preflight(c, c.elements.length > 2); }) });
+      } else if (m.cmd === 'qsb1') {           // quasi-static B1- (uT/A) at COMSOL's sample points, per coil and plane
+        var Wq = KC.field.prepWires(m.wires, 200);
+        postMessage({ type: 'qsb1', id: m.id, planes: m.planes.map(function (pl) {
+          var G = KC.field.slicePoints(m.H, pl.plane, pl.offset, pl.n), idx = [], pts = [];
+          G.pts.forEach(function (p, k) { if (p) { idx.push(k); pts.push(p); } });
+          return { idx: idx, per: Wq.map(function (w) {
+            return Float32Array.from(pts, function (p) { var b = KC.field.vector(w, p[0], p[1], p[2]); return 0.5 * Math.hypot(b[0], b[1]); }); }) };
+        }) });
       }
-    } catch (err) { postMessage({ type: 'error', id: m.id, msg: String(err && err.stack || err) }); }
+    } catch (err) { postMessage({ type: 'error', id: m.id, msg: String(err && err.message || err), stack: String(err && err.stack || '') }); }   // Firefox stacks omit the message
   };
 }
 var workerURL = URL.createObjectURL(new Blob(['var KC = {};\n' + KC_FACTORIES.map(function (f) { return '(' + f.toString() + ')(KC);'; }).join('\n') +
@@ -516,7 +563,11 @@ function drawPair() {
   if (pairRes) {
     var vs = pairRes.k.map(val);
     if (db) { kmin = FLOOR; kmax = Math.max(-10, Math.ceil(Math.max.apply(null, vs) / 10) * 10); }
-    else { kmin = Math.min(-0.02, Math.min.apply(null, vs)); kmax = Math.max(0.02, Math.max.apply(null, vs)); }
+    else {
+      var ex = vs.slice();   // keep loaded COMSOL points on the axis too
+      if (typeof csState !== 'undefined' && csState && csState.pair) csState.pair.items.forEach(function (it) { ex.push(it.res.stage1.k_shorted[0][1], it.res.quasistatic.k[0][1]); });
+      kmin = Math.min(-0.02, Math.min.apply(null, ex) * 1.08); kmax = Math.max(0.02, Math.max.apply(null, ex) * 1.08);
+    }
   } else if (db) { kmin = FLOOR; kmax = 0; }
   function X(dn) { return m.l + (dn - dmin) / (dmax - dmin) * (W - m.l - m.r); }
   function Y(v) { return m.t + (kmax - v) / (kmax - kmin) * (H - m.t - m.b); }
@@ -549,6 +600,7 @@ function drawPair() {
     pairRes.zeros.forEach(function (z) { g.fillStyle = css('--bad'); g.beginPath(); g.arc(X(z.dOverRf), Y(db ? FLOOR : 0), 5, 0, 7); g.fill(); });
     if (db) { g.fillStyle = css('--muted'); g.fillText('teal: k > 0 (overlap side) · magenta: k < 0', m.l + 8, m.t + 14); }
   }
+  csPairOverlay(g, X, Y, val, db);   // COMSOL results for a pair sweep, when loaded (Design v1.11)
   // the two elements drawn at the first zero (or at 1.5 Rf)
   var cv2 = sizeCanvas($('pairDraw')), g2 = cv2.g; g2.clearRect(0, 0, cv2.w, cv2.h);
   var d = pairRes && pairRes.zeros.length ? pairRes.zeros[0].d : 1.5 * Rf;
@@ -563,7 +615,20 @@ function drawPair() {
 
 // ---------- 3D view ----------
 var view3d = (function () {
-  var host = $('three'), renderer = new THREE.WebGLRenderer({ antialias: true }), scene = new THREE.Scene();
+  var host = $('three'), renderer;
+  // Without WebGL (some embedded browsers, hybrid-GPU laptops, remote desktops) the renderer throws. That used to stop
+  // the whole page script, so even the Element tab stayed blank (found 2026-10-23). Now only the 3D view is lost:
+  // solving, the tables, the coupling matrix, B1 slices and exports all work, and wires are selected from the matrix.
+  try { renderer = new THREE.WebGLRenderer({ antialias: true }); }
+  catch (err) {
+    host.style.height = 'auto'; host.style.cursor = 'default';
+    host.innerHTML = '<p class="exploratory" style="margin:0"><b>3D view unavailable:</b> this browser could not start WebGL ' +
+      '(3D graphics). Everything else works: use the B1 slice view, and click a row of the coupling matrix to select an element. ' +
+      'For the 3D view, open the app in Chrome or Firefox.</p>';
+    return { resize: function () {}, helmet: function () {}, setWires: function () {}, render: function () {}, setHead: function () {},
+      select: function (i) { showPairs(i); b1Sel = i; if (b1Res) drawB1(); }, available: false };
+  }
+  var scene = new THREE.Scene();
   host.appendChild(renderer.domElement);
   var camera = new THREE.PerspectiveCamera(35, 1, 1, 5000), world = new THREE.Group();
   world.rotation.x = -Math.PI / 2;   // our z (up) -> three.js y (up)
@@ -653,8 +718,9 @@ var view3d = (function () {
     if (headBase) headBase.visible = !headMesh;
     render();
   }
-  return { resize: resize, helmet: helmet, setWires: setWires, render: render, select: select, setHead: setHead };
+  return { resize: resize, helmet: helmet, setWires: setWires, render: render, select: select, setHead: setHead, available: true };
 })();
+if (!view3d.available) $('b1mode').querySelector('option[value="surface"]').disabled = true;   // the head surface is drawn in 3D
 
 // ---------- array solve ----------
 var arrRes = null, arrBusy = false;
@@ -869,16 +935,20 @@ $('exOBJ').onclick = function () {
   m.F.forEach(function (f) { out.push('f ' + (f[0] + 1) + ' ' + (f[1] + 1) + ' ' + (f[2] + 1)); });
   download('knotted_array_wires_' + stamp() + '.obj', out.join('\n'));
 };
-$('exSTL').onclick = function () {
-  if (!need()) return;
-  var m = tubeMesh(arrRes), out = ['solid knotted_wires'];
+function stlText(res) {   // ASCII STL of the wire tubes (also used by the COMSOL export)
+  var m = tubeMesh(res), out = ['solid knotted_wires'];
   m.F.forEach(function (f) {
     var a = m.V[f[0]], b = m.V[f[1]], c = m.V[f[2]], nrm = S.norm(S.cross([b[0] - a[0], b[1] - a[1], b[2] - a[2]], [c[0] - a[0], c[1] - a[1], c[2] - a[2]]));
     out.push(' facet normal ' + nrm.map(function (x) { return isFinite(x) ? x.toFixed(5) : '0'; }).join(' '), '  outer loop');
     [a, b, c].forEach(function (v) { out.push('   vertex ' + v.map(function (x) { return x.toFixed(4); }).join(' ')); });
     out.push('  endloop', ' endfacet');
   });
-  out.push('endsolid knotted_wires'); download('knotted_array_wires_' + stamp() + '.stl', out.join('\n'));
+  out.push('endsolid knotted_wires');
+  return out.join('\n');
+}
+$('exSTL').onclick = function () {
+  if (!need()) return;
+  download('knotted_array_wires_' + stamp() + '.stl', stlText(arrRes));
 };
 // Capacitor ports for simulators (Design v1.6, WP5): breaks are placed on each element's flat curve (where crossings
 // are defined) and mapped to the same index/fraction on its wrapped wire.
@@ -990,9 +1060,306 @@ $('exSVG').onclick = function () {
     '<!-- ' + K.name(+$('p').value, +$('q').value) + ', units mm, 1:1. Generated by knotted_coils (AI-assisted). -->' + body + '</svg>', 'image/svg+xml');
 };
 
-window.addEventListener('resize', function () { if (elRep) scheduleElement(); drawPair(); });
+// ---------- COMSOL full-wave check (Design v1.11, 2026-10-23; EXPLORATORY) ----------
+// The page builds case files (core/simcase.js, in a worker) and posts them to the local server (tools/serve.js), which
+// runs sim/comsol_run.py in the background. Results are plain files in sim/comsol_jobs/<job>/, read back and compared
+// here with this app's quasi-static numbers for exactly the same wires.
+var csState = { job: null, timer: null, view: null, pair: null };
+function csFetch(method, url, body) {
+  return fetch(url, { method: method, headers: body ? { 'X-KC-App': '1', 'Content-Type': 'application/json' } : { 'X-KC-App': '1' },
+    body: body ? JSON.stringify(body) : undefined }).then(function (r) {
+    return r.json().catch(function () { throw new Error('this server has no COMSOL link'); })
+      .then(function (j) { if (!r.ok) throw new Error(j.error || r.statusText); return j; });
+  });
+}
+function csWorker(msg, type) {
+  return new Promise(function (resolve, reject) {
+    var w = new Worker(workerURL);
+    w.onmessage = function (e) { w.terminate(); if (e.data.type === type) resolve(e.data); else reject(new Error(e.data.msg || 'worker failed')); };
+    w.postMessage(msg);
+  });
+}
+function csKnot() { var p = elemPrm(); return { p: p.p, q: p.q, beta: p.beta, shape: p.bloomShape, sharpness: p.sharpness, height: p.height }; }
+function csCommon() {
+  var B0 = +$('B0').value;
+  if (!KC.phantom.TISSUE[B0]) throw new Error('COMSOL cases use the head phantom, which has tissue values at 3 T and 7 T only: set Field strength to 3 T or 7 T.');
+  return { B0: B0, nb: Math.max(1, Math.round(+$('nBreaks').value)), clr: +$('capClear').value };
+}
+function csPlanes(cases) {             // axial, coronal and sagittal planes through the middle of the coils
+  var s = [0, 0, 0], n = 0;
+  cases[0].elements.forEach(function (e) { e.wire.forEach(function (p) { s[0] += p[0]; s[1] += p[1]; s[2] += p[2]; n++; }); });
+  return [{ plane: 'axial', offset: Math.round(s[2] / n) }, { plane: 'coronal', offset: Math.round(0.6 * s[1] / n) },
+    { plane: 'sagittal', offset: Math.round(s[0] / n) }];
+}
+function csBuild(what, c) {
+  if (what === 'array') return csWorker({ cmd: 'cases', kind: 'array', B0: c.B0, nb: c.nb, clr: c.clr, res: { wires: arrRes.wires, normals: arrRes.normals,
+    flats: arrRes.flats, config: arrRes.config, N: arrRes.N, kMatrix: Array.from(arrRes.kMatrix), crossovers: arrRes.crossovers } }, 'cases');
+  var prm = elemPrm();
+  return csWorker({ cmd: 'cases', kind: 'single', H: helmet(), kp: csKnot(), Rf: K.footprintRadius(prm), theta: prm.theta, wire: wire(),
+    B0: c.B0, nb: c.nb, clr: c.clr }, 'cases');
+}
+function csChecked(m, statusId) {   // pre-flight check results from the worker: errors stop the run, warnings are shown
+  var errs = [], warns = [];
+  (m.checks || []).forEach(function (r, i) {
+    var pre = m.cases.length > 1 ? (m.cases[i].spacing_mm != null ? fmt(m.cases[i].spacing_mm, 1) + ' mm: ' : 'case ' + (i + 1) + ': ') : '';
+    r.errors.forEach(function (e) { errs.push(pre + e); }); r.warnings.forEach(function (w) { if (warns.indexOf(w) < 0) warns.push(w); });
+  });
+  if (errs.length) { csBusy(false); $(statusId).textContent = 'Not sent to COMSOL: ' + errs.slice(0, 3).join(' · ') + (errs.length > 3 ? ' …' : ''); return false; }
+  if (warns.length) $(statusId).textContent = warns.join(' · ');
+  return true;
+}
+function csSubmit(kind, label, cases) {
+  return csFetch('POST', '/api/comsol/jobs', { kind: kind, label: label, cases: cases, app: APP_VERSION,
+    options: { mode: 'auto', planes: csPlanes(cases), grid: 60 } })   // mesh, insulation: sim/comsol_run.py defaults
+    .then(function (j) { csWatch(j.job); csListJobs(); return j.job; });
+}
+$('csRun').onclick = function () {
+  var what = $('csWhat').value, c;
+  try { c = csCommon(); } catch (e) { $('csStatus').textContent = e.message; return; }
+  if (what === 'array' && !arrRes) { $('csStatus').textContent = 'Solve an array first, or choose "current element alone".'; return; }
+  $('csStatus').textContent = 'Preparing the case…'; csBusy(true);
+  csBuild(what, c).then(function (m) {
+    if (!csChecked(m, 'csStatus')) return;
+    return csSubmit(what, what === 'array' ? 'array_N' + arrRes.N + '_' + c.B0 + 'T' : 'single_' + c.B0 + 'T', m.cases);
+  }).catch(function (e) { csBusy(false); $('csStatus').textContent = 'Could not start: ' + e.message; });
+};
+$('csExport').onclick = function () {
+  var what = $('csWhat').value, c;
+  try { c = csCommon(); } catch (e) { $('csStatus').textContent = e.message; return; }
+  if (what === 'array' && !arrRes) { $('csStatus').textContent = 'Solve an array first, or choose "current element alone".'; return; }
+  csBuild(what, c).then(function (m) {
+    var cs = m.cases[0], name = cs.name + '_' + stamp();
+    download(name + '.json', JSON.stringify(cs), 'application/json');
+    download(name + '.stl', stlText({ config: { wire: { d: 2 * cs.wire_radius_mm } }, wires: cs.elements.map(function (e) { return e.wire; }) }));
+    $('csStatus').innerHTML = 'Saved ' + name + '.json and .stl (<code>python sim/comsol_run.py ' + name + '.json</code> builds it).';
+  }).catch(function (e) { $('csStatus').textContent = 'Could not export: ' + e.message; });
+};
+$('csCancel').onclick = function () {
+  if (csState.job) csFetch('POST', '/api/comsol/jobs/' + csState.job + '/cancel', {}).then(csListJobs).catch(function () {});
+};
+$('csPrev').onchange = function () { if ($('csPrev').value) csWatch($('csPrev').value); };
+function csWhen(t) { return t ? new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; }
+function csListJobs() {
+  return csFetch('GET', '/api/comsol/jobs').then(function (j) {
+    var py = j.pythonCheck || {};
+    if (!csState.job) $('csStatus').textContent = py.checked && !py.ok ? 'COMSOL Python not found (set KC_COMSOL_PYTHON).' : '';
+    $('csPrev').innerHTML = '<option value="">previous runs…</option>' + j.jobs.filter(function (x) { return x.state === 'done'; }).slice(0, 12)
+      .map(function (x) { return '<option value="' + x.job + '">' + csWhen(x.created) + ' · ' + x.label + '</option>'; }).join('');
+    var live = j.jobs.filter(function (x) { return ['running', 'queued', 'starting'].indexOf(x.state) >= 0; })[0];
+    if (live && !csState.job) csWatch(live.job);
+  }).catch(function () {
+    $('csStatus').textContent = 'COMSOL needs the local server: run node tools/serve.js and open http://localhost:8765/app/index.html.';
+  });
+}
+function csStageText(st) {   // plain words for the job stage: one solve per capacitor gap, then in-model tuning
+  var m;
+  st = st || '';
+  if ((m = /^stage 1: port (\d+) of (\d+)/.exec(st))) return 'gap ' + m[1] + ' of ' + m[2];
+  if ((m = /^stage 1: coil (\d+) of (\d+)/.exec(st))) return 'coil ' + m[1] + ' of ' + m[2];   // arrays: one port per coil
+  if ((m = /^stage 2: iteration (\d+)/.exec(st))) return 'tuning and matching, round ' + m[1];
+  return st;
+}
+// one COMSOL run at a time: the start buttons are greyed out while a run is queued or running
+function csBusy(on) {
+  ['csRun', 'csPairRun'].forEach(function (id) { $(id).disabled = on; $(id).title = on ? 'A COMSOL run is already in progress' : ''; });
+}
+function csProgress(s) {
+  var m, f = 0, st = s.stage || '';
+  if ((m = /port (\d+) of (\d+)/.exec(st)) && st.indexOf('stage 1') === 0) f = 0.05 + 0.65 * (m[1] - 1) / m[2];
+  else if ((m = /iteration (\d+), feed (\d+) of (\d+)/.exec(st))) f = 0.7 + 0.25 * Math.min(1, ((m[1] - 1) + (m[2] - 1) / m[3]) / 3);
+  else if (/building/.test(st)) f = 0.02;
+  return Math.max(0, Math.min(1, ((s.case || 1) - 1 + f) / (s.n_cases || 1)));
+}
+function csWatch(job) {
+  clearInterval(csState.timer); csState.job = job;
+  function tick() {
+    csFetch('GET', '/api/comsol/jobs/' + job).then(function (s) {
+      var mins = s.started ? ((s.finished || Date.now() / 1000) - s.started) / 60 : 0;
+      var err = s.error ? String(s.error).split('Messages:')[0].replace(/(com\.comsol\.util\.exceptions\.)+FlException: (Exception: )?/g, '').slice(0, 120) : '';
+      var live = ['running', 'queued', 'starting'].indexOf(s.state) >= 0, frac = s.state === 'running' ? csProgress(s) : 0;
+      var txt = s.state === 'done' ? (s.failed && s.failed.length ? s.failed.length + ' of ' + s.n_cases + ' cases failed: ' + s.failed[0].error.slice(0, 100) : '')
+        : live ? 'COMSOL ' + (s.state === 'running' ? Math.round(100 * frac) + '%' + (s.n_cases > 1 ? ' · case ' + s.case + ' of ' + s.n_cases : '') +
+          ' · ' + csStageText(s.stage) + ' · ' + mins.toFixed(0) + ' min' : s.state + '…')
+        : s.label + ': ' + s.state + (err ? ': ' + err : '');
+      document.querySelectorAll('.cs-prog').forEach(function (b) { b.style.display = live ? '' : 'none'; b.firstChild.style.width = (100 * frac).toFixed(1) + '%'; });
+      csBusy(live);
+      $('csStatus').textContent = txt; if (s.kind === 'pair') $('csPairStatus').textContent = txt;
+      $('csCancel').style.display = ['running', 'queued', 'starting'].indexOf(s.state) < 0 ? 'none' : '';
+      if (['running', 'queued', 'starting'].indexOf(s.state) < 0) {
+        clearInterval(csState.timer); csState.job = null; csListJobs();
+        if (s.files && s.files.length) csLoad(job, s);
+      }
+    }).catch(function () { clearInterval(csState.timer); $('csStatus').textContent = 'Lost the connection to the local server.'; });
+  }
+  tick(); csState.timer = setInterval(tick, 3000);
+}
+function csLoad(job, s) {
+  var base = '../sim/comsol_jobs/' + job + '/';
+  Promise.all(s.files.map(function (f) {
+    return fetch(base + f).then(function (r) { return r.json(); }).then(function (res) {
+      return fetch(base + res.case_file).then(function (r) { return r.json(); }).then(function (cs) { return { res: res, cs: cs }; });
+    });
+  })).then(function (items) {
+    if (s.kind === 'pair') {
+      csState.pair = { job: job, label: s.label, items: items };
+      $('csPairStatus').innerHTML = csPairTable(items);
+      drawPair();
+    } else csShow(items[0], job);
+  }).catch(function (e) { $('csStatus').textContent = 'Could not read the results: ' + e.message; });
+}
+function csPairTable(items) {
+  return '<table class="kv"><tr><td>spacing</td><td>k app · k COMSOL · S21</td></tr>' + items.map(function (it) {
+    var r = it.res, s21 = r.stage2 ? r.stage2.S_dB[1][0] : r.stage1.S_matched_dB[1][0];
+    return '<tr><td>' + fmt(r.spacing_mm, 1) + ' mm</td><td>' + fmt(r.quasistatic.k[0][1], 4) + ' · ' + fmt(r.stage1.k_shorted[0][1], 4) + ' · ' + fmt(s21, 1) + ' dB</td></tr>';
+  }).join('') + '</table>';
+}
+// pair overlay on the k-vs-distance graph (called from drawPair)
+function csPairOverlay(g, X, Y, val, db) {
+  if (!csState || !csState.pair) return;   // drawPair runs once before this block has set csState
+  csState.pair.items.forEach(function (it) {
+    var r = it.res, x = X(r.spacing_mm / r.pair.Rf), s21 = r.stage2 ? r.stage2.S_dB[1][0] : r.stage1.S_matched_dB[1][0];
+    g.lineWidth = 2; g.strokeStyle = css('--accent'); g.beginPath(); g.arc(x, Y(val(r.quasistatic.k[0][1])), 5, 0, 7); g.stroke();
+    g.fillStyle = css('--warn'); g.beginPath(); g.moveTo(x, Y(val(r.stage1.k_shorted[0][1])) - 6); g.lineTo(x + 6, Y(val(r.stage1.k_shorted[0][1])));
+    g.lineTo(x, Y(val(r.stage1.k_shorted[0][1])) + 6); g.lineTo(x - 6, Y(val(r.stage1.k_shorted[0][1]))); g.fill();
+    if (db) { g.fillStyle = css('--bad'); g.fillRect(x - 4, Y(Math.max(-60, s21)) - 4, 8, 8); }
+  });
+  g.fillStyle = css('--muted'); g.font = '12px Segoe UI';
+  var lg = '◆ COMSOL k  ○ app k (on helmet)' + (db ? '  ■ COMSOL S21' : '');
+  g.textAlign = 'right'; g.fillText(lg, X(2.55), Y(db ? -55 : 0) - (db ? 0 : 8)); g.textAlign = 'left';
+}
+function csShow(it, job) {
+  var r = it.res, cs = it.cs, n = r.n_coils, rows = [];
+  csState.viewJob = job;
+  var b1only = r.mode === 'b1';   // arrays: one port per coil, B1 only (no tuning or matching)
+  if (b1only) rows.push(['COMSOL model', n + ' coils, one port each, no capacitors (B1 only)']);
+  for (var i = 0; i < n && !b1only; i++) {
+    var C = r.stage2 || r.stage1, s11 = r.stage2 ? r.stage2.S_dB[i][i] : r.stage1.S_matched_dB[i][i];
+    rows.push(['Coil ' + (i + 1), 'Ct ' + fmt(C.Ct_pF[i], 2) + ' pF · Cp ' + fmt(C.Cp_pF[i], 1) + ' pF · S11 ' + fmt(s11, 1) + ' dB']);
+  }
+  if (n > 1) {
+    var pr = [];
+    for (var a = 0; a < n; a++) for (var b = a + 1; b < n; b++) pr.push([a, b]);
+    pr.sort(function (x, y) { return Math.abs(r.quasistatic.k[y[0]][y[1]]) - Math.abs(r.quasistatic.k[x[0]][x[1]]); });
+    pr.slice(0, 6).forEach(function (q) {
+      var s21 = b1only ? null : r.stage2 ? r.stage2.S_dB[q[1]][q[0]] : r.stage1.S_matched_dB[q[1]][q[0]];
+      rows.push(['Coils ' + (q[0] + 1) + '–' + (q[1] + 1), 'k ' + fmt(r.quasistatic.k[q[0]][q[1]], 4) + ' (app) · ' + fmt(r.stage1.k_shorted[q[0]][q[1]], 4) + ' (COMSOL)' +
+        (s21 == null ? '' : ' · S21 ' + fmt(s21, 1) + ' dB')]);
+    });
+  }
+  $('csTable').innerHTML = rows.map(function (x) { return '<tr><td>' + x[0] + '</td><td>' + x[1] + '</td></tr>'; }).join('');
+  $('csPlane').innerHTML = r.b1.planes.map(function (p, k) { return '<option value="' + k + '">' + p.plane + ' ' + p.offset + ' mm</option>'; }).join('');
+  $('csEl').innerHTML = (n > 1 ? '<option value="all">all coils</option>' : '') + r.b1.planes[0].B.map(function (_, k) { return '<option value="' + k + '">coil ' + (k + 1) + '</option>'; }).join('');
+  $('csResult').style.display = 'block';
+  csState.view = { res: r, cs: cs, qs: null };
+  $('csMapStats').textContent = '';
+  csWorker({ cmd: 'qsb1', wires: cs.elements.map(function (e) { return e.wire; }), H: cs.helmet,
+    planes: r.b1.planes.map(function (p) { return { plane: p.plane, offset: p.offset, n: p.n }; }) }, 'qsb1').then(function (m) {
+    csState.view.qs = m.planes; drawCsMaps();
+  }).catch(function (e) { $('csMapStats').textContent = 'Could not compute the app map: ' + e.message; });
+}
+$('csPlane').onchange = $('csEl').onchange = function () { drawCsMaps(); };
+function drawCsMaps() {
+  var v = csState.view; if (!v || !v.qs) return;
+  var k = +$('csPlane').value || 0, pl = v.res.b1.planes[k], qp = v.qs[k], sel = $('csEl').value, m = pl.idx.length;
+  if (qp.idx.length !== m || qp.idx.some(function (x, q) { return x !== pl.idx[q]; })) { $('csMapStats').textContent = 'Sample points differ between COMSOL and the app; cannot compare.'; return; }
+  var els = sel === 'all' ? pl.B.map(function (_, q) { return q; }) : [+sel];
+  var cs = new Float64Array(m), ap = new Float64Array(m);
+  els.forEach(function (e) {
+    var B = pl.B[e], A = qp.per[e];
+    for (var q = 0; q < m; q++) {   // COMSOL B1- = |Bx - i By| / 2 (complex), app = |B_transverse| / 2 (real static field)
+      var xr = B.re[3 * q], xi = B.im[3 * q], yr = B.re[3 * q + 1], yi = B.im[3 * q + 1], c = Math.hypot(xr + yi, xi - yr) / 2;
+      cs[q] += c * c; ap[q] += A[q] * A[q];
+    }
+  });
+  var cmax = 0, amax = 0;
+  for (var q2 = 0; q2 < m; q2++) { cs[q2] = Math.sqrt(cs[q2]); ap[q2] = Math.sqrt(ap[q2]); cmax = Math.max(cmax, cs[q2]); amax = Math.max(amax, ap[q2]); }
+  function paint(id, colour) {
+    var r = sizeCanvas($(id)), g = r.g, side = Math.min(r.w, r.h) - 4, px = side / pl.n, x0 = (r.w - side) / 2;
+    g.clearRect(0, 0, r.w, r.h);
+    for (var q = 0; q < m; q++) { var c = colour(q); if (!c) continue; g.fillStyle = 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+      g.fillRect(x0 + (pl.idx[q] % pl.n) * px, 2 + Math.floor(pl.idx[q] / pl.n) * px, px + 0.6, px + 0.6); }
+  }
+  paint('csMapApp', function (q) { return b1Colour(ap[q], amax); });
+  paint('csMapCs', function (q) { return b1Colour(cs[q], cmax); });
+  var within = 0, used = 0, dbs = [];
+  paint('csMapRatio', function (q) {
+    if (ap[q] < 0.03 * amax) return null;                       // skip points 30 dB below the app's maximum
+    var d = 20 * Math.log10((cs[q] / cmax) / (ap[q] / amax)), t = Math.max(-1, Math.min(1, d / 6));
+    used++; if (Math.abs(cs[q] / cmax / (ap[q] / amax) - 1) <= 0.2) within++; dbs.push(Math.abs(d));
+    return t < 0 ? [Math.round(255 + t * (255 - 43)), Math.round(255 + t * (255 - 108)), Math.round(255 + t * (255 - 176))]
+      : [Math.round(255 - t * (255 - 192)), Math.round(255 - t * (255 - 57)), Math.round(255 - t * (255 - 43))];
+  });
+  dbs.sort(function (a, b) { return a - b; });
+  $('csMapStats').textContent = 'Peak B1⁻: app ' + fmt(amax, 1) + ' µT/A, COMSOL ' + fmt(cmax, 1) + ' µT/A · ' +
+    fmt(100 * within / Math.max(1, used), 0) + '% of points within 20% (each map normalised to its peak)';
+}
+$('csPairRun').onclick = function () {
+  var c;
+  try { c = csCommon(); } catch (e) { $('csPairStatus').textContent = e.message; return; }
+  var prm = elemPrm(), txt = $('csPairD').value.trim(), ds;
+  var d0 = pairRes && pairRes.zeros.length ? pairRes.zeros[pairRes.zeros.length - 1].d : null;
+  if (txt) ds = txt.split(/[ ,;]+/).map(Number).filter(function (x) { return x > 0; });
+  else if (d0 == null) { $('csPairStatus').textContent = 'Press Compute first (the spacings are placed around its zero), or type spacings.'; return; }
+  else ds = [-6, -4, -2, 0, 2, 4, 6].map(function (x) { return d0 + x; });
+  $('csPairStatus').textContent = 'Preparing ' + ds.length + ' cases…'; csBusy(true);
+  csWorker({ cmd: 'cases', kind: 'pair', H: helmet(), kp: csKnot(), Rf: K.footprintRadius(prm), a1: +$('a1').value * Math.PI / 180,
+    a2: +$('a2').value * Math.PI / 180, spacings: ds, wire: wire(), B0: c.B0, nb: c.nb, clr: c.clr }, 'cases').then(function (m) {
+    if (!csChecked(m, 'csPairStatus')) return null;
+    return csSubmit('pair', 'pair_' + ds.length + 'spacings_' + c.B0 + 'T', m.cases);
+  }).then(function (job) { if (job) $('csPairStatus').textContent = 'Started. Progress shows here and in the Array tab.'; })
+    .catch(function (e) { csBusy(false); $('csPairStatus').textContent = 'Could not start: ' + e.message; });
+};
+if (location.protocol !== 'file:') csListJobs(); else $('csStatus').textContent = 'COMSOL link needs the local server: run node tools/serve.js and open http://localhost:8765/app/index.html.';
+
+window.addEventListener('resize', function () { if (elRep) scheduleElement(); drawPair(); if (csState.view) drawCsMaps(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { scheduleElement(); drawPair(); view3d.render(); });
+// ---------- remember the page between visits (this browser's local storage, on this computer only) ----------
+// Controls, edited face zones, the open tab, whether the pair curve was computed and the COMSOL results last shown.
+// The solved array is not stored (too large); Fast solve recreates it in seconds.
+var KC_STATE = 'kc_app_state_v1', kcRestoring = false, kcSaveTimer = null;
+function kcSave() {
+  if (kcRestoring) return;
+  try {
+    var v = {};
+    document.querySelectorAll('input[id], select[id]').forEach(function (el) {
+      if (el.type === 'file' || ['csPrev', 'csPlane', 'csEl'].indexOf(el.id) >= 0) return;
+      v[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    var tab = document.querySelector('.tabs button.on');
+    localStorage.setItem(KC_STATE, JSON.stringify({ v: v, zones: zones, tab: tab && tab.dataset.tab, pair: !!pairRes,
+      csView: csState.view ? csState.viewJob : null, csPair: csState.pair ? csState.pair.job : null }));
+  } catch (e) { /* storage unavailable (private window): nothing is remembered */ }
+}
+function kcSaveSoon() { clearTimeout(kcSaveTimer); kcSaveTimer = setTimeout(kcSave, 300); }
+function kcRestore() {
+  var st = null;
+  try { st = JSON.parse(localStorage.getItem(KC_STATE) || 'null'); } catch (e) { st = null; }
+  if (!st || !st.v) return null;
+  kcRestoring = true;
+  if (st.v.q != null) { $('q').value = st.v.q; fillP(); }          // the windings list depends on the lobe count
+  Object.keys(st.v).forEach(function (id) {
+    var el = $(id); if (!el || id === 'q') return;
+    if (el.type === 'checkbox') el.checked = !!st.v[id]; else el.value = st.v[id];
+  });
+  if (Array.isArray(st.zones)) zones = st.zones;
+  $('sharp').disabled = $('bloomShape').value === 'symmetric';
+  ['beta', 'a1', 'a2', 'b1pos'].forEach(function (id) { if ($(id)) $(id).dispatchEvent(new Event('input')); });   // value labels
+  kcRestoring = false;
+  return st;
+}
+var kcState = kcRestore();
 drawZoneEditor(); updateElement(); drawPair(); view3d.helmet(helmet());
+if (kcState) {
+  if (kcState.tab && kcState.tab !== 'el') { var tb = document.querySelector('.tabs button[data-tab=' + kcState.tab + ']'); if (tb) tb.click(); }
+  if (kcState.pair) $('pairRun').click();
+  [kcState.csView, kcState.csPair].forEach(function (job) {       // COMSOL results last shown, if the server still has them
+    if (job && location.protocol !== 'file:') csFetch('GET', '/api/comsol/jobs/' + job).then(function (s) { if (s.files && s.files.length) csLoad(job, s); }).catch(function () {});
+  });
+}
+document.addEventListener('change', kcSaveSoon);
+document.addEventListener('input', kcSaveSoon);
+document.querySelectorAll('.tabs button').forEach(function (b) { b.addEventListener('click', kcSaveSoon); });
+window.addEventListener('pagehide', kcSave);
 $("zm").addEventListener("change", function () { view3d.helmet(helmet()); });
 ["hz", "ha", "hb", "hc"].forEach(function (id) { $(id).addEventListener("change", function () { view3d.helmet(helmet()); }); });
 </script>

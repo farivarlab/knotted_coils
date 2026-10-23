@@ -24,11 +24,13 @@ It designs MRI receive phased arrays made of **flat knotted wire loops** (torus 
 | `core/optimise.js` | Decoupling solver: stage 1 lookup table, stage 2 exact; pair scan; final report |
 | `core/field.js` | Biot–Savart B1; head surface and slice sampling |
 | `app/index.html` | The whole UI: Element, Pair explorer, Array on helmet, exports. Heavy maths runs in Web Workers |
-| `tests/run.js` | Validation checks V1–V20 (pre-registered; V15–V20 read from `sim/out/*/cosim.json`) plus labelled post-hoc checks. Writes `validation/` |
+| `tests/run.js` | Validation checks V1–V25 (pre-registered; V15–V20 and V25 read from `sim/out/*/cosim.json`) plus labelled post-hoc checks. Writes `validation/` |
 | `tests/compare_worstpair.js` | Pre-registered paired solver comparison (protocol in `validation/`) |
 | `tests/compare_ring_vs_free.js` | Pre-registered comparison C2: ring vs free layouts (v1.6). Run before `tests/run.js`, because V12 reads its arrays |
-| `tests/b1_crosscheck.py` | V14: our B1 against Magpylib 6.0.0 on identical wires. Needs a Python environment with `magpylib==6.0.0`; set `KC_PYTHON` to its python.exe (default `C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe`) |
-| `tools/serve.js` | Tiny local web server: `node tools/serve.js` → http://localhost:8765/app/index.html |
+| `tests/b1_crosscheck.py` | V14: our B1 against Magpylib 6.0.0 on identical wires. Needs a Python environment with `magpylib==6.0.0`; set `KC_PYTHON` to its Python executable (default `~/.venvs/knotted_coils/Scripts/python.exe` on Windows, `~/.venvs/knotted_coils/bin/python` elsewhere) |
+| `tools/serve.js` | Tiny local web server: `node tools/serve.js` → http://localhost:8765/app/index.html. Also the COMSOL job runner (v1.11) |
+| `core/simcase.js` | v1.11: the app's designs as case files for the full-wave solvers (array, single element, pair sweep) |
+| `sim/comsol_run.py` | v1.11: builds, solves and tunes a case in COMSOL through MPh; writes results the app reads |
 | `tools/build_dist.js` | Builds `dist/`, a flat copy of the app for hosting or sending |
 | `vendor/` | Three.js 0.149.0 (MIT), pinned and stored locally so the app works offline |
 | `docs/` | Request log; copies of the research-integrity rules this project follows |
@@ -106,6 +108,54 @@ It designs MRI receive phased arrays made of **flat knotted wire loops** (torus 
   5. Solve `loop_air_3T` first: it calibrates the PEC-edge thin-wire correction, just as for openEMS.
   6. Solve `trefoil_air_3T`, run `cosim.py ... --solver comsol`, then `node tests/run.js` for **V25**.
 
+### v1.11 COMSOL link in the app (PROPOSED, pending Reza's approval; EXPLORATORY)
+
+The app can send a design to COMSOL, have it solved in the background, and show the results next to its own quasi-static numbers (Design §6d).
+
+- **What runs where:**
+  1. The page builds the case files in a worker (`core/simcase.js`).
+  2. It posts them to `tools/serve.js`.
+  3. The server starts `sim/comsol_run.py --job sim/comsol_jobs/<job>`, one job at a time, detached, so a job survives a server restart.
+  4. The script writes `status.json`, `<case>_results.json`, `<case>_stage1.npz` and `<case>.mph` (solution cleared) into the job folder. The page polls the status and reads the results.
+- **Set-up (once per machine):** a licensed COMSOL with the RF Module, and a Python environment with MPh (`pip install mph numpy`; MPh also installs JPype).
+  - **Windows:**
+    ```bat
+    py -m venv %USERPROFILE%\comsolai
+    %USERPROFILE%\comsolai\Scripts\pip install mph numpy
+    ```
+  - **Linux / macOS:**
+    ```bash
+    python3 -m venv ~/comsolai
+    ~/comsolai/bin/pip install mph numpy
+    ```
+  - **How the server finds Python:**
+    1. `KC_COMSOL_PYTHON`, if set;
+    2. otherwise the first that exists of `~/comsolai`, `~/.venvs/kc_em` and `~/.venvs/knotted_coils` (`Scripts\python.exe` on Windows, `bin/python` elsewhere);
+    3. otherwise `python` (Windows) or `python3` on the PATH.
+    The app shows which Python it found and whether it can import MPh.
+  - MPh finds COMSOL itself (default install folders, or the Windows registry).
+- **Use:**
+  1. Run `node tools/serve.js` and open http://localhost:8765/app/index.html. The COMSOL link does not work when the page is opened as a file.
+  2. Set Field strength to 3 T or 7 T (the head phantom has tissue values only there).
+  3. In the Array tab's "COMSOL" card, choose:
+     - the solved array: 1–2 coils are tuned and matched in COMSOL; 3 or more coils get one port each (feed gap only, no capacitors) and give B1 maps and coupling, without tuning or matching;
+     - or the current element alone.
+  4. In the Pair explorer, "Verify in COMSOL" runs the pair at several spacings around the zero.
+  5. Every case is checked first (pre-flight): coils stretched > 15% by wrapping, wires inside the head, gaps within 1.5 mm of another coil, or wires that would touch are refused with a message saying which coil. Results of earlier runs open from "previous runs…"; one COMSOL run at a time (the buttons grey out), and Cancel stops it.
+- **Without the app:** `python sim/comsol_run.py case.json [--mode auto|b1|ports|match] [--build-only] [--no-insulation]` (auto: `match` for 1–2 coils, `b1` for arrays). "Download case + STL" in the card writes the case file. The STL is for viewing only; COMSOL is built from the exact wire paths in the case file.
+- **Timing measured on the development copy** (24 cores, 16 used, normal mesh):
+  - single trefoil in the head: 2–4 minutes (about 15–20 s per port);
+  - two coils: about 13 minutes per spacing (about 65 s per port, 350k mesh elements).
+  - 8-coil array, B1 only: about 16 minutes (7 min geometry and mesh, then about 1 min per coil; 431k mesh elements).
+- **Things learned while building it (2026-10-23; details in DECISIONS):**
+  - COMSOL's lumped ports put a 1 V incident wave on the driven port, so S_kp = V_k − δ_kp.
+  - The study must exist before the physics-controlled mesh, because mesh sizes depend on the frequency.
+  - A failed mesh leaves a stale partial mesh: clear it before retrying, and accept a mesh only if every domain holds elements.
+  - Insulation beads must extend 0.6 mm or more beyond the wire, or the mesher fails.
+  - Draw the tube through the actual wire points (spline interpolation functions). A global Fourier series (Will's method) misses sharp crossover bumps by millimetres and makes geometry building slow.
+  - Select domains by the geometry object that made them (`selresult`), not with ball selections: those need a display mesh of every face and fail on large models.
+  - The tube is many separately fitted surface patches. On an 8-coil array with all 32 gaps, a few patch joins did not meet exactly and the mesh failed; with feed gaps only it meshes. Capacitors in array models would need one swept tube per coil.
+
 ## 4. Common extensions — where to start
 
 | You want to… | Do this |
@@ -150,7 +200,7 @@ node tools/build_dist.js
 ```
 Builds `dist/`, a flat copy of the app for hosting.
 
-## 7. Known limitations and open items (as of 2026-10-20)
+## 7. Known limitations and open items (as of 2026-10-21)
 
 - **The design tool is quasi-static.** The v1.7 full-wave path (`sim/`) adds capacitors, tissue, wave effects and preamplifier decoupling, but only for small cases, and is unvalidated against measurement.
 - **Placeholders:** wire spec and helmet dimensions (PARAMETERS.md).
@@ -160,3 +210,7 @@ Builds `dist/`, a flat copy of the app for hosting.
 - **Crossovers in dense arrays (v1.9):** bumps work for pairs, but in heavily overlapping knot arrays they stack up to the 10 mm cap and some crossings cannot be separated (V24 FAIL on arrays). Such arrays are flagged "not buildable as drawn". Thicker knots (T) need far fewer bumps. Open design problem.
 - **Very sharp petals** (high m, 3–5 windings) need crossing lifts of several mm.
 - **Untested:** opening the app from `file://` (double-click). The local server is tested.
+- **v1.11 COMSOL link:** tested on Linux with COMSOL 6.4 and MPh 1.3.1.
+  - The Windows paths (Python discovery, hidden job windows, `taskkill` cancel, UTF-8 files) were written for Windows but not run there.
+  - Wires are perfect conductors (no copper loss).
+  - The coupling k at f0 with shorted gaps includes wave effects, so it is not a clean check of the Neumann engine.

@@ -424,7 +424,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
   // OWN crossings (two strands of j within 5 mm in space but far apart along the wire) would sit on the taper, r0 grows
   // until both strands are on the plateau, so they rise together and keep their own over/under clearance
   // (development fix 2026-10-21, found by the V24(c)-style check on the pair cases before the official run).
-  // Parameters (Design v1.9; PARAMETERS.md): target = 1.1 x (d_w + 2 t_i) JUDG; W = 6 mm JUDG; A_max = 10 mm JUDG;
+  // Parameters (Design v1.9; PARAMETERS.md): target = 1.1 x (d_w + 2 t_i) JUDG; W = 10 mm TUNED (see below); A_max = 10 mm JUDG;
   // step 0.1 mm JUDG; clusterGap 3 mm JUDG; r0 = cluster radius + target DERIVED.
   // taper width W (mm): pre-registered 6 (JUDG); TUNED to 10 on 2026-10-21 because W = 6 broke the bend-radius limit on the
   // pair cases (development check before the official V24 run; DECISIONS). Tuned on cases that V24 also tests.
@@ -744,7 +744,7 @@ VALIDATED BY: underlying M and L are validated (V1, V2, V4, V5). The optimiser i
         var k = pairCache[key], k2 = k * k; c += k2 + lamMax * k2 * k2 / thr2;
       });
       ctx.covSamples.forEach(function (s) {
-        var m = Infinity, Rf = 1;
+        var m = Infinity;
         for (var e = 0; e < Nn; e++) { var d = Lay.dist(s, C[e]) / E[e].Rf; if (d < m) m = d; }
         var g = m - 1; if (g > 0) c += o.lambdaCov * g * g;
       });

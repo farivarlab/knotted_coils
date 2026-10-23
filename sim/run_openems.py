@@ -48,7 +48,8 @@ import time
 
 import numpy as np
 
-OPENEMS_DIR = os.environ.get('KC_OPENEMS_DIR', r'C:\Users\reza\.solvers\openEMS')
+# Defaults under the user's home (C:\Users\<name>\.solvers\... on Windows, as before); override with the env variables.
+OPENEMS_DIR = os.environ.get('KC_OPENEMS_DIR', os.path.join(os.path.expanduser('~'), '.solvers', 'openEMS'))
 os.environ.setdefault('CSXCAD_INSTALL_PATH', OPENEMS_DIR)       # per-process; no permanent setx (Design v1.7 note)
 if hasattr(os, 'add_dll_directory') and os.path.isdir(OPENEMS_DIR):
     os.add_dll_directory(OPENEMS_DIR)
@@ -254,7 +255,7 @@ def main():
     name = case['name'] + (('_' + opt.tag) if opt.tag else '')
     out = os.path.join(ROOT, 'sim', 'out', name)
     os.makedirs(out, exist_ok=True)
-    work = os.path.join(os.environ.get('KC_SIM_WORK', r'C:\Users\reza\.solvers\work'), name)   # big files outside OneDrive
+    work = os.path.join(os.environ.get('KC_SIM_WORK', os.path.join(os.path.expanduser('~'), '.solvers', 'work')), name)   # big files outside OneDrive
     os.makedirs(work, exist_ok=True)
     phantom_file, phantom_box = None, None
     if case.get('phantom'):

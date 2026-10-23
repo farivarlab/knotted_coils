@@ -43,7 +43,7 @@ tr:nth-child(even) td { background: var(--panel); }
 <li>If the array solver doesn’t respond when opened by double-click, use the built-in local server (tested). Run <code>node tools/serve.js</code> in this folder, then open <a href="http://localhost:8765/app/index.html">http://localhost:8765/app/index.html</a>.</li>
 </ul>
 </li>
-<li><strong>Validation suite</strong> (needs Node.js; takes about 2 minutes):</li>
+<li><strong>Validation suite</strong> (needs Node.js; takes about 5–15 minutes):</li>
 </ul>
 <pre><code class="language-bash">node tests/run.js
 </code></pre>
@@ -135,7 +135,8 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 </tbody>
 </table>
-<h2>Validation status (full run 2026-10-21 16:07, code bc374d0, Design v1.10)</h2>
+<h2>Validation status (full run 2026-10-23 11:48, code d3cfeb9 plus the uncommitted changes of DECISIONS 2026-10-23, Design v1.10)</h2>
+<p>The report records git d3cfeb9 because the 2026-10-23 changes were not yet committed when it ran. Every verdict is identical to the run of 2026-10-21 (code bc374d0).</p>
 <p>Pre-registered checks, applied mechanically. Full report: <code>validation/validation_report.html</code>.</p>
 <table>
 <thead>
@@ -225,6 +226,16 @@ tr:nth-child(even) td { background: var(--panel); }
 </table>
 <p>Ring vs free layouts (C2, pre-registered): the ring layout met none of its 3 criteria, so free layouts stay the default.</p>
 <p>Every failing run is kept in the git history; see DECISIONS.md.</p>
+<p><strong>Proposed v1.11 (2026-10-23, pending Reza’s approval) — COMSOL link in the app, EXPLORATORY:</strong></p>
+<ul>
+<li>The Array tab’s “COMSOL” card and the Pair explorer’s “Verify in COMSOL” send the design to COMSOL and run it in the background. You need <code>node tools/serve.js</code>, a licensed COMSOL with the RF Module and a Python with MPh; set-up for Windows and Linux is in DEVELOPER_GUIDE “v1.11”.</li>
+<li>One or two coils are tuned and matched inside COMSOL. Arrays get one port per coil (no capacitors, no tuning or matching) and give B1 maps and coupling only; their single-coil maps are distorted by the missing capacitors, the whole-array map is the fair comparison.</li>
+<li>Every case is checked before it is sent (coil too large for the head, wires inside the head or touching, gaps next to another coil).</li>
+<li>The app then shows COMSOL’s capacitor values, S-parameters and coupling next to its own numbers, B1⁻ maps side by side with a ratio map, and COMSOL points on the Pair explorer graph.</li>
+<li>Insulation beads (placeholder permittivity) sit at every crossing (one or two coils).</li>
+<li><code>python sim/comsol_run.py case.json</code> does the same without the app. “Download case + STL” writes the case file.</li>
+<li>No pass/fail criteria (requester’s choice). Tested on Linux with COMSOL 6.4; written for Windows but not yet run there.</li>
+</ul>
 <p><strong>New in v1.10 (COMSOL interface, 2026-10-21) — UNVALIDATED:</strong></p>
 <ul>
 <li><code>python sim/export_comsol.py sim/cases/&lt;case&gt;.json</code> writes plain files for COMSOL into <code>sim/comsol/&lt;case&gt;/</code>: wire segments between capacitor gaps (x y z, mm), a ports table, the head phantom and metadata. It needs numpy only.</li>

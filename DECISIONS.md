@@ -4,6 +4,108 @@ Dated entries: what was decided, why, who decided it, and what the alternatives 
 
 ---
 
+### 2026-10-23 — Design v1.11 PROPOSED: COMSOL link in the app (collaborator request; pending Reza's approval; EXPLORATORY)
+- **Request and choices (collaborator, quoted in Design §12):**
+  - Export designs to COMSOL, run them in the background, and compare B1 maps and decoupling graphs in the app.
+  - Ports only for arrays; tuning and matching inside COMSOL for one or two coils.
+  - The app's ellipsoid head only.
+  - **No pass/fail criteria:** everything is exploratory.
+  - Insulation at the crossings.
+- **Ownership:** the code stays under Reza's accountability (provenance headers unchanged). Design v1.11 is written as a proposal: the frozen design is still v1.10 until Reza approves.
+- **Built on the collaborator's verified COMSOL work rather than on this repo's v1.10 builder:**
+  - The v1.10 `sim/comsol_build_mph.py` was written without COMSOL and has never run.
+  - The collaborator's `coils8_import.py` and `head_2coil_sphere_optimized.py` had been checked in COMSOL 6.4.
+  - Their construction is reused: parametric-surface PEC tubes, gap bands, spherical PML, the split feed with an in-model shunt Cp, and EM-in-the-loop tuning. Their Fourier-series centreline was later replaced (below).
+  - The v1.10 script and V25 are left untouched.
+- **Design choices:**
+  1. Stage 1 puts a port in every gap, so capacitors, matching and tuned B1 follow by exact circuit algebra. Stage 2 (1–2 coils) then puts the capacitors in the model and refines them.
+  2. The coupling for the app's k is taken at f0 with the gaps shorted. It includes wave effects (see below).
+  3. The B1 maps use the app's own slice grid, so the comparison is point by point.
+- **Problems found and fixed while building it (all before any result was shown):**
+  - **COMSOL's lumped-port convention:** the driven port carries a 1 V incident wave, so S_kp = V_k − δ_kp. This reproduces COMSOL's S11 to 1e-6. Deriving S from the port currents was off by about 1e-3, because the current is a surface integral.
+  - **Mesh before study:** building the physics-controlled mesh before the study existed gave a mesh that was rebuilt, and failed, once the 128 MHz study was added. Mesh sizes depend on the frequency, so the study is now created first.
+  - **Insulation beads at the real thickness fail to mesh:**
+    - A 0.25 mm bead meets the tube at a grazing angle.
+    - On the trefoil, padding of 0.6, 2 and 3 mm meshes at every level tried; 1.0 mm does not.
+    - The script tries 0.6, then 2, then 3 mm, and records which it used. The bead therefore holds more dielectric than real insulation would (PLACEHOLDER εr 3).
+  - **Stale partial mesh (implementation error):** a failed mesh attempt leaves a stale partial mesh. The first retry logic accepted it: 34k elements with one domain empty, which then failed at the solve. Fixed by clearing the mesh before every try and accepting a mesh only if every domain holds 3D elements.
+    - The first version of that check counted only tetrahedra, so it rejected the swept PML (prisms). Fixed.
+  - **Job runner, two bugs found by driving the page:**
+    - The page treated the short "unknown" status between launch and Python's first status write as finished, and stopped watching. The server now writes "starting" at launch.
+    - After a server restart, the server would have started a second COMSOL job beside a running one. It now checks the job folders for a live job first.
+  - **Touching wires:** the script refuses to build when wires come within the wire diameter + 0.1 mm, because COMSOL would fuse them. App pair sweeps keep ≥ 1.65 mm centre to centre, even where the bump search reports "capped".
+- **Geometry rewritten after a failed array test (implementation error, found before any array result was shown):**
+  - The first version drew each tube from a Fourier series of the wire, as Will's script does.
+  - On a 4-coil array, whose wires carry sharp crossover bumps and only 300 points, the series missed the wire by up to **9.8 mm**. The fit routine reported the error but still accepted the fit at its harmonic limit, instead of refusing. Geometry building also took over 10 minutes.
+  - **Fix:** the tube now follows cubic-spline interpolation functions through every wire point, in arc length. There is no fitting error to accept.
+  - **Results with the spline tubes:**
+    - The two-coil case that had failed to mesh with its insulation beads now meshes at the first bead size.
+    - The single trefoil builds in 30 s instead of 19 s, but solves faster.
+    - The trefoil's circuit Ct moved from 9.62 to 9.41 pF (−2%) between the two representations of the same wire, with a different mesh (131k vs 119k elements). This is an indication of the mesh/representation uncertainty, not yet separated.
+  - The array job was cancelled; the array path was parked until the collaborator asked for it (below).
+- **Insulation beads that nearly touch each other (pair sweep, 69 mm spacing):** a coil's own crossing and a crossover between the coils fell 4–7 mm apart, and their beads overlapped or left a thin sliver of air; the mesh failed at every bead size.
+  - **Fix:** beads that could come within 1.5 mm of each other at the largest bead size are merged into one bead covering both places. The merged beads hold more dielectric than real insulation (up to about 10 mm radius where three crossings cluster).
+  - If a case still cannot be meshed with beads, it runs without them and the result records that (`insulation.dropped`).
+  - One failed case no longer stops the remaining cases of a job.
+  - The 69 mm case then meshed with 2 mm beads.
+- **Two coils, Pair-explorer geometry at the app's zero-coupling spacing (65 mm, 3 T, head):**
+  - **Matching:** both coils matched in COMSOL on the first in-model iteration (S11 −40 dB each), 13 min in all.
+  - **Coupling:** the coupling with gaps shorted nearly vanishes, k 0.0007 (the app's k for the same wrapped wires is 0.0069). The matched S21 is −9.8 dB.
+  - **Interpretation (information, not a verdict):** the inductive coupling is nulled as the app predicts, and the remaining coupling passes through the lossy head. The collaborator's own two-loop COMSOL study found the same kind of tissue floor (−16 dB) at its overlap optimum.
+- **First results (exploratory, head-loaded single trefoil, 3 T):**
+  - **Case `trefoil_head_3T`:**
+    - COMSOL tuning Ct is 9.57 pF in the model and 9.62 pF by circuit.
+    - openEMS gave 9.10 pF for the same case: within 5%, two independent solvers.
+    - The quasi-static first pass was 12.4 pF.
+    - Matched to −37 dB in 4 COMSOL iterations, about 4 min in all.
+    - B1 rebuilt from stage 1 agrees with stage 2 to 2.5%.
+  - **App default trefoil (R 30 mm, footprint 54 mm):**
+    - Matched to −32.9 dB.
+    - Peak B1⁻ per ampere: app 17.9 vs COMSOL 17.3 µT/A (axial plane).
+    - After normalising, 44–79% of points agree within 20% depending on the plane. COMSOL is relatively stronger deeper in the head (tissue and wave effects), as openEMS found for V18.
+  - **"Apparent L" at f0 with all gaps shorted** is 1093 nH against the app's 620 nH. The 56 cm shorted wire is near its own resonance at 128 MHz, so this is not an inductance error and is labelled as such in the app.
+- **Whole arrays, B1 only (collaborator, later the same day: "so for complete array and b1 field (only port is needed) no tuning and matcing only the port"):**
+  - Each coil's feed gap is a 50 Ω port; the other gaps are plain wire. One solve per coil (8 solves for 8 coils instead of 32 with a port in every gap).
+  - Insulation beads are left out for arrays: on the 8-coil array every bead size failed to mesh at one crossing, at about 1 min per try. They hardly change B1.
+  - Domains (air, PML, head layers) are now selected by the geometry object that made them, not by probe balls. A ball selection needs a display mesh of every face and failed on one face of the 8-coil array.
+  - **Result, 8 coils T(2,3) β 0.8, T = 15 mm, 3 T, head (run from the page):** 431k mesh elements; geometry and mesh 7 min, then about 1 min per coil; 16 min in all.
+    - Whole-array maps (root-sum-square of the coils, each map normalised to its peak): 75% (axial), 57% (coronal) and 91% (sagittal) of points within 20% of the app.
+    - Single coils: 8–88% of points within 20%; COMSOL's peak per ampere is 2.5–5× the app's, and its coupling |k| 2.6–4× the app's (six largest pairs).
+    - **Interpretation (information, not a verdict):** without capacitors each 0.8 m wire carries a standing wave at 128 MHz, while the app assumes a uniform current. The whole-array pattern compares fairly; single-coil maps and absolute levels do not.
+  - **Tried and removed: first-pass capacitors in the non-feed gaps.** This would have made single-coil maps comparable. On the 8-coil array the geometry with all 32 gaps did not mesh ("intersecting edge elements" on two or three faces).
+    - Cause found: each tube is ~45 separately fitted surface patches. Where two patches meet, COMSOL's fit leaves their corner points up to ~0.06–0.2 mm apart, and the union keeps tiny edges there. Which joins fail depends on where the gaps put the patch boundaries.
+    - Not fixed by mesh level (6, 5, 4, 3, 2), union repair tolerance (to 0.25 mm), surface-fit knots (8–80), COMSOL "Remove Details", or composite faces. The fix would be one swept tube per coil (a rewrite), so the mode was removed at the collaborator's direction (ports only).
+- **Pre-flight check ("make sure to bolster the size check so we don't simulate weird stuff in COMSOL"):**
+  - **Found while testing: a coil too large for the helmet wraps badly.** A 4-coil array (footprint radius 94 mm) wrapped with wire points jumping 56–62 mm, because the radial-snap fallback in wrapping is not flagged (open item A7 below). COMSOL then failed after 10 minutes with a geometry error. The app's own coupling and B1 for such an array are also unreliable; the app solver is unchanged.
+  - The app now refuses to make a case, and `sim/comsol_run.py` refuses to build one, when a coil is stretched > 15% by wrapping, any wire is inside the head, a port or capacitor gap is < 1.5 mm from another coil, or two wires are closer than the wire diameter + 0.1 mm. The script also refuses wire points that jump.
+  - On four test arrays (T(2,3) β 0.8, N 8 and 12, T 0 and 15 mm) the app and the script agree: N 12 at T = 0 is refused (coils 11 and 12 pass 0.12 mm apart; the crossover bumps could not separate them, see V24); the other three pass.
+
+### 2026-10-23 — Housekeeping on a shared copy (no design change; no verdict affected)
+- **Request:** a collaborator reproducing the package on Linux asked for it to be cleaned up ("clean it up a bit").
+- **Portability (tooling only):** default paths no longer hard-code the development machine.
+  - `tests/run.js`: the Magpylib Python (`KC_PYTHON`) now defaults to `~/.venvs/knotted_coils/`, using `Scripts/python.exe` on Windows and `bin/python` elsewhere.
+  - `sim/run_openems.py`: `KC_OPENEMS_DIR` and `KC_SIM_WORK` now default to `~/.solvers/openEMS` and `~/.solvers/work`.
+  - On the development machine these resolve to the same paths as before. On Linux the old work-folder default created a folder literally named `C:\Users\reza\.solvers\work` inside the current directory.
+- **Stale text fixed:**
+  - DEVELOPER_GUIDE: the runner covers V1–V25 (it said V1–V20); the limitations section is dated 2026-10-21.
+  - README: the validation suite takes about 5–15 minutes, as the guide says (README said 2). A full reproduction run on Linux (Node 18, Magpylib 6.0.0) took 7 min 43 s and gave verdicts identical to the official report for every check.
+  - PARAMETERS: the B1 wire-thinning row still described the midpoint rule, which was replaced in v1.6.
+  - `core/optimise.js`: a header comment gave the crossover taper as W = 6 mm, but the value is the TUNED 10 mm. An unused variable was also removed; a 16-element ring-mode solve gives bit-identical results before and after.
+- **App 0.5.1 (UI only; collaborator: "fix the graphics issue"):**
+  - **No WebGL:** where the browser cannot start WebGL (3D graphics), the 3D renderer threw an error that stopped the whole page script, so even the Element tab stayed blank. Seen in VS Code's built-in browser on a laptop with hybrid NVIDIA graphics, and reproduced in Chrome with WebGL disabled.
+  - Now only the 3D view is lost. It shows a note instead, and the "B1 on head surface" option is disabled. Solving, tables, the coupling matrix, B1 slices and exports work, and elements are selected from the coupling matrix.
+  - **Canvases growing on high-resolution screens (bug present since the first app version):**
+    - `sizeCanvas` read each canvas's layout height from its `height` attribute, then overwrote that attribute in device pixels.
+    - On a 2× display every redraw therefore doubled the canvas: 520 → 1040 → 2080 px, and so on. The knot drawing slid down the page, and after a few slider moves Chrome showed a broken-canvas icon instead.
+    - Found by the collaborator on a 4K screen; reproduced and fixed. The layout height is now read once. Displays at 1× were never affected.
+  - **Coupling-matrix picture:** it had a fixed 360 px width that spilled out of its card in narrower windows and made the page scroll sideways. It now shrinks to fit.
+  - **Controls column:** its height assumed a one-line, 52 px header. It now sticks to the top of the window with a floor of 480 px, because VS Code's built-in browser squeezed it to a sliver.
+  - **Checked by driving the page in Chrome** and Firefox, with WebGL and without, on 1x and 2x screens at 1920 and 1100 px wide: Element tab with extreme shapes, Pair explorer, fast and full 16-element solves, B1 slices. There were no page errors, no growing canvases and nothing outside the page.
+- **Not changed:** Design.md (frozen), every criterion and every committed result.
+- **Line endings:** the shared copy had Windows (CRLF) line endings, so git showed 73 files as modified.
+  - They had no content changes, which was checked file by file.
+  - They were converted to LF, matching the repository. On Linux the `sim/run_queue*.sh` scripts need LF to run.
+
 ### 2026-10-21 — Design v1.10 COMSOL interface (Reza), and a process slip during it
 - **Request:** Reza asked whether the output was ready for COMSOL; on hearing it was not, chose "add the COMSOL export first", then package.
 - **What was built:** export files plus an MPh build script, labelled UNVALIDATED. COMSOL is **not installed** on this machine, so the script was tested only in `--dry-run`, which checks the files and records the API calls.

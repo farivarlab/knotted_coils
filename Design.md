@@ -1,6 +1,6 @@
 # Knotted-Loop Receive Array Designer — Design Document
 
-**Status:** FROZEN v1.10 (v1.10 = COMSOL interface, Reza 2026-10-21; v1.9 = crossover bumps between overlapping coils, Reza 2026-10-21; v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-21 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
+**Status:** FROZEN v1.10; v1.11 (§6d, COMSOL link in the app) PROPOSED 2026-10-23, pending Reza's approval (v1.10 = COMSOL interface, Reza 2026-10-21; v1.9 = crossover bumps between overlapping coils, Reza 2026-10-21; v1.8 = knot thickness control T, requested by Reza 2026-10-21; v1.7 = full-wave capacitor co-simulation, requested by Reza 2026-10-20 evening; v1.6 = major update approved by Reza: ring layouts, face zones, capacitor breaks, multi-start, save/load, B1 Tier 1; v1.5 adds a quick B1 view, requested by Reza; v1.0 approved by Reza Farivar 2026-10-20; v1.1 (§5), v1.2–v1.3 (§3, §7 V7) requested by Reza; v1.4 = fix of v1.3 after V7 failed; see §12) · **Date:** 2026-10-21 · **Owner:** Reza Farivar · **Drafted with:** Claude (Anthropic), AI-assisted
 
 > **Freezing rule.** Once Reza approves this document it becomes v1.0. After that, any change to the geometry definitions, the electromagnetic (EM) model or the validation criteria needs a dated changelog entry (§12). The validation criteria in §7 are pre-registered: they are fixed before any code exists, and failures will be reported as failures.
 
@@ -233,6 +233,38 @@ subject to wire-clearance constraints
   - **Status: UNVALIDATED.** It was written without access to COMSOL. The COMSOL feature and property names come from the COMSOL API as recalled by Claude and are marked UNVERIFIED in the code. First use must be supervised in the COMSOL GUI.
 - **Not in v1.10:** B1 field export from COMSOL (S-parameters only); the co-simulation's B1 comparison stays openEMS-only.
 
+## 6d. COMSOL link in the app (v1.11, PROPOSED 2026-10-23, pending Reza's approval; EXPLORATORY)
+
+Requested by a collaborator working on a copy of the package: *"generate a COMSOL simulation out of the array or singular (or just two knotted coil, anything) … simulate the COMSOL simulation under the hood … and bring back the COMSOL results back into the web app … I want to be able to validate basically B1 maps and decoupling graphs using COMSOL"*. Choices made by the requester: a port in every gap for arrays, and for one or two coils "the ports and the required impedance matching (gap and shunt capacitor, complete)"; the app's ellipsoid head only; **no pass/fail criteria (exploratory)**; insulation at the crossings. For whole arrays the requester then narrowed this: *"so for complete array and b1 field (only port is needed) no tuning and matcing only the port"*.
+
+- **Cases from the app** (`core/simcase.js`, same schema as `tests/export_case.js`):
+  - the solved array;
+  - the Element tab's knot alone, wrapped onto the helmet at the back of the head (posterior midline, 20° elevation, as the v1.7 cases);
+  - the Pair explorer's pair at several spacings, wrapped the same way, with the explorer's rotations (measured from the line joining the centres), crossover bumps between the two coils (§4), and the gaps shifted along the wire to keep them clear of the other coil (the rule of DECISIONS 2026-10-21).
+  - Every case carries this app's quasi-static L, M and k for exactly those wires.
+- **COMSOL model** (`sim/comsol_run.py`, MPh; the construction of `coils8_import.py`, which was checked in COMSOL 6.4):
+  - each coil a perfect-conductor tube of the wire radius, around a centreline that passes through every case point (cubic-spline interpolation in arc length; a Fourier series as in `coils8_import.py` cannot follow sharp crossover bumps);
+  - each capacitor gap a 2 mm band of the tube;
+  - the three-layer head phantom of §6b, an air sphere and a spherical PML;
+  - **insulation at crossings:** a dielectric sphere (εr placeholder 3) around every place where two strands pass within 3 mm, at a coil's own crossings and at crossovers between coils. Its radius extends 0.6 mm beyond the wire, or 2 or 3 mm if the mesh fails: the real 0.25 mm insulation meets the tube at a grazing angle that the mesher cannot fill.
+- **Pre-flight check (before anything goes to COMSOL; the same rules in the app, `core/simcase.js`, and in `sim/comsol_run.py`):** a case is refused if
+  - a coil is stretched by more than 15% when wrapped onto the helmet (too large for the head; its wire points then jump),
+  - any wire passes inside the head,
+  - a port (arrays) or capacitor gap (one or two coils) lies within 1.5 mm, centre to centre, of another coil's wire, or
+  - two wires come closer than the wire diameter + 0.1 mm (COMSOL would fuse them into a short).
+  The app warns when a run needs more than 24 COMSOL solves.
+- **Arrays (3 or more coils): B1 only, one port per coil.** Only each coil's feed gap is modelled, as a 50 Ω port; the other gaps are left as plain wire (no capacitors, no tuning or matching). One solve per coil gives each coil's B1 map per ampere of its port current, with the other coils resting on 50 Ω, and the coupling k from the port impedances. Insulation beads are left out (they hardly change B1 and did not mesh on an 8-coil array). **Limitation:** without capacitors each wire is long compared with the wavelength in the head and carries a standing wave, while the app assumes a uniform current; whole-array maps compare fairly, single-coil maps do not (DECISIONS 2026-10-23).
+- **Stage 1 (one or two coils):** a 50 Ω lumped port in every gap, one solve per port, then:
+  - Ct (each non-feed gap) and a shunt Cp across the feed are chosen in circuit so each coil is tuned and matched. This is exact for lumped capacitors because every gap is a port.
+  - Coupling with all gaps shorted: k = Im Z_ij / √(Im Z_ii Im Z_jj) at f0.
+  - B1 of each tuned coil is the matching superposition of the port-run fields.
+- **Stage 2 (one or two coils):** the capacitors go into the model as lumped elements. The feed band is split lengthwise: the port on one half, Cp on the other, as in `head_2coil_sphere_optimized.py`. They are refined with COMSOL in the loop until every |S11| ≤ −30 dB. The final S-parameters and B1 maps come straight from COMSOL.
+- **Under the hood:** `node tools/serve.js` runs the jobs, one at a time and detached, with Python from `KC_COMSOL_PYTHON` or a found venv. This works on Windows and Linux. The app shows progress and then:
+  - a results table;
+  - B1⁻ maps (app quasi-static vs COMSOL vs ratio, each normalised to its own maximum, on the app's slice grid);
+  - for pair sweeps, COMSOL k and matched S21 drawn on the Pair explorer graph.
+- **Not in v1.11:** pass/fail criteria (none were requested); a low-frequency COMSOL check of the Neumann engine (the f0 shorted-gap k includes wave effects); copper losses (wires are PEC).
+
 ## 7. Validation plan (pre-registered)
 
 Each check runs automatically in the test suite and appears in a validation report. **Pass criteria are fixed now.**
@@ -318,6 +350,13 @@ knotted_coils/
 | D7 | Mixed knots in one array | No for v1 (all elements the same knot); yes for v2 |
 
 ## 12. Changelog
+
+- **2026-10-23, v1.11 PROPOSED, pending Reza's approval (requested by a collaborator: "i want to have that option on my current web app … generate a COMSOL simulation out of the array or singular … simulate the COMSOL simulation under the hood … to be able to validate basically b1 maps and decoupling graphs using COMSOL"; also "maybe put some insulation in those areas (the crossings)").**
+  - §6d: COMSOL link in the app: case export, `sim/comsol_run.py`, job runner in `tools/serve.js`, comparison views.
+  - **No new checks:** the requester chose exploratory comparisons without pass/fail criteria. Results are labelled EXPLORATORY.
+  - Geometry, the quasi-static EM model and every existing criterion are unchanged.
+  - V25 (pre-registered for `sim/comsol_build_mph.py`) is not evaluated by the new script; whether to amend it is the owner's call.
+  - Later the same day, at the requester's direction (*"so for complete array and b1 field (only port is needed) no tuning and matcing only the port"*; *"make sure to bolster the size check so we don't simulate weird stuff in COMSOL"*): arrays run B1 only with one port per coil, and every case passes a pre-flight check first (§6d).
 
 - **2026-10-21, v1.10 (Reza: "add the COMSOL export (files + MPh build script, unvalidated) … add the COMSOL export first").**
   - §6c: COMSOL export files and MPh build script from the same case JSON as openEMS.

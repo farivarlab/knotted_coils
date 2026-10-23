@@ -84,7 +84,7 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 <tr>
 <td><code>tests/run.js</code></td>
-<td>Validation checks V1–V20 (pre-registered; V15–V20 read from <code>sim/out/*/cosim.json</code>) plus labelled post-hoc checks. Writes <code>validation/</code></td>
+<td>Validation checks V1–V25 (pre-registered; V15–V20 and V25 read from <code>sim/out/*/cosim.json</code>) plus labelled post-hoc checks. Writes <code>validation/</code></td>
 </tr>
 <tr>
 <td><code>tests/compare_worstpair.js</code></td>
@@ -96,11 +96,19 @@ tr:nth-child(even) td { background: var(--panel); }
 </tr>
 <tr>
 <td><code>tests/b1_crosscheck.py</code></td>
-<td>V14: our B1 against Magpylib 6.0.0 on identical wires. Needs a Python environment with <code>magpylib==6.0.0</code>; set <code>KC_PYTHON</code> to its python.exe (default <code>C:/Users/reza/.venvs/knotted_coils/Scripts/python.exe</code>)</td>
+<td>V14: our B1 against Magpylib 6.0.0 on identical wires. Needs a Python environment with <code>magpylib==6.0.0</code>; set <code>KC_PYTHON</code> to its Python executable (default <code>~/.venvs/knotted_coils/Scripts/python.exe</code> on Windows, <code>~/.venvs/knotted_coils/bin/python</code> elsewhere)</td>
 </tr>
 <tr>
 <td><code>tools/serve.js</code></td>
-<td>Tiny local web server: <code>node tools/serve.js</code> → <a href="http://localhost:8765/app/index.html">http://localhost:8765/app/index.html</a></td>
+<td>Tiny local web server: <code>node tools/serve.js</code> → <a href="http://localhost:8765/app/index.html">http://localhost:8765/app/index.html</a>. Also the COMSOL job runner (v1.11)</td>
+</tr>
+<tr>
+<td><code>core/simcase.js</code></td>
+<td>v1.11: the app’s designs as case files for the full-wave solvers (array, single element, pair sweep)</td>
+</tr>
+<tr>
+<td><code>sim/comsol_run.py</code></td>
+<td>v1.11: builds, solves and tunes a case in COMSOL through MPh; writes results the app reads</td>
 </tr>
 <tr>
 <td><code>tools/build_dist.js</code></td>
@@ -226,6 +234,72 @@ tr:nth-child(even) td { background: var(--panel); }
 </ol>
 </li>
 </ul>
+<h3>v1.11 COMSOL link in the app (PROPOSED, pending Reza’s approval; EXPLORATORY)</h3>
+<p>The app can send a design to COMSOL, have it solved in the background, and show the results next to its own quasi-static numbers (Design §6d).</p>
+<ul>
+<li><strong>What runs where:</strong>
+<ol>
+<li>The page builds the case files in a worker (<code>core/simcase.js</code>).</li>
+<li>It posts them to <code>tools/serve.js</code>.</li>
+<li>The server starts <code>sim/comsol_run.py --job sim/comsol_jobs/&lt;job&gt;</code>, one job at a time, detached, so a job survives a server restart.</li>
+<li>The script writes <code>status.json</code>, <code>&lt;case&gt;_results.json</code>, <code>&lt;case&gt;_stage1.npz</code> and <code>&lt;case&gt;.mph</code> (solution cleared) into the job folder. The page polls the status and reads the results.</li>
+</ol>
+</li>
+<li><strong>Set-up (once per machine):</strong> a licensed COMSOL with the RF Module, and a Python environment with MPh (<code>pip install mph numpy</code>; MPh also installs JPype).
+<ul>
+<li><strong>Windows:</strong><pre><code class="language-bat">py -m venv %USERPROFILE%\comsolai
+%USERPROFILE%\comsolai\Scripts\pip install mph numpy
+</code></pre>
+</li>
+<li><strong>Linux / macOS:</strong><pre><code class="language-bash">python3 -m venv ~/comsolai
+~/comsolai/bin/pip install mph numpy
+</code></pre>
+</li>
+<li><strong>How the server finds Python:</strong>
+<ol>
+<li><code>KC_COMSOL_PYTHON</code>, if set;</li>
+<li>otherwise the first that exists of <code>~/comsolai</code>, <code>~/.venvs/kc_em</code> and <code>~/.venvs/knotted_coils</code> (<code>Scripts\python.exe</code> on Windows, <code>bin/python</code> elsewhere);</li>
+<li>otherwise <code>python</code> (Windows) or <code>python3</code> on the PATH.
+The app shows which Python it found and whether it can import MPh.</li>
+</ol>
+</li>
+<li>MPh finds COMSOL itself (default install folders, or the Windows registry).</li>
+</ul>
+</li>
+<li><strong>Use:</strong>
+<ol>
+<li>Run <code>node tools/serve.js</code> and open <a href="http://localhost:8765/app/index.html">http://localhost:8765/app/index.html</a>. The COMSOL link does not work when the page is opened as a file.</li>
+<li>Set Field strength to 3 T or 7 T (the head phantom has tissue values only there).</li>
+<li>In the Array tab’s “COMSOL” card, choose:
+<ul>
+<li>the solved array: 1–2 coils are tuned and matched in COMSOL; 3 or more coils get one port each (feed gap only, no capacitors) and give B1 maps and coupling, without tuning or matching;</li>
+<li>or the current element alone.</li>
+</ul>
+</li>
+<li>In the Pair explorer, “Verify in COMSOL” runs the pair at several spacings around the zero.</li>
+<li>Every case is checked first (pre-flight): coils stretched &gt; 15% by wrapping, wires inside the head, gaps within 1.5 mm of another coil, or wires that would touch are refused with a message saying which coil. Results of earlier runs open from “previous runs…”; one COMSOL run at a time (the buttons grey out), and Cancel stops it.</li>
+</ol>
+</li>
+<li><strong>Without the app:</strong> <code>python sim/comsol_run.py case.json [--mode auto|b1|ports|match] [--build-only] [--no-insulation]</code> (auto: <code>match</code> for 1–2 coils, <code>b1</code> for arrays). “Download case + STL” in the card writes the case file. The STL is for viewing only; COMSOL is built from the exact wire paths in the case file.</li>
+<li><strong>Timing measured on the development copy</strong> (24 cores, 16 used, normal mesh):
+<ul>
+<li>single trefoil in the head: 2–4 minutes (about 15–20 s per port);</li>
+<li>two coils: about 13 minutes per spacing (about 65 s per port, 350k mesh elements).</li>
+<li>8-coil array, B1 only: about 16 minutes (7 min geometry and mesh, then about 1 min per coil; 431k mesh elements).</li>
+</ul>
+</li>
+<li><strong>Things learned while building it (2026-10-23; details in DECISIONS):</strong>
+<ul>
+<li>COMSOL’s lumped ports put a 1 V incident wave on the driven port, so S_kp = V_k − δ_kp.</li>
+<li>The study must exist before the physics-controlled mesh, because mesh sizes depend on the frequency.</li>
+<li>A failed mesh leaves a stale partial mesh: clear it before retrying, and accept a mesh only if every domain holds elements.</li>
+<li>Insulation beads must extend 0.6 mm or more beyond the wire, or the mesher fails.</li>
+<li>Draw the tube through the actual wire points (spline interpolation functions). A global Fourier series (Will’s method) misses sharp crossover bumps by millimetres and makes geometry building slow.</li>
+<li>Select domains by the geometry object that made them (<code>selresult</code>), not with ball selections: those need a display mesh of every face and fail on large models.</li>
+<li>The tube is many separately fitted surface patches. On an 8-coil array with all 32 gaps, a few patch joins did not meet exactly and the mesh failed; with feed gaps only it meshes. Capacitors in array models would need one swept tube per coil.</li>
+</ul>
+</li>
+</ul>
 <h2>4. Common extensions — where to start</h2>
 <table>
 <thead>
@@ -285,7 +359,7 @@ tr:nth-child(even) td { background: var(--panel); }
 <pre><code class="language-bash">node tools/build_dist.js
 </code></pre>
 <p>Builds <code>dist/</code>, a flat copy of the app for hosting.</p>
-<h2>7. Known limitations and open items (as of 2026-10-20)</h2>
+<h2>7. Known limitations and open items (as of 2026-10-21)</h2>
 <ul>
 <li><strong>The design tool is quasi-static.</strong> The v1.7 full-wave path (<code>sim/</code>) adds capacitors, tissue, wave effects and preamplifier decoupling, but only for small cases, and is unvalidated against measurement.</li>
 <li><strong>Placeholders:</strong> wire spec and helmet dimensions (PARAMETERS.md).</li>
@@ -295,5 +369,12 @@ tr:nth-child(even) td { background: var(--panel); }
 <li><strong>Crossovers in dense arrays (v1.9):</strong> bumps work for pairs, but in heavily overlapping knot arrays they stack up to the 10 mm cap and some crossings cannot be separated (V24 FAIL on arrays). Such arrays are flagged “not buildable as drawn”. Thicker knots (T) need far fewer bumps. Open design problem.</li>
 <li><strong>Very sharp petals</strong> (high m, 3–5 windings) need crossing lifts of several mm.</li>
 <li><strong>Untested:</strong> opening the app from <code>file://</code> (double-click). The local server is tested.</li>
+<li><strong>v1.11 COMSOL link:</strong> tested on Linux with COMSOL 6.4 and MPh 1.3.1.
+<ul>
+<li>The Windows paths (Python discovery, hidden job windows, <code>taskkill</code> cancel, UTF-8 files) were written for Windows but not run there.</li>
+<li>Wires are perfect conductors (no copper loss).</li>
+<li>The coupling k at f0 with shorted gaps includes wave effects, so it is not a clean check of the Neumann engine.</li>
+</ul>
+</li>
 </ul>
 </body></html>

@@ -4,7 +4,7 @@ Every number that shapes a result, with its true origin. Tags follow the researc
 **LIT** (from verified literature) · **CONV** (convention/library default) · **JUDG** (our judgement) · **TUNED** (searched) · **DERIVED** (computed from others).
 **PLACEHOLDER** marks a JUDG value awaiting Reza's real specification.
 
-Last updated 2026-10-20.
+Last updated 2026-10-23.
 
 ## Physical inputs (placeholders until Reza supplies them)
 
@@ -67,6 +67,34 @@ Last updated 2026-10-20.
 | Timestep cap MAX_TS (added 2026-10-21) | 2 × 10⁶ | JUDG | openEMS default is 10⁹ (no real cap). A run that hits the cap is not trusted | `sim/run_openems.py` |
 | V18 depth | along the ray from the head centre | JUDG | Not the true normal distance | `sim/cosim.py` |
 
+## Design v1.11 (PROPOSED, pending Reza's approval): COMSOL link (`sim/comsol_run.py` CFG, `core/simcase.js`)
+
+| Parameter | Value | Tag | Rationale / source | Where |
+|---|---|---|---|---|
+| Gap length | 2.0 mm | JUDG | Same as the openEMS model (GAP) | `sim/comsol_run.py` |
+| Tube centreline | cubic spline through every case point, arc-length parameter | JUDG | Replaced a Fourier fit that missed bumped array wires by up to 9.8 mm (DECISIONS 2026-10-23) | `sim/comsol_run.py` |
+| Tube patch length / NURBS knots | ≤ 20 mm / 40 per direction | JUDG | COMSOL approximates each parametric patch with NURBS (its default is 20 knots) | `sim/comsol_run.py` |
+| Air margin / PML thickness | 60 / 80 mm | JUDG | Values of Will's `coils8_import.py` | `sim/comsol_run.py` |
+| Mesh | physics-controlled, level 5 (normal) or 4 (fine) | JUDG | Will used 4; level 5 meshes a single trefoil in ~120k elements | `sim/comsol_run.py`, app |
+| Match tolerance | \|S11\| ≤ −30 dB | JUDG | The handover's criterion for "matched" | `sim/comsol_run.py` |
+| Stage-2 iterations / damping | 10 / 0.7 (log space) | JUDG | Handover values (`tune_match_bounded`) | `sim/comsol_run.py` |
+| Shunt Cp search range | 0.5 pF – 2 nF | JUDG | Handover value | `sim/comsol_run.py` |
+| Insulation permittivity εr | 3 | JUDG PLACEHOLDER | Typical enamel; real wire spec pending (D5). Editable in the app | `sim/comsol_run.py`, app |
+| Crossing threshold for beads | 3 mm centre to centre | JUDG | Catches every crossing (1.5–2 mm) and crossover | `sim/comsol_run.py` |
+| Bead padding beyond the wire | 0.6, then 2, then 3 mm | JUDG (mesh-driven) | The real 0.25 mm insulation meets the tube at a grazing angle the mesher cannot fill; 1.0 mm also failed on the trefoil (DECISIONS 2026-10-23) | `sim/comsol_run.py` |
+| Touching-wire refusal | < 2·r_wire + 0.1 mm centre to centre | JUDG | Closer tubes would be fused by the geometry union (a short) | `sim/comsol_run.py` |
+| Pre-flight: wrap stretch refusal | > 15% | JUDG | Coils that wrap cleanly stretch up to 12% (test arrays N 8–12, T 0–15 mm); the badly wrapped 94 mm coil stretched 27.5% (DECISIONS 2026-10-23) | `core/simcase.js` |
+| Pre-flight: port or capacitor gap near another coil | < 1.5 mm centre to centre | JUDG | A 2 mm gap that close to another wire could short across it | `core/simcase.js`, `sim/comsol_run.py` |
+| Pre-flight: wire point jump | longest step > 3 mm and > 5 × the median step | JUDG | Healthy case wires step 1.8–4.1 mm with no outliers; the badly wrapped coil jumped 56–62 mm | `sim/comsol_run.py` |
+| Pre-flight: long-run warning | > 24 COMSOL solves | JUDG | About 25–65 s per solve; beyond 24 a run takes well over half an hour | `core/simcase.js` |
+| Arrays: ports and beads | feed gap only, one port per coil; no insulation beads | JUDG (requester's choice; mesh-driven) | "only port is needed"; beads did not mesh on an 8-coil array and hardly change B1 | `sim/comsol_run.py` |
+| B1 map grid | 60 × 60 per plane, the app's slice grid | JUDG | Same points as the app's quasi-static map | `sim/comsol_run.py`, app |
+| B1 planes | axial / coronal / sagittal through the coils' centroid (coronal at 0.6 × centroid y) | JUDG | Puts the coronal plane inside the head for posterior coils | app |
+| Single/pair position on the helmet | posterior midline, 20° elevation | JUDG | Same as the v1.7 cases (`tests/export_case.js`) | `core/simcase.js` |
+| Pair gap shift search | 120 shifts per gap period | JUDG | Maximises the gap-to-other-coil distance, gaps ≥ capacitor clearance from crossings | `core/simcase.js` |
+| Default pair spacings | zero ± 0, 2, 4, 6 mm | JUDG | Brackets the Pair explorer's zero | app |
+| Comparison statistic | share of points within 20% after normalising, where the app map is within 30 dB of its maximum | JUDG | Information only (no criterion, by the requester's choice) | app |
+
 ## Design v1.6 additions
 
 | Parameter | Value | Tag | Rationale / source | Where |
@@ -95,7 +123,7 @@ Last updated 2026-10-20.
 |---|---|---|---|---|
 | Head surface | helmet semi-axes − 10 mm | JUDG PLACEHOLDER | Stand-in for a head; replace with a real head model when simulating | `core/field.js` |
 | B1 units factor | 100 µT/A per (1/mm) | DERIVED | μ0/4π with mm units; header of `core/field.js`; checked by V8 | `core/field.js` |
-| Wire thinning for B1 | ≤ 200 points per element | JUDG | Speed. Field points are ≥ 10 mm from wires, so the midpoint rule is adequate (not separately tested) | `core/field.js` |
+| Wire thinning for B1 | ≤ 200 points per element | JUDG | Speed. The exact finite-segment formula (since v1.6) is checked against Magpylib on the same thinned wires (V14, V22) | `core/field.js` |
 | Colour scale | −30 to 0 dB relative to the maximum shown, viridis | CONV | Viridis is a standard perceptually uniform colour map | app |
 | Array combination | √Σ\|B1ᵢ\|² (1 A per element) | CONV | Common quick stand-in for combined array sensitivity; ignores noise correlation | app |
 

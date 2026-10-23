@@ -10,6 +10,7 @@ quasi-static geometric estimates (thin-wire, low-frequency model; no capacitors,
 full-wave co-simulation (sim/) adds capacitors, a placeholder head phantom and wave effects, but is unvalidated against
 measurement. Since v1.9 crossings between coils are separated by outward bumps; in dense knot arrays some
 crossings cannot be separated and the app marks those arrays "not buildable as drawn" (open item).
+A proposed v1.11 (2026-10-23, pending Reza Farivar's approval) links the app to COMSOL; its results are exploratory.
 Confirm any design with full-wave electromagnetic simulation or bench measurement before building.
 
 AI USE: written with Claude Code (Anthropic AI coding assistant) under the direction of Reza Farivar, who is
@@ -21,8 +22,10 @@ THIRD-PARTY (audit D7):
     openEMS 0.37.0 (GPL-3.0) and CSXCAD (LGPL-3.0)  - sim/run_openems.py
     mariepy 0.0.0.dev106 (GPL-3.0-or-later)          - sim/v20_mariepy.py (cross-check only)
     Magpylib 6.0.0 (BSD-2-Clause per its LICENSE file) - tests/b1_crosscheck.py, sim/cosim.py
-    MPh 1.4.0 (MIT, per its package metadata; John Hennig)  - sim/comsol_build_mph.py (optional)
-    COMSOL Multiphysics + RF Module (proprietary, licensed separately; not used on the development machine)
+    MPh 1.4.0 (MIT, per its package metadata; John Hennig)  - sim/comsol_build_mph.py, sim/comsol_run.py (optional;
+                                                                1.3.1 used for the v1.11 tests)
+    COMSOL Multiphysics + RF Module (proprietary, licensed separately) - v1.11 tests used COMSOL 6.4 on a
+      collaborator's machine; not used on the original development machine
     numpy, scipy, h5py, matplotlib (BSD-style), PyTorch (BSD-3, pulled in by mariepy)
   Archived sources (sources/): Rosa & Grover 1912 (US government publication, NIST);
     NIST CODATA 2022 page (US government work).

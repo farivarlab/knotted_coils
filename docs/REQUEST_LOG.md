@@ -35,6 +35,20 @@ Reza Farivar's instructions during the build session of 2026-10-20, quoted, with
 
 | 26 | (2026-10-21) "Is the output ready for input and validation in COMSOL? How easy is that to add?" · "add the COMSOL export first" | Design v1.10: export_comsol.py, comsol_build_mph.py (MPh, UNVALIDATED), V25 |
 
+## Requests from a collaborator working on a shared copy (2026-10-23)
+
+Reza remains the owner; these changes are proposals for his approval (Design v1.11).
+
+| # | Instruction (quoted) | What it produced |
+|---|---|---|
+| C1 | "try to clean it up a bit too" | Housekeeping: portable default paths, stale text, line endings (DECISIONS 2026-10-23) |
+| C2 | "fix the graphics issue" · "make everything stay within the page limit" · "can i run it with firefox" | App 0.5.1: page survives a browser without WebGL; canvases no longer grow on high-resolution screens; coupling matrix fits narrow windows |
+| C3 | "generate a COMSOL simulation out of the array or singular (or just two knotted coil, anything) … simulate the COMSOL simulation under the hood … bring back the COMSOL results back into the web app … validate basically b1 maps and decoupling graphs using COMSOL" · ports only for arrays, "the ports and the required impedance matching (gap and shunt capacitor, complete)" for one or two coils · app's ellipsoid head · no pass/fail | Design v1.11 PROPOSED: `core/simcase.js`, `sim/comsol_run.py`, COMSOL job runner in `tools/serve.js`, comparison views (app 0.6.0) |
+| C4 | "maybe put some insulation in those areas (the crossings)" | Dielectric beads at every crossing and crossover (placeholder εr) |
+| C5 | "make sure Reza remains the sole owner of this code" · "the web app will also remain compatible with Windows" | Provenance unchanged, v1.11 written as a proposal; Windows-aware Python discovery, job start and cancel |
+| C6 | "remove all the added texts … it should be a very minimal addition very suble, a button and one or two senteces of explanation and a new graph" · "change check in COMSOL to verify in COMSOL" · "show some progress also of the COMSOL run in the GUI" · "keep the settings … so it doest reset to default when i refresh the page" · "verify in comsol should be greyed out if there is a comsol app alreay running" | App 0.6.0: minimal COMSOL card, progress bar, settings remembered in the browser, one run at a time, Cancel stops COMSOL |
+| C7 | "implementing the estimating of B1 field of the whole array using COMSOL and transferring reulsts back to the web app" · "so for complete array and b1 field (only port is needed) no tuning and matcing only the port" · "make sure to bolster the size check so we don't simulate weird stuff in COMSOL" | Arrays: one port per coil, B1 maps and coupling in the app; pre-flight check in the app and the script (DECISIONS 2026-10-23) |
+
 ## Standing instructions that shaped the work
 
 These come from Reza's workspace instructions (his global `CLAUDE.md`). The ones relevant to this project:

@@ -4,3 +4,6 @@ node_modules/
 sim/out/**/*.npz
 sim/comsol/*/build_plan.txt
 __pycache__/
+sim/comsol_jobs/
+*.mph
+*.mph.lock
